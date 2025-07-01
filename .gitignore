@@ -1,2 +1,5 @@
 *.sw*
 .vscode/
+playground/logs
+playground/tmp
+playground/node_modules
