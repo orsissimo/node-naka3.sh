@@ -1,113 +1,121 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Icarus Sandbox - Stacks Blockchain Tools</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <h1>Icarus Sandbox - Stacks Blockchain Tools</h1>
-    
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Scripts - Stacks Playground</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <h1>Scripts - Stacks Playground</h1>
+
+    <div style="margin-bottom: 20px">
+      <button onclick="window.location.href='advanced.html'">
+        Go to Advanced View
+      </button>
+    </div>
+
     <h2>Available Scripts</h2>
-    
+
     <div id="output"></div>
-    
+
     <h3>1. Monitor Chain</h3>
     <p>Monitor the Stacks blockchain in real-time</p>
     <select id="minerSelectMonitor">
-        <option value="miner1">Miner 1 (Port 20443)</option>
-        <option value="miner2">Miner 2 (Port 30443)</option>
-        <option value="miner3">Miner 3 (Port 40443)</option>
+      <option value="miner1">Miner 1 (Port 20443)</option>
+      <option value="miner2">Miner 2 (Port 30443)</option>
+      <option value="miner3">Miner 3 (Port 40443)</option>
     </select>
-    <button onclick="runScript('monitor')" id="monitorBtn">Start Chain Monitoring</button>
-    <button onclick="stopMonitoring()" id="stopBtn" style="display:none;">Stop Monitoring</button>
-    
+    <button onclick="runScript('monitor')" id="monitorBtn">
+      Start Chain Monitoring
+    </button>
+    <button onclick="stopMonitoring()" id="stopBtn" style="display: none">
+      Stop Monitoring
+    </button>
+
     <h3>2. Create Transaction</h3>
     <p>Create and submit a STX token transfer transaction</p>
     <select id="minerSelect1">
-        <option value="miner1">Miner 1 (Port 20443)</option>
-        <option value="miner2">Miner 2 (Port 30443)</option>
-        <option value="miner3">Miner 3 (Port 40443)</option>
+      <option value="miner1">Miner 1 (Port 20443)</option>
+      <option value="miner2">Miner 2 (Port 30443)</option>
+      <option value="miner3">Miner 3 (Port 40443)</option>
     </select>
     <button onclick="runScript('transaction')">Create Transaction</button>
-    
+
     <h3>3. Deploy Contract</h3>
     <p>Deploy a simple smart contract to the Stacks blockchain</p>
     <select id="minerSelect2">
-        <option value="miner1">Miner 1 (Port 20443)</option>
-        <option value="miner2">Miner 2 (Port 30443)</option>
-        <option value="miner3">Miner 3 (Port 40443)</option>
+      <option value="miner1">Miner 1 (Port 20443)</option>
+      <option value="miner2">Miner 2 (Port 30443)</option>
+      <option value="miner3">Miner 3 (Port 40443)</option>
     </select>
     <button onclick="runScript('contract')">Deploy Contract</button>
-    
 
     <script>
-        let monitorProcess = null;
-        
-        async function runScript(scriptType) {
-            const output = document.getElementById('output');
-            let command = '';
-            let miner = 'miner1';
-            
-            if (scriptType === 'transaction') {
-                miner = document.getElementById('minerSelect1').value;
-                command = `bash create-transaction.sh ${miner}`;
-            } else if (scriptType === 'contract') {
-                miner = document.getElementById('minerSelect2').value;
-                command = `bash deploy-contract.sh ${miner}`;
-            } else if (scriptType === 'monitor') {
-                miner = document.getElementById('minerSelectMonitor').value;
-                command = `bash monitor-chain.sh ${miner}`;
-                document.getElementById('monitorBtn').style.display = 'none';
-                document.getElementById('stopBtn').style.display = 'inline';
-            }
-            
-            output.innerHTML = `<h3>Running: ${command}</h3>`;
-            output.innerHTML += `<div id="scriptOutput"></div>`;
-            
-            try {
-                const response = await fetch('/execute', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ command: command, type: scriptType })
-                });
-                
-                if (!response.ok) {
-                    throw new Error('Script execution failed');
-                }
-                
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-                const scriptOutput = document.getElementById('scriptOutput');
-                
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    
-                    const chunk = decoder.decode(value);
-                    scriptOutput.innerHTML += chunk;
-                    scriptOutput.scrollTop = scriptOutput.scrollHeight;
-                }
-                
-            } catch (error) {
-                const scriptOutput = document.getElementById('scriptOutput');
-                scriptOutput.innerHTML = `Error: ${error.message}<br><br>To run manually:<br>cd /home/simone/Desktop/icarus-project/icarus-sandbox && ${command}`;
-            }
+      let monitorProcess = null;
+
+      async function runScript(scriptType) {
+        const output = document.getElementById("output");
+        let command = "";
+        let miner = "miner1";
+
+        if (scriptType === "transaction") {
+          miner = document.getElementById("minerSelect1").value;
+          command = `bash create-transaction.sh ${miner}`;
+        } else if (scriptType === "contract") {
+          miner = document.getElementById("minerSelect2").value;
+          command = `bash deploy-contract.sh ${miner}`;
+        } else if (scriptType === "monitor") {
+          miner = document.getElementById("minerSelectMonitor").value;
+          command = `bash monitor-chain.sh ${miner}`;
+          document.getElementById("monitorBtn").style.display = "none";
+          document.getElementById("stopBtn").style.display = "inline";
         }
-        
-        function stopMonitoring() {
-            if (monitorProcess) {
-                // Send signal to stop monitoring process
-                fetch('/stop-monitor', { method: 'POST' });
-            }
-            document.getElementById('monitorBtn').style.display = 'inline';
-            document.getElementById('stopBtn').style.display = 'none';
-            document.getElementById('output').innerHTML += '<p style="color: red;">Monitoring stopped.</p>';
+
+        output.innerHTML = `<h3>Running: ${command}</h3>`;
+        output.innerHTML += `<div id="scriptOutput"></div>`;
+
+        try {
+          const response = await fetch("/execute", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ command: command, type: scriptType }),
+          });
+
+          if (!response.ok) {
+            throw new Error("Script execution failed");
+          }
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          const scriptOutput = document.getElementById("scriptOutput");
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            scriptOutput.innerHTML += chunk;
+            scriptOutput.scrollTop = scriptOutput.scrollHeight;
+          }
+        } catch (error) {
+          const scriptOutput = document.getElementById("scriptOutput");
+          scriptOutput.innerHTML = `Error: ${error.message}<br><br>To run manually:<br>cd /home/simone/Desktop/icarus-project/icarus-sandbox && ${command}`;
         }
-        
+      }
+
+      function stopMonitoring() {
+        if (monitorProcess) {
+          // Send signal to stop monitoring process
+          fetch("/stop-monitor", { method: "POST" });
+        }
+        document.getElementById("monitorBtn").style.display = "inline";
+        document.getElementById("stopBtn").style.display = "none";
+        document.getElementById("output").innerHTML +=
+          '<p style="color: red;">Monitoring stopped.</p>';
+      }
     </script>
-</body>
+  </body>
 </html>

@@ -3,11 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Advanced Monitoring - Stacks Blockchain Tools</title>
-    <link rel="stylesheet" href="advanced-styles.css">
+    <title>Advanced - Stacks Playground</title>
+    <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <h1>Advanced Monitoring - Stacks Blockchain Tools</h1>
+    <h1>Advanced - Stacks Playground</h1>
+
+    <div style="margin-bottom: 20px">
+      <button onclick="window.location.href='index.html'">
+        Go to Scripts View
+      </button>
+    </div>
 
     <div class="container">
       <div class="left-panel">
@@ -136,7 +142,10 @@
         if (output.includes("No such transaction")) {
           tx.errorReason = "TransactionNotFound";
           tx.status = "failed";
-        } else if (output.includes("unchanged") && output.includes("✓ Transaction confirmed!")) {
+        } else if (
+          output.includes("unchanged") &&
+          output.includes("✓ Transaction confirmed!")
+        ) {
           tx.errorReason = "TransactionFailedOnChain";
           tx.status = "failed";
         }
@@ -146,17 +155,17 @@
         const tx = transactions.find((t) => t.id === txId);
         if (tx) {
           tx.fullOutput += chunk;
-          
+
           // Extract blockchain data as chunks arrive
           extractBlockchainData(tx, tx.fullOutput);
-          
+
           // Update the detail div if it's currently visible
           const detailDiv = document.getElementById(`detail-${txId}`);
           if (detailDiv && detailDiv.style.display === "block") {
             detailDiv.innerHTML = tx.fullOutput || "No output captured yet...";
             detailDiv.scrollTop = detailDiv.scrollHeight;
           }
-          
+
           // Update the log display to show new blockchain data
           updateLogDisplay();
         }
@@ -174,8 +183,10 @@
             entryDiv.className = `log-entry ${tx.status}`;
             entryDiv.onclick = () => toggleLogDetail(tx.id);
 
-            let displayInfo = `<strong>${tx.type.toUpperCase()}</strong> on ${tx.miner} at ${tx.timestamp} - Status: ${tx.status.toUpperCase()}`;
-            
+            let displayInfo = `<strong>${tx.type.toUpperCase()}</strong> on ${
+              tx.miner
+            } at ${tx.timestamp} - Status: ${tx.status.toUpperCase()}`;
+
             // Add blockchain data if available
             const details = [];
             if (tx.realTxId) {
@@ -190,11 +201,11 @@
             if (tx.errorReason) {
               details.push(`Error: ${tx.errorReason}`);
             }
-            
+
             if (details.length > 0) {
-              displayInfo += `<br><small>${details.join(' | ')}</small>`;
+              displayInfo += `<br><small>${details.join(" | ")}</small>`;
             }
-            
+
             entryDiv.innerHTML = displayInfo;
 
             const detailDiv = document.createElement("div");
@@ -252,34 +263,45 @@
 
             const chunk = decoder.decode(value);
             output += chunk;
-            
+
             // Update the transaction output in real-time
             appendTransactionOutput(txId, chunk);
-            
+
             // Check for transaction ID as we receive chunks
             const txIdMatch = output.match(/Transaction ID: "([a-f0-9]+)"/);
-            const errorMatch = output.match(/Transaction ID: \{"error":"transaction rejected","reason":"([^"]+)","txid":"([a-f0-9]+)"\}/);
-            
-            if (errorMatch && !transactions.find(t => t.id === txId).realTxId) {
+            const errorMatch = output.match(
+              /Transaction ID: \{"error":"transaction rejected","reason":"([^"]+)","txid":"([a-f0-9]+)"\}/
+            );
+
+            if (
+              errorMatch &&
+              !transactions.find((t) => t.id === txId).realTxId
+            ) {
               // Handle JSON error response
               const realTxId = errorMatch[2];
               const errorReason = errorMatch[1];
               updateTransactionStatus(txId, "failed", realTxId);
-            } else if (txIdMatch && !transactions.find(t => t.id === txId).realTxId) {
+            } else if (
+              txIdMatch &&
+              !transactions.find((t) => t.id === txId).realTxId
+            ) {
               // Handle normal transaction ID
               const realTxId = txIdMatch[1];
               updateTransactionStatus(txId, "mempool", realTxId);
             }
-            
+
             // Check for confirmation as we receive chunks
             if (output.includes("✓ Transaction confirmed!")) {
               const txIdMatch = output.match(/Transaction ID: "([a-f0-9]+)"/);
               const realTxId = txIdMatch ? txIdMatch[1] : null;
-              
+
               // Only mark as confirmed if we have successful JSON result
               if (output.includes('"result": "(ok true)"')) {
                 updateTransactionStatus(txId, "confirmed", realTxId);
-              } else if (output.includes("No such transaction") || output.includes("unchanged")) {
+              } else if (
+                output.includes("No such transaction") ||
+                output.includes("unchanged")
+              ) {
                 // Transaction was processed but failed on-chain
                 updateTransactionStatus(txId, "failed", realTxId);
               }
@@ -288,8 +310,10 @@
 
           // Final check if script failed
           const txIdMatch = output.match(/Transaction ID: "([a-f0-9]+)"/);
-          const errorMatch = output.match(/Transaction ID: \{"error":"transaction rejected"/);
-          
+          const errorMatch = output.match(
+            /Transaction ID: \{"error":"transaction rejected"/
+          );
+
           if (
             output.includes("Process exited with code 1") ||
             output.includes("Error:") ||
@@ -304,7 +328,10 @@
           }
 
           // If not confirmed yet, start polling
-          if (!output.includes("✓ Transaction confirmed!") || !output.includes('"result": "(ok true)"')) {
+          if (
+            !output.includes("✓ Transaction confirmed!") ||
+            !output.includes('"result": "(ok true)"')
+          ) {
             const realTxId = txIdMatch[1];
             setTimeout(() => verifyTransaction(txId, realTxId, miner), 2000);
           }
@@ -352,34 +379,45 @@
 
             const chunk = decoder.decode(value);
             output += chunk;
-            
+
             // Update the transaction output in real-time
             appendTransactionOutput(txId, chunk);
-            
+
             // Check for transaction ID as we receive chunks
             const txIdMatch = output.match(/Transaction ID: "([a-f0-9]+)"/);
-            const errorMatch = output.match(/Transaction ID: \{"error":"transaction rejected","reason":"([^"]+)","txid":"([a-f0-9]+)"\}/);
-            
-            if (errorMatch && !transactions.find(t => t.id === txId).realTxId) {
+            const errorMatch = output.match(
+              /Transaction ID: \{"error":"transaction rejected","reason":"([^"]+)","txid":"([a-f0-9]+)"\}/
+            );
+
+            if (
+              errorMatch &&
+              !transactions.find((t) => t.id === txId).realTxId
+            ) {
               // Handle JSON error response
               const realTxId = errorMatch[2];
               const errorReason = errorMatch[1];
               updateTransactionStatus(txId, "failed", realTxId);
-            } else if (txIdMatch && !transactions.find(t => t.id === txId).realTxId) {
+            } else if (
+              txIdMatch &&
+              !transactions.find((t) => t.id === txId).realTxId
+            ) {
               // Handle normal transaction ID
               const realTxId = txIdMatch[1];
               updateTransactionStatus(txId, "mempool", realTxId);
             }
-            
+
             // Check for confirmation as we receive chunks
             if (output.includes("✓ Contract deployment confirmed!")) {
               const txIdMatch = output.match(/Transaction ID: "([a-f0-9]+)"/);
               const realTxId = txIdMatch ? txIdMatch[1] : null;
-              
+
               // Only mark as confirmed if we have successful JSON result
               if (output.includes('"result": "(ok true)"')) {
                 updateTransactionStatus(txId, "confirmed", realTxId);
-              } else if (output.includes("No such transaction") || output.includes("unchanged")) {
+              } else if (
+                output.includes("No such transaction") ||
+                output.includes("unchanged")
+              ) {
                 // Transaction was processed but failed on-chain
                 updateTransactionStatus(txId, "failed", realTxId);
               }
@@ -388,8 +426,10 @@
 
           // Final check if script failed
           const txIdMatch = output.match(/Transaction ID: "([a-f0-9]+)"/);
-          const errorMatch = output.match(/Transaction ID: \{"error":"transaction rejected"/);
-          
+          const errorMatch = output.match(
+            /Transaction ID: \{"error":"transaction rejected"/
+          );
+
           if (
             output.includes("Process exited with code 1") ||
             output.includes("Error:") ||
@@ -404,7 +444,10 @@
           }
 
           // If not confirmed yet, start polling
-          if (!output.includes("✓ Contract deployment confirmed!") || !output.includes('"result": "(ok true)"')) {
+          if (
+            !output.includes("✓ Contract deployment confirmed!") ||
+            !output.includes('"result": "(ok true)"')
+          ) {
             const realTxId = txIdMatch[1];
             setTimeout(() => verifyTransaction(txId, realTxId, miner), 2000);
           }
