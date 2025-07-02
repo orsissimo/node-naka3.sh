@@ -82,6 +82,10 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+app.get('/advanced', (req, res) => {
+    res.sendFile(path.join(__dirname, 'advanced.html'));
+});
+
 app.listen(PORT, () => {
     console.log(`Icarus Sandbox server running on http://localhost:${PORT}`);
     console.log('Available scripts:');

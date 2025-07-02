@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Advanced Monitoring - Stacks Blockchain Tools</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 20px;
+        font-family: Arial, sans-serif;
+        box-sizing: border-box;
+      }
+      .container {
+        display: flex;
+        height: calc(100vh - 80px);
+        gap: 20px;
+      }
+      .left-panel {
+        width: 50%;
+        min-width: 50%;
+        display: flex;
+        flex-direction: column;
+      }
+      .right-panel {
+        width: 50%;
+        min-width: 50%;
+        display: flex;
+        flex-direction: column;
+      }
+      .controls {
+        flex-shrink: 0;
+        padding: 20px;
+        border: 1px solid #ddd;
+        margin-bottom: 20px;
+      }
+      .log-container {
+        flex-grow: 1;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        padding: 15px;
+        min-height: 0;
+      }
+      .monitor-section {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+      }
+      .monitor-controls {
+        flex-shrink: 0;
+        padding: 20px;
+        border: 1px solid #ddd;
+        margin-bottom: 20px;
+      }
+      .monitor-output {
+        flex-grow: 1;
+        background: #000;
+        color: #fff;
+        padding: 15px;
+        font-family: monospace;
+        white-space: pre-wrap;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        min-height: 0;
+      }
+      .log-entry.failed {
+        color: red;
+      }
+      .log-entry.mempool {
+        color: orange;
+      }
+      .log-entry.confirmed {
+        color: green;
+      }
+      .log-entry {
+        cursor: pointer;
+        margin: 8px 0;
+        padding: 8px;
+        border: 1px solid #ddd;
+        word-wrap: break-word;
+      }
+      .log-entry:hover {
+        background-color: #f5f5f5;
+      }
+      .log-detail {
+        display: none;
+        background: #000;
+        color: #fff;
+        padding: 10px;
+        font-family: monospace;
+        white-space: pre-wrap;
+        max-height: 200px;
+        overflow-y: auto;
+        margin-top: 5px;
+        border: 1px solid #333;
+        word-wrap: break-word;
+      }
+      /* ANSI color support for script outputs */
+      .log-detail span[style*="color:#0A0"] {
+        color: #00ff00 !important;
+      }
+      .log-detail span[style*="color:#A00"] {
+        color: #ff0000 !important;
+      }
+      .log-detail span[style*="color:#0AA"] {
+        color: #00ffff !important;
+      }
+      .log-detail span[style*="color:#A50"] {
+        color: #ffaa00 !important;
+      }
+      .log-detail span[style*="color:#AAA"] {
+        color: #aaaaaa !important;
+      }
+      h1,
+      h2,
+      h3 {
+        margin-top: 0;
+      }
+      select,
+      button {
+        margin: 5px;
+        padding: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="left-panel">
+        <div class="monitor-controls">
+          <h2>Chain Monitor</h2>
+          <select id="minerSelectMonitor">
+            <option value="miner1">Miner 1 (Port 20443)</option>
+            <option value="miner2">Miner 2 (Port 30443)</option>
+            <option value="miner3">Miner 3 (Port 40443)</option>
+          </select>
+          <button onclick="startMonitoring()" id="startMonitorBtn">
+            Start Monitoring
+          </button>
+          <button
+            onclick="stopMonitoring()"
+            id="stopMonitorBtn"
+            style="display: none"
+          >
+            Stop Monitoring
+          </button>
+        </div>
+
+        <div id="monitorOutput" class="monitor-output"></div>
+      </div>
+
+      <div class="right-panel">
+        <div class="controls">
+          <h2>Transaction Operations</h2>
+
+          <h3>Create Transaction</h3>
+          <select id="minerSelectTx">
+            <option value="miner1">Miner 1 (Port 20443)</option>
+            <option value="miner2">Miner 2 (Port 30443)</option>
+            <option value="miner3">Miner 3 (Port 40443)</option>
+          </select>
+          <button onclick="createTransaction()">Create Transaction</button>
+
+          <h3>Deploy Contract</h3>
+          <select id="minerSelectContract">
+            <option value="miner1">Miner 1 (Port 20443)</option>
+            <option value="miner2">Miner 2 (Port 30443)</option>
+            <option value="miner3">Miner 3 (Port 40443)</option>
+          </select>
+          <button onclick="deployContract()">Deploy Contract</button>
+        </div>
+
+        <div class="log-container">
+          <h2>Transaction Log</h2>
+          <div id="transactionLog"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let monitorProcess = null;
+      let transactions = [];
+      let transactionCounter = 1;
+
+      function generateTransactionId() {
+        return `tx_${Date.now()}_${transactionCounter++}`;
+      }
+
+      function addLogEntry(txId, type, miner, status = "mempool") {
+        const timestamp = new Date().toLocaleTimeString();
+        const transaction = {
+          id: txId,
+          type: type,
+          miner: miner,
+          status: status,
+          timestamp: timestamp,
+          realTxId: null,
+          fullOutput: "",
+        };
+
+        transactions.push(transaction);
+        updateLogDisplay();
+        return transaction;
+      }
+
+      function updateTransactionStatus(
+        txId,
+        status,
+        realTxId = null,
+        fullOutput = null
+      ) {
+        const tx = transactions.find((t) => t.id === txId);
+        if (tx) {
+          tx.status = status;
+          if (realTxId) {
+            tx.realTxId = realTxId;
+          }
+          if (fullOutput) {
+            tx.fullOutput = fullOutput;
+          }
+          updateLogDisplay();
+        }
+      }
+
+      function updateLogDisplay() {
+        const logDiv = document.getElementById("transactionLog");
+        logDiv.innerHTML = "";
+
+        transactions
+          .slice()
+          .reverse()
+          .forEach((tx) => {
+            const entryDiv = document.createElement("div");
+            entryDiv.className = `log-entry ${tx.status}`;
+            entryDiv.onclick = () => toggleLogDetail(tx.id);
+
+            entryDiv.innerHTML = `
+                    <strong>${tx.type.toUpperCase()}</strong> on ${
+              tx.miner
+            } at ${tx.timestamp} - Status: ${tx.status.toUpperCase()}<br>
+                    <small>ID: ${tx.id}${
+              tx.realTxId
+                ? ` | Real TX: ${tx.realTxId.substring(0, 16)}...`
+                : ""
+            }</small>
+                `;
+
+            const detailDiv = document.createElement("div");
+            detailDiv.id = `detail-${tx.id}`;
+            detailDiv.className = "log-detail";
+            detailDiv.innerHTML = tx.fullOutput || "No output captured yet...";
+
+            logDiv.appendChild(entryDiv);
+            logDiv.appendChild(detailDiv);
+          });
+      }
+
+      function toggleLogDetail(txId) {
+        const detailDiv = document.getElementById(`detail-${txId}`);
+        if (
+          detailDiv.style.display === "none" ||
+          detailDiv.style.display === ""
+        ) {
+          detailDiv.style.display = "block";
+        } else {
+          detailDiv.style.display = "none";
+        }
+      }
+
+      async function createTransaction() {
+        const miner = document.getElementById("minerSelectTx").value;
+        const txId = generateTransactionId();
+
+        try {
+          const logEntry = addLogEntry(txId, "transaction", miner, "mempool");
+
+          const response = await fetch("/execute", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              command: `bash create-transaction.sh ${miner}`,
+              type: "transaction",
+            }),
+          });
+
+          if (!response.ok) {
+            updateTransactionStatus(txId, "failed");
+            return;
+          }
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let output = "";
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            output += chunk;
+          }
+
+          // Check if script failed (contains error message or no transaction ID)
+          const txIdMatch = output.match(/Transaction ID: "([a-f0-9]+)"/);
+          if (
+            output.includes("Process exited with code 1") ||
+            output.includes("Error:") ||
+            output.includes("Invalid miner") ||
+            output.includes("Failed to decode") ||
+            output.includes("Failed to deserialize") ||
+            !txIdMatch
+          ) {
+            updateTransactionStatus(txId, "failed", null, output);
+            return;
+          }
+
+          // If we have a transaction ID, it was submitted to mempool
+          const realTxId = txIdMatch[1];
+          updateTransactionStatus(txId, "mempool", realTxId, output);
+
+          // Check if transaction was confirmed (script handles this internally)
+          if (output.includes("✓ Transaction confirmed!")) {
+            updateTransactionStatus(txId, "confirmed", realTxId, output);
+          } else {
+            // If not confirmed yet, start polling
+            setTimeout(() => verifyTransaction(txId, realTxId, miner), 2000);
+          }
+        } catch (error) {
+          console.error("Transaction creation error:", error);
+          updateTransactionStatus(
+            txId,
+            "failed",
+            null,
+            `Error: ${error.message}`
+          );
+        }
+      }
+
+      async function deployContract() {
+        const miner = document.getElementById("minerSelectContract").value;
+        const txId = generateTransactionId();
+
+        try {
+          const logEntry = addLogEntry(txId, "contract", miner, "mempool");
+
+          const response = await fetch("/execute", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              command: `bash deploy-contract.sh ${miner}`,
+              type: "contract",
+            }),
+          });
+
+          if (!response.ok) {
+            updateTransactionStatus(txId, "failed");
+            return;
+          }
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let output = "";
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            output += chunk;
+          }
+
+          // Check if script failed (contains error message or no transaction ID)
+          const txIdMatch = output.match(/Transaction ID: "([a-f0-9]+)"/);
+          if (
+            output.includes("Process exited with code 1") ||
+            output.includes("Error:") ||
+            output.includes("Invalid miner") ||
+            output.includes("Failed to decode") ||
+            output.includes("Failed to deserialize") ||
+            !txIdMatch
+          ) {
+            updateTransactionStatus(txId, "failed", null, output);
+            return;
+          }
+
+          // If we have a transaction ID, it was submitted to mempool
+          const realTxId = txIdMatch[1];
+          updateTransactionStatus(txId, "mempool", realTxId, output);
+
+          // Check if contract deployment was confirmed (script handles this internally)
+          if (output.includes("✓ Contract deployment confirmed!")) {
+            updateTransactionStatus(txId, "confirmed", realTxId, output);
+          } else {
+            // If not confirmed yet, start polling
+            setTimeout(() => verifyTransaction(txId, realTxId, miner), 2000);
+          }
+        } catch (error) {
+          console.error("Contract deployment error:", error);
+          updateTransactionStatus(
+            txId,
+            "failed",
+            null,
+            `Error: ${error.message}`
+          );
+        }
+      }
+
+      async function verifyTransaction(txId, realTxId, miner) {
+        const minerPorts = {
+          miner1: 20443,
+          miner2: 30443,
+          miner3: 40443,
+        };
+
+        const port = minerPorts[miner];
+        const apiUrl = `http://localhost:${port}`;
+
+        let attempts = 0;
+        const maxAttempts = 15;
+        const interval = 3000;
+
+        const checkStatus = async () => {
+          try {
+            // Use POST method for v3/transaction endpoint as per OpenAPI spec
+            const response = await fetch(
+              `${apiUrl}/v3/transaction/${realTxId}`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+
+            if (response.ok) {
+              const txData = await response.json();
+              // Check if transaction result indicates success/completion
+              if (txData && txData.result) {
+                updateTransactionStatus(txId, "confirmed");
+                return;
+              }
+            }
+
+            attempts++;
+            if (attempts < maxAttempts) {
+              setTimeout(checkStatus, interval);
+            }
+          } catch (error) {
+            attempts++;
+            if (attempts < maxAttempts) {
+              setTimeout(checkStatus, interval);
+            }
+          }
+        };
+
+        // Start checking after a short delay
+        setTimeout(checkStatus, 3000);
+      }
+
+      async function startMonitoring() {
+        const miner = document.getElementById("minerSelectMonitor").value;
+        const output = document.getElementById("monitorOutput");
+
+        document.getElementById("startMonitorBtn").style.display = "none";
+        document.getElementById("stopMonitorBtn").style.display = "inline";
+
+        output.innerHTML = `Starting monitoring for ${miner}...\n`;
+
+        try {
+          const response = await fetch("/execute", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              command: `bash monitor-chain.sh ${miner}`,
+              type: "monitor",
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error("Monitor startup failed");
+          }
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            output.innerHTML += chunk;
+            output.scrollTop = output.scrollHeight;
+          }
+        } catch (error) {
+          output.innerHTML += `\nError: ${error.message}`;
+        }
+      }
+
+      function stopMonitoring() {
+        fetch("/stop-monitor", { method: "POST" });
+
+        document.getElementById("startMonitorBtn").style.display = "inline";
+        document.getElementById("stopMonitorBtn").style.display = "none";
+
+        const output = document.getElementById("monitorOutput");
+        output.innerHTML += "\n\nMonitoring stopped.\n";
+      }
+    </script>
+  </body>
+</html>
