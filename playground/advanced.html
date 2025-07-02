@@ -4,126 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Advanced Monitoring - Stacks Blockchain Tools</title>
-    <style>
-      body {
-        margin: 0;
-        padding: 20px;
-        font-family: Arial, sans-serif;
-        box-sizing: border-box;
-      }
-      .container {
-        display: flex;
-        height: calc(100vh - 80px);
-        gap: 20px;
-      }
-      .left-panel {
-        width: 50%;
-        min-width: 50%;
-        display: flex;
-        flex-direction: column;
-      }
-      .right-panel {
-        width: 50%;
-        min-width: 50%;
-        display: flex;
-        flex-direction: column;
-      }
-      .controls {
-        flex-shrink: 0;
-        padding: 20px;
-        border: 1px solid #ddd;
-        margin-bottom: 20px;
-      }
-      .log-container {
-        flex-grow: 1;
-        overflow-y: auto;
-        border: 1px solid #ddd;
-        padding: 15px;
-        min-height: 0;
-      }
-      .monitor-section {
-        flex-grow: 1;
-        display: flex;
-        flex-direction: column;
-      }
-      .monitor-controls {
-        flex-shrink: 0;
-        padding: 20px;
-        border: 1px solid #ddd;
-        margin-bottom: 20px;
-      }
-      .monitor-output {
-        flex-grow: 1;
-        background: #000;
-        color: #fff;
-        padding: 15px;
-        font-family: monospace;
-        white-space: pre-wrap;
-        overflow-y: auto;
-        border: 1px solid #ddd;
-        min-height: 0;
-      }
-      .log-entry.failed {
-        color: red;
-      }
-      .log-entry.mempool {
-        color: orange;
-      }
-      .log-entry.confirmed {
-        color: green;
-      }
-      .log-entry {
-        cursor: pointer;
-        margin: 8px 0;
-        padding: 8px;
-        border: 1px solid #ddd;
-        word-wrap: break-word;
-      }
-      .log-entry:hover {
-        background-color: #f5f5f5;
-      }
-      .log-detail {
-        display: none;
-        background: #000;
-        color: #fff;
-        padding: 10px;
-        font-family: monospace;
-        white-space: pre-wrap;
-        max-height: 200px;
-        overflow-y: auto;
-        margin-top: 5px;
-        border: 1px solid #333;
-        word-wrap: break-word;
-      }
-      /* ANSI color support for script outputs */
-      .log-detail span[style*="color:#0A0"] {
-        color: #00ff00 !important;
-      }
-      .log-detail span[style*="color:#A00"] {
-        color: #ff0000 !important;
-      }
-      .log-detail span[style*="color:#0AA"] {
-        color: #00ffff !important;
-      }
-      .log-detail span[style*="color:#A50"] {
-        color: #ffaa00 !important;
-      }
-      .log-detail span[style*="color:#AAA"] {
-        color: #aaaaaa !important;
-      }
-      h1,
-      h2,
-      h3 {
-        margin-top: 0;
-      }
-      select,
-      button {
-        margin: 5px;
-        padding: 8px;
-      }
-    </style>
+    <link rel="stylesheet" href="advanced-styles.css">
   </head>
   <body>
+    <h1>Advanced Monitoring - Stacks Blockchain Tools</h1>
+
     <div class="container">
       <div class="left-panel">
         <div class="monitor-controls">
@@ -195,6 +80,10 @@
           timestamp: timestamp,
           realTxId: null,
           fullOutput: "",
+          nonce: null,
+          stacksHeight: null,
+          burnHeight: null,
+          errorReason: null,
         };
 
         transactions.push(transaction);
@@ -214,9 +103,61 @@
           if (realTxId) {
             tx.realTxId = realTxId;
           }
-          if (fullOutput) {
+          if (fullOutput !== null) {
             tx.fullOutput = fullOutput;
+            // Extract blockchain data from output
+            extractBlockchainData(tx, fullOutput);
           }
+          updateLogDisplay();
+        }
+      }
+
+      function extractBlockchainData(tx, output) {
+        // Extract nonce
+        const nonceMatch = output.match(/Nonce: (\d+)/);
+        if (nonceMatch) {
+          tx.nonce = nonceMatch[1];
+        }
+
+        // Extract block heights
+        const heightMatch = output.match(/Block: (\d+)→(\d+)/);
+        if (heightMatch) {
+          tx.stacksHeight = heightMatch[2];
+        }
+
+        // Extract error reason from JSON error response
+        const errorMatch = output.match(/"reason":"([^"]+)"/);
+        if (errorMatch) {
+          tx.errorReason = errorMatch[1];
+          tx.status = "failed";
+        }
+
+        // Check for on-chain failure indicators
+        if (output.includes("No such transaction")) {
+          tx.errorReason = "TransactionNotFound";
+          tx.status = "failed";
+        } else if (output.includes("unchanged") && output.includes("✓ Transaction confirmed!")) {
+          tx.errorReason = "TransactionFailedOnChain";
+          tx.status = "failed";
+        }
+      }
+
+      function appendTransactionOutput(txId, chunk) {
+        const tx = transactions.find((t) => t.id === txId);
+        if (tx) {
+          tx.fullOutput += chunk;
+          
+          // Extract blockchain data as chunks arrive
+          extractBlockchainData(tx, tx.fullOutput);
+          
+          // Update the detail div if it's currently visible
+          const detailDiv = document.getElementById(`detail-${txId}`);
+          if (detailDiv && detailDiv.style.display === "block") {
+            detailDiv.innerHTML = tx.fullOutput || "No output captured yet...";
+            detailDiv.scrollTop = detailDiv.scrollHeight;
+          }
+          
+          // Update the log display to show new blockchain data
           updateLogDisplay();
         }
       }
@@ -233,16 +174,28 @@
             entryDiv.className = `log-entry ${tx.status}`;
             entryDiv.onclick = () => toggleLogDetail(tx.id);
 
-            entryDiv.innerHTML = `
-                    <strong>${tx.type.toUpperCase()}</strong> on ${
-              tx.miner
-            } at ${tx.timestamp} - Status: ${tx.status.toUpperCase()}<br>
-                    <small>ID: ${tx.id}${
-              tx.realTxId
-                ? ` | Real TX: ${tx.realTxId.substring(0, 16)}...`
-                : ""
-            }</small>
-                `;
+            let displayInfo = `<strong>${tx.type.toUpperCase()}</strong> on ${tx.miner} at ${tx.timestamp} - Status: ${tx.status.toUpperCase()}`;
+            
+            // Add blockchain data if available
+            const details = [];
+            if (tx.realTxId) {
+              details.push(`TX: ${tx.realTxId}`);
+            }
+            if (tx.nonce) {
+              details.push(`Nonce: ${tx.nonce}`);
+            }
+            if (tx.stacksHeight) {
+              details.push(`Block: ${tx.stacksHeight}`);
+            }
+            if (tx.errorReason) {
+              details.push(`Error: ${tx.errorReason}`);
+            }
+            
+            if (details.length > 0) {
+              displayInfo += `<br><small>${details.join(' | ')}</small>`;
+            }
+            
+            entryDiv.innerHTML = displayInfo;
 
             const detailDiv = document.createElement("div");
             detailDiv.id = `detail-${tx.id}`;
@@ -299,31 +252,60 @@
 
             const chunk = decoder.decode(value);
             output += chunk;
+            
+            // Update the transaction output in real-time
+            appendTransactionOutput(txId, chunk);
+            
+            // Check for transaction ID as we receive chunks
+            const txIdMatch = output.match(/Transaction ID: "([a-f0-9]+)"/);
+            const errorMatch = output.match(/Transaction ID: \{"error":"transaction rejected","reason":"([^"]+)","txid":"([a-f0-9]+)"\}/);
+            
+            if (errorMatch && !transactions.find(t => t.id === txId).realTxId) {
+              // Handle JSON error response
+              const realTxId = errorMatch[2];
+              const errorReason = errorMatch[1];
+              updateTransactionStatus(txId, "failed", realTxId);
+            } else if (txIdMatch && !transactions.find(t => t.id === txId).realTxId) {
+              // Handle normal transaction ID
+              const realTxId = txIdMatch[1];
+              updateTransactionStatus(txId, "mempool", realTxId);
+            }
+            
+            // Check for confirmation as we receive chunks
+            if (output.includes("✓ Transaction confirmed!")) {
+              const txIdMatch = output.match(/Transaction ID: "([a-f0-9]+)"/);
+              const realTxId = txIdMatch ? txIdMatch[1] : null;
+              
+              // Only mark as confirmed if we have successful JSON result
+              if (output.includes('"result": "(ok true)"')) {
+                updateTransactionStatus(txId, "confirmed", realTxId);
+              } else if (output.includes("No such transaction") || output.includes("unchanged")) {
+                // Transaction was processed but failed on-chain
+                updateTransactionStatus(txId, "failed", realTxId);
+              }
+            }
           }
 
-          // Check if script failed (contains error message or no transaction ID)
+          // Final check if script failed
           const txIdMatch = output.match(/Transaction ID: "([a-f0-9]+)"/);
+          const errorMatch = output.match(/Transaction ID: \{"error":"transaction rejected"/);
+          
           if (
             output.includes("Process exited with code 1") ||
             output.includes("Error:") ||
             output.includes("Invalid miner") ||
             output.includes("Failed to decode") ||
             output.includes("Failed to deserialize") ||
-            !txIdMatch
+            errorMatch ||
+            (!txIdMatch && !errorMatch)
           ) {
-            updateTransactionStatus(txId, "failed", null, output);
+            updateTransactionStatus(txId, "failed");
             return;
           }
 
-          // If we have a transaction ID, it was submitted to mempool
-          const realTxId = txIdMatch[1];
-          updateTransactionStatus(txId, "mempool", realTxId, output);
-
-          // Check if transaction was confirmed (script handles this internally)
-          if (output.includes("✓ Transaction confirmed!")) {
-            updateTransactionStatus(txId, "confirmed", realTxId, output);
-          } else {
-            // If not confirmed yet, start polling
+          // If not confirmed yet, start polling
+          if (!output.includes("✓ Transaction confirmed!") || !output.includes('"result": "(ok true)"')) {
+            const realTxId = txIdMatch[1];
             setTimeout(() => verifyTransaction(txId, realTxId, miner), 2000);
           }
         } catch (error) {
@@ -370,31 +352,60 @@
 
             const chunk = decoder.decode(value);
             output += chunk;
+            
+            // Update the transaction output in real-time
+            appendTransactionOutput(txId, chunk);
+            
+            // Check for transaction ID as we receive chunks
+            const txIdMatch = output.match(/Transaction ID: "([a-f0-9]+)"/);
+            const errorMatch = output.match(/Transaction ID: \{"error":"transaction rejected","reason":"([^"]+)","txid":"([a-f0-9]+)"\}/);
+            
+            if (errorMatch && !transactions.find(t => t.id === txId).realTxId) {
+              // Handle JSON error response
+              const realTxId = errorMatch[2];
+              const errorReason = errorMatch[1];
+              updateTransactionStatus(txId, "failed", realTxId);
+            } else if (txIdMatch && !transactions.find(t => t.id === txId).realTxId) {
+              // Handle normal transaction ID
+              const realTxId = txIdMatch[1];
+              updateTransactionStatus(txId, "mempool", realTxId);
+            }
+            
+            // Check for confirmation as we receive chunks
+            if (output.includes("✓ Contract deployment confirmed!")) {
+              const txIdMatch = output.match(/Transaction ID: "([a-f0-9]+)"/);
+              const realTxId = txIdMatch ? txIdMatch[1] : null;
+              
+              // Only mark as confirmed if we have successful JSON result
+              if (output.includes('"result": "(ok true)"')) {
+                updateTransactionStatus(txId, "confirmed", realTxId);
+              } else if (output.includes("No such transaction") || output.includes("unchanged")) {
+                // Transaction was processed but failed on-chain
+                updateTransactionStatus(txId, "failed", realTxId);
+              }
+            }
           }
 
-          // Check if script failed (contains error message or no transaction ID)
+          // Final check if script failed
           const txIdMatch = output.match(/Transaction ID: "([a-f0-9]+)"/);
+          const errorMatch = output.match(/Transaction ID: \{"error":"transaction rejected"/);
+          
           if (
             output.includes("Process exited with code 1") ||
             output.includes("Error:") ||
             output.includes("Invalid miner") ||
             output.includes("Failed to decode") ||
             output.includes("Failed to deserialize") ||
-            !txIdMatch
+            errorMatch ||
+            (!txIdMatch && !errorMatch)
           ) {
-            updateTransactionStatus(txId, "failed", null, output);
+            updateTransactionStatus(txId, "failed");
             return;
           }
 
-          // If we have a transaction ID, it was submitted to mempool
-          const realTxId = txIdMatch[1];
-          updateTransactionStatus(txId, "mempool", realTxId, output);
-
-          // Check if contract deployment was confirmed (script handles this internally)
-          if (output.includes("✓ Contract deployment confirmed!")) {
-            updateTransactionStatus(txId, "confirmed", realTxId, output);
-          } else {
-            // If not confirmed yet, start polling
+          // If not confirmed yet, start polling
+          if (!output.includes("✓ Contract deployment confirmed!") || !output.includes('"result": "(ok true)"')) {
+            const realTxId = txIdMatch[1];
             setTimeout(() => verifyTransaction(txId, realTxId, miner), 2000);
           }
         } catch (error) {

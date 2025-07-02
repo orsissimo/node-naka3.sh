@@ -1,0 +1,10 @@
+/* Index page - minimal styling */
+#scriptOutput {
+  background: #000;
+  color: #fff;
+  padding: 10px;
+  font-family: monospace;
+  white-space: pre-wrap;
+  max-height: 400px;
+  overflow-y: auto;
+}
