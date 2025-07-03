@@ -1,5 +1,5 @@
 {
-  "name": "icarus-sandbox-server",
+  "name": "stacks-playground",
   "version": "1.0.0",
   "description": "Node.js server to execute Stacks blockchain scripts",
   "main": "server.js",
