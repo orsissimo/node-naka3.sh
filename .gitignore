@@ -1,5 +1,5 @@
 *.sw*
 .vscode/
-playground/logs
-playground/tmp
-playground/node_modules
+logs
+tmp
+node_modules
