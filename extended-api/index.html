@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Full Stacks Explorer</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+        line-height: 1.6;
+        margin: 2em;
+        background-color: #f9f9f9;
+        color: #333;
+      }
+      input {
+        padding: 10px;
+        font-size: 16px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      button {
+        padding: 10px 15px;
+        cursor: pointer;
+        font-size: 16px;
+        background-color: #5546ff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+      }
+      button:disabled {
+        background-color: #aaa;
+        cursor: not-allowed;
+      }
+      hr {
+        margin: 2em 0;
+        border: 0;
+        border-top: 1px solid #ddd;
+      }
+      h1,
+      h2,
+      h3 {
+        color: #000;
+      }
+      ul {
+        list-style: none;
+        padding: 0;
+      }
+      li {
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin: 10px 0;
+        padding: 12px;
+        background-color: #fff;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      }
+      li.clickable {
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      li.clickable:hover {
+        background-color: #f5f5f5;
+      }
+      pre {
+        background-color: #f0f0f0;
+        padding: 10px;
+        border: 1px solid #ddd;
+        white-space: pre-wrap;
+        word-break: break-all;
+        border-radius: 4px;
+        font-size: 13px;
+      }
+      .info-box {
+        margin-top: 1em;
+        padding: 1em;
+        background-color: #eef;
+        border: 1px solid #cce;
+        border-radius: 4px;
+      }
+      .token-list {
+        margin-left: 20px;
+      }
+      .grid-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1em;
+      }
+      .nft-card {
+        text-align: center;
+        font-size: 14px;
+      }
+      .nft-card strong {
+        display: block;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .container {
+        max-width: 960px;
+        margin: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Full Stacks Explorer</h1>
+      <p>
+        Paste a Stacks address (principal) below to fetch its balances, names,
+        NFTs, and transactions.
+        <br />
+        <i>(e.g., SP3Y2ZSH8P7D50B0VBTSX11S7XSG24M1VB9YFQA4K)</i>
+      </p>
+
+      <div>
+        <input
+          type="text"
+          id="principalInput"
+          placeholder="Enter Stacks Principal"
+          size="50"
+        />
+        <button id="fetchButton">Fetch All Data</button>
+      </div>
+
+      <div id="balanceContainer"></div>
+      <div id="bnsContainer"></div>
+      <div id="nftContainer"></div>
+
+      <hr />
+
+      <div id="pendingContainer"></div>
+      <div id="resultsContainer"></div>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const principalInput = document.getElementById("principalInput");
+        const fetchButton = document.getElementById("fetchButton");
+        const balanceContainer = document.getElementById("balanceContainer");
+        const bnsContainer = document.getElementById("bnsContainer");
+        const nftContainer = document.getElementById("nftContainer");
+        const pendingContainer = document.getElementById("pendingContainer");
+        const resultsContainer = document.getElementById("resultsContainer");
+
+        const API_BASE_URL = "https://api.hiro.so";
+
+        fetchButton.addEventListener("click", fetchData);
+
+        async function fetchData() {
+          const principal = principalInput.value.trim();
+          if (!principal) {
+            alert("Please enter a Stacks principal.");
+            return;
+          }
+
+          // Reset UI
+          const loadingMessage = "<h3>Loading Data...</h3>";
+          resultsContainer.innerHTML = loadingMessage;
+          pendingContainer.innerHTML = "";
+          balanceContainer.innerHTML = "";
+          bnsContainer.innerHTML = "";
+          nftContainer.innerHTML = "";
+          fetchButton.disabled = true;
+          fetchButton.textContent = "Loading...";
+
+          try {
+            await Promise.all([
+              fetchAccountBalances(principal),
+              fetchBnsNames(principal),
+              fetchNftHoldings(principal),
+              fetchMempoolTransactions(principal),
+              fetchConfirmedTransactions(principal),
+            ]);
+          } catch (error) {
+            resultsContainer.innerHTML = `<p style="color: red;">An error occurred: ${error.message}</p>`;
+          } finally {
+            fetchButton.disabled = false;
+            fetchButton.textContent = "Fetch All Data";
+          }
+        }
+
+        async function fetchAccountBalances(principal) {
+          const stxUrl = `${API_BASE_URL}/extended/v2/addresses/${principal}/balances/stx`;
+          const ftUrl = `${API_BASE_URL}/extended/v2/addresses/${principal}/balances/ft`;
+
+          try {
+            const [stxResponse, ftResponse] = await Promise.all([
+              fetch(stxUrl),
+              fetch(ftUrl),
+            ]);
+            if (!stxResponse.ok || !ftResponse.ok)
+              throw new Error("Could not fetch balances.");
+
+            const stxData = await stxResponse.json();
+            const ftData = await ftResponse.json();
+
+            const stxBalance = (
+              parseInt(stxData.balance, 10) / 1_000_000
+            ).toLocaleString();
+            let balanceHtml = `<h3>Balances</h3><div class="info-box">`;
+            balanceHtml += `<p><strong>STX Balance:</strong> ${stxBalance} STX</p>`;
+
+            // NEW FEATURE: Stacking Info
+            if (BigInt(stxData.locked) > 0) {
+              const lockedAmount = (
+                parseInt(stxData.locked, 10) / 1_000_000
+              ).toLocaleString();
+              balanceHtml += `<p style="color: purple;"><strong>Stacking:</strong> ${lockedAmount} STX is locked until burn block #${stxData.burnchain_unlock_height}.</p>`;
+            }
+
+            if (ftData.results.length > 0) {
+              balanceHtml += `<p><strong>Fungible Tokens:</strong></p><ul class="token-list">`;
+              for (const token of ftData.results) {
+                balanceHtml += `<li>${token.token}: ${BigInt(
+                  token.balance
+                ).toLocaleString()} (atomic units)</li>`;
+              }
+              balanceHtml += `</ul>`;
+            } else {
+              balanceHtml += `<p>No other fungible tokens found.</p>`;
+            }
+            balanceHtml += `</div>`;
+            balanceContainer.innerHTML = balanceHtml;
+          } catch (error) {
+            balanceContainer.innerHTML = `<p style="color: red;">Failed to fetch balances: ${error.message}</p>`;
+          }
+        }
+
+        // NEW FEATURE: Fetch BNS Names
+        async function fetchBnsNames(principal) {
+          const url = `${API_BASE_URL}/v1/addresses/stacks/${principal}`;
+          try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error("Could not fetch BNS names.");
+            const data = await response.json();
+
+            let bnsHtml = `<h3>BNS Names</h3>`;
+            if (data.names && data.names.length > 0) {
+              bnsHtml += `<div class="info-box"><ul>`;
+              data.names.forEach((name) => {
+                bnsHtml += `<li>${name}</li>`;
+              });
+              bnsHtml += `</ul></div>`;
+            } else {
+              bnsHtml += `<p>No BNS names found for this address.</p>`;
+            }
+            bnsContainer.innerHTML = bnsHtml;
+          } catch (error) {
+            bnsContainer.innerHTML = `<p style="color: red;">Failed to fetch BNS names: ${error.message}</p>`;
+          }
+        }
+
+        // NEW FEATURE: Fetch NFT Holdings
+        async function fetchNftHoldings(principal) {
+          const url = `${API_BASE_URL}/extended/v1/tokens/nft/holdings?principal=${principal}&limit=50`;
+          try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error("Could not fetch NFT holdings.");
+            const data = await response.json();
+
+            let nftHtml = `<h3>NFT Holdings (${data.total})</h3>`;
+            if (data.results.length > 0) {
+              nftHtml += `<div class="grid-container">`;
+              data.results.forEach((nft) => {
+                nftHtml += `<div class="nft-card">
+                                <strong>${
+                                  nft.asset_identifier.split("::")[1]
+                                }</strong>
+                                <span>ID: ${nft.value.repr}</span>
+                            </div>`;
+              });
+              nftHtml += `</div><p><small><i>Note: Displaying images requires additional contract calls to get metadata URLs.</i></small></p>`;
+            } else {
+              nftHtml += `<p>No NFTs found for this address.</p>`;
+            }
+            nftContainer.innerHTML = nftHtml;
+          } catch (error) {
+            nftContainer.innerHTML = `<p style="color: red;">Failed to fetch NFT holdings: ${error.message}</p>`;
+          }
+        }
+
+        async function fetchMempoolTransactions(principal) {
+          const url = `${API_BASE_URL}/extended/v1/address/${principal}/mempool`;
+          try {
+            const response = await fetch(url);
+            if (!response.ok)
+              throw new Error("Could not fetch mempool transactions.");
+            const data = await response.json();
+            displayMempoolTransactions(data.results);
+          } catch (error) {
+            pendingContainer.innerHTML = `<p style="color: orange;">Could not fetch pending transactions. ${error.message}</p>`;
+          }
+        }
+
+        async function fetchConfirmedTransactions(principal) {
+          const url = `${API_BASE_URL}/extended/v2/addresses/${principal}/transactions?limit=10`;
+          try {
+            const response = await fetch(url);
+            if (!response.ok)
+              throw new Error("Could not fetch confirmed transactions.");
+            const data = await response.json();
+            displayConfirmedTransactions(data.results);
+          } catch (error) {
+            throw error;
+          }
+        }
+
+        function displayMempoolTransactions(transactions) {
+          pendingContainer.innerHTML = "<h2>Pending Transactions</h2>";
+          if (transactions.length === 0) {
+            pendingContainer.innerHTML +=
+              "<p>No pending transactions in the mempool.</p>";
+            return;
+          }
+          const list = document.createElement("ul");
+          transactions.forEach((tx) =>
+            list.appendChild(createTransactionListItem(tx, true))
+          );
+          pendingContainer.appendChild(list);
+        }
+
+        function displayConfirmedTransactions(transactions) {
+          resultsContainer.innerHTML =
+            "<h2>Confirmed Transactions (Recent)</h2>";
+          if (transactions.length === 0) {
+            resultsContainer.innerHTML +=
+              "<p>No confirmed transactions found.</p>";
+          } else {
+            const list = document.createElement("ul");
+            transactions.forEach((txData) =>
+              list.appendChild(createTransactionListItem(txData.tx, false))
+            );
+            resultsContainer.appendChild(list);
+          }
+        }
+
+        function createTransactionListItem(tx, isMempool) {
+          const listItem = document.createElement("li");
+          listItem.classList.add("clickable");
+          const txId = tx.tx_id;
+
+          const blockInfo = isMempool
+            ? `<strong>Received:</strong> ${new Date(
+                tx.receipt_time * 1000
+              ).toLocaleString()}`
+            : `<strong>Block:</strong> #${tx.block_height}`;
+
+          let summaryHtml = `
+                    <strong>TX ID:</strong> ${txId}<br>
+                    <strong>Type:</strong> ${tx.tx_type}<br>
+                    <strong>Status:</strong> <span style="color: ${
+                      tx.tx_status === "success"
+                        ? "green"
+                        : isMempool
+                        ? "blue"
+                        : "red"
+                    };">${tx.tx_status}</span><br>
+                    ${blockInfo}
+                `;
+
+          if (tx.tx_type === "token_transfer" && tx.token_transfer.memo) {
+            const memoText = hexToAscii(
+              tx.token_transfer.memo.replace("0x", "")
+            );
+            summaryHtml += `<br><strong>Memo:</strong> ${memoText}`;
+          }
+
+          const summary = document.createElement("div");
+          summary.innerHTML = summaryHtml;
+
+          const detailsContainer = document.createElement("div");
+          detailsContainer.style.display = "none";
+          detailsContainer.style.marginTop = "10px";
+
+          listItem.addEventListener("click", () =>
+            toggleTransactionDetails(txId, detailsContainer)
+          );
+
+          listItem.appendChild(summary);
+          listItem.appendChild(detailsContainer);
+          return listItem;
+        }
+
+        async function toggleTransactionDetails(txId, container) {
+          if (container.style.display === "block") {
+            container.style.display = "none";
+            container.innerHTML = "";
+            return;
+          }
+
+          container.innerHTML = "<p>Loading details...</p>";
+          container.style.display = "block";
+          const url = `${API_BASE_URL}/extended/v1/tx/${txId}?unanchored=true`;
+
+          try {
+            const response = await fetch(url);
+            if (!response.ok)
+              throw new Error(`Could not fetch details for TX ID ${txId}`);
+            const txDetails = await response.json();
+
+            const pre = document.createElement("pre");
+            pre.textContent = JSON.stringify(txDetails, null, 2);
+
+            container.innerHTML = "";
+            container.appendChild(pre);
+          } catch (error) {
+            container.innerHTML = `<p style="color: red;">${error.message}</p>`;
+          }
+        }
+
+        function hexToAscii(hex) {
+          try {
+            let str = "";
+            for (let i = 0; i < hex.length; i += 2) {
+              const charCode = parseInt(hex.substr(i, 2), 16);
+              if (charCode >= 32 && charCode < 127) {
+                str += String.fromCharCode(charCode);
+              }
+            }
+            return str || "(empty or non-ascii)";
+          } catch {
+            return "(invalid hex)";
+          }
+        }
+      });
+    </script>
+  </body>
+</html>
