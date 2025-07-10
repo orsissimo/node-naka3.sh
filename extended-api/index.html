@@ -311,6 +311,7 @@
 
         async function handleEntitySpecificCalls(searchResult, query) {
           const entityType = searchResult.entity_type;
+          console.log(`Entity type detected: ${entityType} for query: ${query}`);
           
           switch (entityType) {
             case 'standard_address':
@@ -319,6 +320,7 @@
               break;
               
             case 'block_hash':
+              console.log(`Calling fetchBlockDetails for: ${query}`);
               await fetchBlockDetails(query);
               break;
               
@@ -533,6 +535,7 @@
         }
 
         function displayBlockDetails(data) {
+          // Display block details in search results area
           const blockDetailsList = document.createElement("ul");
           
           const blockItem = document.createElement("li");
@@ -563,10 +566,11 @@
           blockItem.appendChild(blockDetailsContainer);
           blockDetailsList.appendChild(blockItem);
           
-          if (blocksContainer.innerHTML === "") {
-            blocksContainer.innerHTML = "<h3>Block Details</h3>";
+          // Display in search results area, not Info page
+          if (resultsContainer.innerHTML === "") {
+            resultsContainer.innerHTML = "<h3>Block Details</h3>";
           }
-          blocksContainer.appendChild(blockDetailsList);
+          resultsContainer.appendChild(blockDetailsList);
         }
 
         async function fetchNetworkStatus() {
