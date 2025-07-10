@@ -99,44 +99,92 @@
         max-width: 960px;
         margin: auto;
       }
+      .nav-btn {
+        padding: 10px 20px;
+        margin-right: 10px;
+        cursor: pointer;
+        font-size: 16px;
+        background-color: #f0f0f0;
+        color: #333;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      .nav-btn.active {
+        background-color: #5546ff;
+        color: white;
+        border-color: #5546ff;
+      }
+      .nav-btn:hover {
+        background-color: #4435ee;
+        color: white;
+      }
     </style>
   </head>
   <body>
     <div class="container">
-      <h1>Full Stacks Explorer</h1>
-      <p>
-        Search for any blockchain entity: address, contract, transaction, or block.
-        <br />
-        <i>(e.g., SP3Y2ZSH8P7D50B0VBTSX11S7XSG24M1VB9YFQA4K, 0x1234..., block hash, etc.)</i>
-      </p>
+      <nav style="margin-bottom: 2em;">
+        <button id="searchPageBtn" class="nav-btn active">Search</button>
+        <button id="infoPageBtn" class="nav-btn">Network Info</button>
+      </nav>
 
-      <div>
-        <input
-          type="text"
-          id="searchInput"
-          placeholder="Enter Address, Contract, Transaction, or Block"
-          size="60"
-        />
-        <button id="searchButton">Search</button>
+      <div id="searchPage">
+        <h1>Full Stacks Explorer</h1>
+        <p>
+          Search for any blockchain entity: address, contract, transaction, or block.
+          <br />
+          <i>(e.g., SP3Y2ZSH8P7D50B0VBTSX11S7XSG24M1VB9YFQA4K, 0x1234..., block hash, etc.)</i>
+        </p>
+
+        <div>
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="Enter Address, Contract, Transaction, or Block"
+            size="60"
+          />
+          <button id="searchButton">Search</button>
+        </div>
       </div>
 
-      <div id="searchContainer"></div>
+      <div id="infoPage" style="display: none;">
+        <h1>Network Information</h1>
+        <p>Real-time Stacks blockchain network status, economics, and activity.</p>
+        <button id="refreshInfoBtn">Refresh Network Data</button>
+      </div>
 
-      <div id="balanceContainer"></div>
-      <div id="contractContainer"></div>
-      <div id="nftContainer"></div>
+      <div id="searchResults" style="display: block;">
+        <div id="searchContainer"></div>
+        <div id="balanceContainer"></div>
+        <div id="contractContainer"></div>
+        <div id="nftContainer"></div>
+        <div id="pendingContainer"></div>
+        <div id="resultsContainer"></div>
+      </div>
 
-      <hr />
-
-      <div id="pendingContainer"></div>
-      <div id="resultsContainer"></div>
+      <div id="infoResults" style="display: none;">
+        <div id="networkContainer"></div>
+        <div id="blocksContainer"></div>
+        <div id="supplyContainer"></div>
+        <div id="mempoolContainer"></div>
+      </div>
     </div>
 
     <script>
       document.addEventListener("DOMContentLoaded", () => {
         const searchInput = document.getElementById("searchInput");
         const searchButton = document.getElementById("searchButton");
+        const searchPageBtn = document.getElementById("searchPageBtn");
+        const infoPageBtn = document.getElementById("infoPageBtn");
+        const refreshInfoBtn = document.getElementById("refreshInfoBtn");
+        const searchPage = document.getElementById("searchPage");
+        const infoPage = document.getElementById("infoPage");
+        const searchResults = document.getElementById("searchResults");
+        const infoResults = document.getElementById("infoResults");
         const searchContainer = document.getElementById("searchContainer");
+        const blocksContainer = document.getElementById("blocksContainer");
+        const networkContainer = document.getElementById("networkContainer");
+        const supplyContainer = document.getElementById("supplyContainer");
+        const mempoolContainer = document.getElementById("mempoolContainer");
         const balanceContainer = document.getElementById("balanceContainer");
         const contractContainer = document.getElementById("contractContainer");
         const nftContainer = document.getElementById("nftContainer");
@@ -146,6 +194,51 @@
         const API_BASE_URL = "https://api.hiro.so";
 
         searchButton.addEventListener("click", handleSearch);
+        searchPageBtn.addEventListener("click", showSearchPage);
+        infoPageBtn.addEventListener("click", showInfoPage);
+        refreshInfoBtn.addEventListener("click", refreshNetworkInfo);
+
+        function showSearchPage() {
+          searchPage.style.display = "block";
+          infoPage.style.display = "none";
+          searchResults.style.display = "block";
+          infoResults.style.display = "none";
+          searchPageBtn.classList.add("active");
+          infoPageBtn.classList.remove("active");
+        }
+
+        function showInfoPage() {
+          searchPage.style.display = "none";
+          infoPage.style.display = "block";
+          searchResults.style.display = "none";
+          infoResults.style.display = "block";
+          searchPageBtn.classList.remove("active");
+          infoPageBtn.classList.add("active");
+          
+          // Load network info when first accessed
+          if (blocksContainer.innerHTML === "") {
+            refreshNetworkInfo();
+          }
+        }
+
+        async function refreshNetworkInfo() {
+          refreshInfoBtn.disabled = true;
+          refreshInfoBtn.textContent = "Loading...";
+          
+          try {
+            await Promise.all([
+              fetchNetworkStatus(),
+              fetchRecentBlocks(),
+              fetchSTXSupply(),
+              fetchMempoolStats(),
+            ]);
+          } catch (error) {
+            networkContainer.innerHTML = `<p style="color: red;">Failed to load network info: ${error.message}</p>`;
+          } finally {
+            refreshInfoBtn.disabled = false;
+            refreshInfoBtn.textContent = "Refresh Network Data";
+          }
+        }
 
         async function handleSearch() {
           const query = searchInput.value.trim();
@@ -166,19 +259,22 @@
           searchButton.textContent = "Searching...";
 
           try {
-            // First try universal search
-            await fetchUniversalSearch(query);
+            // First try universal search to identify entity type
+            const searchResult = await fetchUniversalSearch(query);
             
-            // If it's an address/contract, also fetch detailed info
-            if (isValidAddress(query)) {
-              await Promise.all([
-                fetchAccountBalances(query),
-                fetchContractDetails(query),
-                fetchNftHoldings(query),
-                fetchMempoolTransactions(query),
-                fetchConfirmedTransactions(query),
-              ]);
+            // Based on search result, fetch additional data
+            if (searchResult) {
+              await handleEntitySpecificCalls(searchResult, query);
+            } else {
+              // Fallback: try to detect based on format
+              if (isValidAddress(query)) {
+                await fetchAddressData(query);
+              } else if (isBlockIdentifier(query)) {
+                await fetchBlockDetails(query);
+              }
             }
+            
+            // Recent blocks moved to Info page
           } catch (error) {
             searchContainer.innerHTML = `<p style="color: red;">Search error: ${error.message}</p>`;
           } finally {
@@ -192,6 +288,11 @@
           return query.startsWith('SP') || query.startsWith('ST') || query.includes('.');
         }
 
+        function isBlockIdentifier(query) {
+          // Check if it's a block height (number) or block hash (0x + 64 hex chars)
+          return /^\d+$/.test(query) || /^0x[0-9a-fA-F]{64}$/.test(query);
+        }
+
         async function fetchUniversalSearch(query) {
           const url = `${API_BASE_URL}/extended/v1/search/${encodeURIComponent(query)}`;
           try {
@@ -201,9 +302,93 @@
             }
             const data = await response.json();
             displaySearchResults(data);
+            return data.found ? data.result : null;
           } catch (error) {
             searchContainer.innerHTML = `<p style="color: red;">No results found for: ${query}<br><small><i>API: GET /extended/v1/search/{id}</i></small></p>`;
+            return null;
           }
+        }
+
+        async function handleEntitySpecificCalls(searchResult, query) {
+          const entityType = searchResult.entity_type;
+          
+          switch (entityType) {
+            case 'standard_address':
+            case 'contract_address':
+              await fetchAddressData(query);
+              break;
+              
+            case 'block_hash':
+              await fetchBlockDetails(query);
+              break;
+              
+            case 'tx_id':
+              await fetchTransactionDetails(query);
+              break;
+              
+            default:
+              console.log(`Unknown entity type: ${entityType}`);
+          }
+        }
+
+        async function fetchAddressData(address) {
+          await Promise.all([
+            fetchAccountBalances(address),
+            fetchContractDetails(address),
+            fetchNftHoldings(address),
+            fetchMempoolTransactions(address),
+            fetchConfirmedTransactions(address),
+          ]);
+        }
+
+        async function fetchTransactionDetails(txId) {
+          const url = `${API_BASE_URL}/extended/v1/tx/${txId}?unanchored=true`;
+          try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error("Could not fetch transaction details.");
+            const data = await response.json();
+            displayTransactionDetails(data);
+          } catch (error) {
+            console.log("Transaction details fetch failed:", error.message);
+          }
+        }
+
+        function displayTransactionDetails(data) {
+          const txDetailsList = document.createElement("ul");
+          
+          const txItem = document.createElement("li");
+          txItem.classList.add("clickable");
+          txItem.innerHTML = `
+            <strong>Transaction Details:</strong> ${data.tx_type}<br>
+            <strong>Status:</strong> ${data.tx_status}<br>
+            <strong>Block:</strong> ${data.block_height}<br>
+            <small><i>API: GET /extended/v1/tx/{tx_id}</i></small>
+          `;
+          
+          const txDetailsContainer = document.createElement("div");
+          txDetailsContainer.style.display = "none";
+          txDetailsContainer.style.marginTop = "10px";
+          
+          txItem.addEventListener("click", () => {
+            if (txDetailsContainer.style.display === "block") {
+              txDetailsContainer.style.display = "none";
+              txDetailsContainer.innerHTML = "";
+            } else {
+              const pre = document.createElement("pre");
+              pre.textContent = JSON.stringify(data, null, 2);
+              txDetailsContainer.innerHTML = "";
+              txDetailsContainer.appendChild(pre);
+              txDetailsContainer.style.display = "block";
+            }
+          });
+          
+          txItem.appendChild(txDetailsContainer);
+          txDetailsList.appendChild(txItem);
+          
+          if (resultsContainer.innerHTML === "") {
+            resultsContainer.innerHTML = "<h3>Transaction Details</h3>";
+          }
+          resultsContainer.appendChild(txDetailsList);
         }
 
         function displaySearchResults(data) {
@@ -239,6 +424,290 @@
           searchItem.appendChild(searchDetailsContainer);
           list.appendChild(searchItem);
           searchContainer.appendChild(list);
+        }
+
+        async function fetchRecentBlocks() {
+          const url = `${API_BASE_URL}/extended/v2/blocks?limit=5`;
+          try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error("Could not fetch recent blocks.");
+            const data = await response.json();
+            
+            await fetchBlockAverageTimes(data);
+          } catch (error) {
+            blocksContainer.innerHTML = `<p style="color: red;">Failed to fetch blocks: ${error.message}</p>`;
+          }
+        }
+
+        async function fetchBlockAverageTimes(blocksData) {
+          const url = `${API_BASE_URL}/extended/v2/blocks/average-times`;
+          try {
+            const response = await fetch(url);
+            if (!response.ok) {
+              displayBlocks(blocksData, null);
+              return;
+            }
+            const avgData = await response.json();
+            displayBlocks(blocksData, avgData);
+          } catch (error) {
+            displayBlocks(blocksData, null);
+          }
+        }
+
+        async function fetchBlockDetails(blockId) {
+          const url = `${API_BASE_URL}/extended/v2/blocks/${encodeURIComponent(blockId)}`;
+          try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error("Could not fetch block details.");
+            const data = await response.json();
+            displayBlockDetails(data);
+          } catch (error) {
+            console.log("Block details fetch failed:", error.message);
+          }
+        }
+
+        function displayBlocks(blocksData, avgData) {
+          blocksContainer.innerHTML = "<h3>Recent Blocks <small>(Network Context)</small></h3>";
+          
+          const list = document.createElement("ul");
+          
+          // Recent blocks item
+          const blocksItem = document.createElement("li");
+          blocksItem.classList.add("clickable");
+          blocksItem.innerHTML = `
+            <strong>Recent Blocks:</strong> ${blocksData.results.length} blocks<br>
+            <small><i>API: GET /extended/v2/blocks</i></small>
+          `;
+          
+          const blocksDetailsContainer = document.createElement("div");
+          blocksDetailsContainer.style.display = "none";
+          blocksDetailsContainer.style.marginTop = "10px";
+          
+          blocksItem.addEventListener("click", () => {
+            if (blocksDetailsContainer.style.display === "block") {
+              blocksDetailsContainer.style.display = "none";
+              blocksDetailsContainer.innerHTML = "";
+            } else {
+              const pre = document.createElement("pre");
+              pre.textContent = JSON.stringify(blocksData, null, 2);
+              blocksDetailsContainer.innerHTML = "";
+              blocksDetailsContainer.appendChild(pre);
+              blocksDetailsContainer.style.display = "block";
+            }
+          });
+          
+          blocksItem.appendChild(blocksDetailsContainer);
+          list.appendChild(blocksItem);
+          
+          // Block average times item
+          if (avgData) {
+            const avgItem = document.createElement("li");
+            avgItem.classList.add("clickable");
+            avgItem.innerHTML = `
+              <strong>Block Average Times:</strong> Performance metrics<br>
+              <small><i>API: GET /extended/v2/blocks/average-times</i></small>
+            `;
+            
+            const avgDetailsContainer = document.createElement("div");
+            avgDetailsContainer.style.display = "none";
+            avgDetailsContainer.style.marginTop = "10px";
+            
+            avgItem.addEventListener("click", () => {
+              if (avgDetailsContainer.style.display === "block") {
+                avgDetailsContainer.style.display = "none";
+                avgDetailsContainer.innerHTML = "";
+              } else {
+                const pre = document.createElement("pre");
+                pre.textContent = JSON.stringify(avgData, null, 2);
+                avgDetailsContainer.innerHTML = "";
+                avgDetailsContainer.appendChild(pre);
+                avgDetailsContainer.style.display = "block";
+              }
+            });
+            
+            avgItem.appendChild(avgDetailsContainer);
+            list.appendChild(avgItem);
+          }
+          
+          blocksContainer.appendChild(list);
+        }
+
+        function displayBlockDetails(data) {
+          const blockDetailsList = document.createElement("ul");
+          
+          const blockItem = document.createElement("li");
+          blockItem.classList.add("clickable");
+          blockItem.innerHTML = `
+            <strong>Block Details:</strong> Height ${data.height}<br>
+            <strong>Hash:</strong> ${data.hash}<br>
+            <small><i>API: GET /extended/v2/blocks/{height_or_hash}</i></small>
+          `;
+          
+          const blockDetailsContainer = document.createElement("div");
+          blockDetailsContainer.style.display = "none";
+          blockDetailsContainer.style.marginTop = "10px";
+          
+          blockItem.addEventListener("click", () => {
+            if (blockDetailsContainer.style.display === "block") {
+              blockDetailsContainer.style.display = "none";
+              blockDetailsContainer.innerHTML = "";
+            } else {
+              const pre = document.createElement("pre");
+              pre.textContent = JSON.stringify(data, null, 2);
+              blockDetailsContainer.innerHTML = "";
+              blockDetailsContainer.appendChild(pre);
+              blockDetailsContainer.style.display = "block";
+            }
+          });
+          
+          blockItem.appendChild(blockDetailsContainer);
+          blockDetailsList.appendChild(blockItem);
+          
+          if (blocksContainer.innerHTML === "") {
+            blocksContainer.innerHTML = "<h3>Block Details</h3>";
+          }
+          blocksContainer.appendChild(blockDetailsList);
+        }
+
+        async function fetchNetworkStatus() {
+          const url = `${API_BASE_URL}/extended`;
+          try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error("Could not fetch network status.");
+            const data = await response.json();
+            displayNetworkStatus(data);
+          } catch (error) {
+            networkContainer.innerHTML = `<p style="color: red;">Failed to fetch network status: ${error.message}</p>`;
+          }
+        }
+
+        async function fetchSTXSupply() {
+          const url = `${API_BASE_URL}/extended/v1/stx_supply/`;
+          try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error("Could not fetch STX supply.");
+            const data = await response.json();
+            displaySTXSupply(data);
+          } catch (error) {
+            supplyContainer.innerHTML = `<p style="color: red;">Failed to fetch STX supply: ${error.message}</p>`;
+          }
+        }
+
+        async function fetchMempoolStats() {
+          const url = `${API_BASE_URL}/extended/v2/mempool/fees`;
+          try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error("Could not fetch mempool stats.");
+            const data = await response.json();
+            displayMempoolStats(data);
+          } catch (error) {
+            mempoolContainer.innerHTML = `<p style="color: red;">Failed to fetch mempool stats: ${error.message}</p>`;
+          }
+        }
+
+        function displayNetworkStatus(data) {
+          networkContainer.innerHTML = "<h3>Network Status</h3>";
+          
+          const list = document.createElement("ul");
+          
+          const statusItem = document.createElement("li");
+          statusItem.classList.add("clickable");
+          statusItem.innerHTML = `
+            <strong>API Status:</strong> ${data.status}<br>
+            <strong>Chain Tip:</strong> Block ${data.chain_tip?.block_height || 'N/A'}<br>
+            <small><i>API: GET /extended</i></small>
+          `;
+          
+          const statusDetailsContainer = document.createElement("div");
+          statusDetailsContainer.style.display = "none";
+          statusDetailsContainer.style.marginTop = "10px";
+          
+          statusItem.addEventListener("click", () => {
+            if (statusDetailsContainer.style.display === "block") {
+              statusDetailsContainer.style.display = "none";
+              statusDetailsContainer.innerHTML = "";
+            } else {
+              const pre = document.createElement("pre");
+              pre.textContent = JSON.stringify(data, null, 2);
+              statusDetailsContainer.innerHTML = "";
+              statusDetailsContainer.appendChild(pre);
+              statusDetailsContainer.style.display = "block";
+            }
+          });
+          
+          statusItem.appendChild(statusDetailsContainer);
+          list.appendChild(statusItem);
+          networkContainer.appendChild(list);
+        }
+
+        function displaySTXSupply(data) {
+          supplyContainer.innerHTML = "<h3>STX Economics</h3>";
+          
+          const list = document.createElement("ul");
+          
+          const supplyItem = document.createElement("li");
+          supplyItem.classList.add("clickable");
+          supplyItem.innerHTML = `
+            <strong>Total Supply:</strong> ${(parseInt(data.total_stx, 10) / 1_000_000).toLocaleString()} STX<br>
+            <strong>Unlocked:</strong> ${(parseInt(data.unlocked_stx, 10) / 1_000_000).toLocaleString()} STX<br>
+            <small><i>API: GET /extended/v1/stx_supply/</i></small>
+          `;
+          
+          const supplyDetailsContainer = document.createElement("div");
+          supplyDetailsContainer.style.display = "none";
+          supplyDetailsContainer.style.marginTop = "10px";
+          
+          supplyItem.addEventListener("click", () => {
+            if (supplyDetailsContainer.style.display === "block") {
+              supplyDetailsContainer.style.display = "none";
+              supplyDetailsContainer.innerHTML = "";
+            } else {
+              const pre = document.createElement("pre");
+              pre.textContent = JSON.stringify(data, null, 2);
+              supplyDetailsContainer.innerHTML = "";
+              supplyDetailsContainer.appendChild(pre);
+              supplyDetailsContainer.style.display = "block";
+            }
+          });
+          
+          supplyItem.appendChild(supplyDetailsContainer);
+          list.appendChild(supplyItem);
+          supplyContainer.appendChild(list);
+        }
+
+        function displayMempoolStats(data) {
+          mempoolContainer.innerHTML = "<h3>Mempool Stats</h3>";
+          
+          const list = document.createElement("ul");
+          
+          const mempoolItem = document.createElement("li");
+          mempoolItem.classList.add("clickable");
+          mempoolItem.innerHTML = `
+            <strong>Fee Estimations:</strong> ${Object.keys(data.estimations || {}).length} priority levels<br>
+            <strong>Last Update:</strong> ${data.last_block_height || 'N/A'}<br>
+            <small><i>API: GET /extended/v2/mempool/fees</i></small>
+          `;
+          
+          const mempoolDetailsContainer = document.createElement("div");
+          mempoolDetailsContainer.style.display = "none";
+          mempoolDetailsContainer.style.marginTop = "10px";
+          
+          mempoolItem.addEventListener("click", () => {
+            if (mempoolDetailsContainer.style.display === "block") {
+              mempoolDetailsContainer.style.display = "none";
+              mempoolDetailsContainer.innerHTML = "";
+            } else {
+              const pre = document.createElement("pre");
+              pre.textContent = JSON.stringify(data, null, 2);
+              mempoolDetailsContainer.innerHTML = "";
+              mempoolDetailsContainer.appendChild(pre);
+              mempoolDetailsContainer.style.display = "block";
+            }
+          });
+          
+          mempoolItem.appendChild(mempoolDetailsContainer);
+          list.appendChild(mempoolItem);
+          mempoolContainer.appendChild(list);
         }
 
         async function fetchAccountBalances(principal) {
