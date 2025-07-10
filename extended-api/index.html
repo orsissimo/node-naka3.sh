@@ -105,21 +105,22 @@
     <div class="container">
       <h1>Full Stacks Explorer</h1>
       <p>
-        Paste a Stacks address (principal) below to fetch its balances, names,
-        NFTs, and transactions.
+        Search for any blockchain entity: address, contract, transaction, or block.
         <br />
-        <i>(e.g., SP3Y2ZSH8P7D50B0VBTSX11S7XSG24M1VB9YFQA4K)</i>
+        <i>(e.g., SP3Y2ZSH8P7D50B0VBTSX11S7XSG24M1VB9YFQA4K, 0x1234..., block hash, etc.)</i>
       </p>
 
       <div>
         <input
           type="text"
-          id="principalInput"
-          placeholder="Enter Stacks Principal"
-          size="50"
+          id="searchInput"
+          placeholder="Enter Address, Contract, Transaction, or Block"
+          size="60"
         />
-        <button id="fetchButton">Fetch All Data</button>
+        <button id="searchButton">Search</button>
       </div>
+
+      <div id="searchContainer"></div>
 
       <div id="balanceContainer"></div>
       <div id="contractContainer"></div>
@@ -133,8 +134,9 @@
 
     <script>
       document.addEventListener("DOMContentLoaded", () => {
-        const principalInput = document.getElementById("principalInput");
-        const fetchButton = document.getElementById("fetchButton");
+        const searchInput = document.getElementById("searchInput");
+        const searchButton = document.getElementById("searchButton");
+        const searchContainer = document.getElementById("searchContainer");
         const balanceContainer = document.getElementById("balanceContainer");
         const contractContainer = document.getElementById("contractContainer");
         const nftContainer = document.getElementById("nftContainer");
@@ -143,39 +145,100 @@
 
         const API_BASE_URL = "https://api.hiro.so";
 
-        fetchButton.addEventListener("click", fetchData);
+        searchButton.addEventListener("click", handleSearch);
 
-        async function fetchData() {
-          const principal = principalInput.value.trim();
-          if (!principal) {
-            alert("Please enter a Stacks principal.");
+        async function handleSearch() {
+          const query = searchInput.value.trim();
+          if (!query) {
+            alert("Please enter a search term.");
             return;
           }
 
           // Reset UI
-          const loadingMessage = "<h3>Loading Data...</h3>";
-          resultsContainer.innerHTML = loadingMessage;
-          pendingContainer.innerHTML = "";
+          searchContainer.innerHTML = "";
           balanceContainer.innerHTML = "";
           contractContainer.innerHTML = "";
           nftContainer.innerHTML = "";
-          fetchButton.disabled = true;
-          fetchButton.textContent = "Loading...";
+          pendingContainer.innerHTML = "";
+          resultsContainer.innerHTML = "";
+          
+          searchButton.disabled = true;
+          searchButton.textContent = "Searching...";
 
           try {
-            await Promise.all([
-              fetchAccountBalances(principal),
-              fetchContractDetails(principal),
-              fetchNftHoldings(principal),
-              fetchMempoolTransactions(principal),
-              fetchConfirmedTransactions(principal),
-            ]);
+            // First try universal search
+            await fetchUniversalSearch(query);
+            
+            // If it's an address/contract, also fetch detailed info
+            if (isValidAddress(query)) {
+              await Promise.all([
+                fetchAccountBalances(query),
+                fetchContractDetails(query),
+                fetchNftHoldings(query),
+                fetchMempoolTransactions(query),
+                fetchConfirmedTransactions(query),
+              ]);
+            }
           } catch (error) {
-            resultsContainer.innerHTML = `<p style="color: red;">An error occurred: ${error.message}</p>`;
+            searchContainer.innerHTML = `<p style="color: red;">Search error: ${error.message}</p>`;
           } finally {
-            fetchButton.disabled = false;
-            fetchButton.textContent = "Fetch All Data";
+            searchButton.disabled = false;
+            searchButton.textContent = "Search";
           }
+        }
+
+        function isValidAddress(query) {
+          // Basic check for Stacks address format
+          return query.startsWith('SP') || query.startsWith('ST') || query.includes('.');
+        }
+
+        async function fetchUniversalSearch(query) {
+          const url = `${API_BASE_URL}/extended/v1/search/${encodeURIComponent(query)}`;
+          try {
+            const response = await fetch(url);
+            if (!response.ok) {
+              throw new Error("Search not found or invalid.");
+            }
+            const data = await response.json();
+            displaySearchResults(data);
+          } catch (error) {
+            searchContainer.innerHTML = `<p style="color: red;">No results found for: ${query}<br><small><i>API: GET /extended/v1/search/{id}</i></small></p>`;
+          }
+        }
+
+        function displaySearchResults(data) {
+          searchContainer.innerHTML = "<h2>Search Results</h2>";
+          
+          const list = document.createElement("ul");
+          
+          const searchItem = document.createElement("li");
+          searchItem.classList.add("clickable");
+          searchItem.innerHTML = `
+            <strong>Found:</strong> ${data.entity_type || 'Unknown'}<br>
+            <strong>ID:</strong> ${data.entity_id || 'N/A'}<br>
+            <small><i>API: GET /extended/v1/search/{id}</i></small>
+          `;
+          
+          const searchDetailsContainer = document.createElement("div");
+          searchDetailsContainer.style.display = "none";
+          searchDetailsContainer.style.marginTop = "10px";
+          
+          searchItem.addEventListener("click", () => {
+            if (searchDetailsContainer.style.display === "block") {
+              searchDetailsContainer.style.display = "none";
+              searchDetailsContainer.innerHTML = "";
+            } else {
+              const pre = document.createElement("pre");
+              pre.textContent = JSON.stringify(data, null, 2);
+              searchDetailsContainer.innerHTML = "";
+              searchDetailsContainer.appendChild(pre);
+              searchDetailsContainer.style.display = "block";
+            }
+          });
+          
+          searchItem.appendChild(searchDetailsContainer);
+          list.appendChild(searchItem);
+          searchContainer.appendChild(list);
         }
 
         async function fetchAccountBalances(principal) {
