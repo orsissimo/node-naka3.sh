@@ -122,7 +122,7 @@
       </div>
 
       <div id="balanceContainer"></div>
-      <div id="bnsContainer"></div>
+      <div id="contractContainer"></div>
       <div id="nftContainer"></div>
 
       <hr />
@@ -136,7 +136,7 @@
         const principalInput = document.getElementById("principalInput");
         const fetchButton = document.getElementById("fetchButton");
         const balanceContainer = document.getElementById("balanceContainer");
-        const bnsContainer = document.getElementById("bnsContainer");
+        const contractContainer = document.getElementById("contractContainer");
         const nftContainer = document.getElementById("nftContainer");
         const pendingContainer = document.getElementById("pendingContainer");
         const resultsContainer = document.getElementById("resultsContainer");
@@ -157,7 +157,7 @@
           resultsContainer.innerHTML = loadingMessage;
           pendingContainer.innerHTML = "";
           balanceContainer.innerHTML = "";
-          bnsContainer.innerHTML = "";
+          contractContainer.innerHTML = "";
           nftContainer.innerHTML = "";
           fetchButton.disabled = true;
           fetchButton.textContent = "Loading...";
@@ -165,7 +165,7 @@
           try {
             await Promise.all([
               fetchAccountBalances(principal),
-              fetchBnsNames(principal),
+              fetchContractDetails(principal),
               fetchNftHoldings(principal),
               fetchMempoolTransactions(principal),
               fetchConfirmedTransactions(principal),
@@ -193,61 +193,177 @@
             const stxData = await stxResponse.json();
             const ftData = await ftResponse.json();
 
-            const stxBalance = (
-              parseInt(stxData.balance, 10) / 1_000_000
-            ).toLocaleString();
-            let balanceHtml = `<h3>Balances</h3><div class="info-box">`;
-            balanceHtml += `<p><strong>STX Balance:</strong> ${stxBalance} STX</p>`;
-
-            // NEW FEATURE: Stacking Info
-            if (BigInt(stxData.locked) > 0) {
-              const lockedAmount = (
-                parseInt(stxData.locked, 10) / 1_000_000
-              ).toLocaleString();
-              balanceHtml += `<p style="color: purple;"><strong>Stacking:</strong> ${lockedAmount} STX is locked until burn block #${stxData.burnchain_unlock_height}.</p>`;
-            }
-
-            if (ftData.results.length > 0) {
-              balanceHtml += `<p><strong>Fungible Tokens:</strong></p><ul class="token-list">`;
-              for (const token of ftData.results) {
-                balanceHtml += `<li>${token.token}: ${BigInt(
-                  token.balance
-                ).toLocaleString()} (atomic units)</li>`;
-              }
-              balanceHtml += `</ul>`;
-            } else {
-              balanceHtml += `<p>No other fungible tokens found.</p>`;
-            }
-            balanceHtml += `</div>`;
-            balanceContainer.innerHTML = balanceHtml;
+            displayBalances(stxData, ftData);
           } catch (error) {
             balanceContainer.innerHTML = `<p style="color: red;">Failed to fetch balances: ${error.message}</p>`;
           }
         }
 
-        // NEW FEATURE: Fetch BNS Names
-        async function fetchBnsNames(principal) {
-          const url = `${API_BASE_URL}/v1/addresses/stacks/${principal}`;
-          try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error("Could not fetch BNS names.");
-            const data = await response.json();
-
-            let bnsHtml = `<h3>BNS Names</h3>`;
-            if (data.names && data.names.length > 0) {
-              bnsHtml += `<div class="info-box"><ul>`;
-              data.names.forEach((name) => {
-                bnsHtml += `<li>${name}</li>`;
-              });
-              bnsHtml += `</ul></div>`;
+        function displayBalances(stxData, ftData) {
+          balanceContainer.innerHTML = "<h3>Balances</h3>";
+          
+          const list = document.createElement("ul");
+          
+          // STX Balance Item
+          const stxItem = document.createElement("li");
+          stxItem.classList.add("clickable");
+          stxItem.innerHTML = `
+            <strong>STX Balance:</strong> ${(parseInt(stxData.balance, 10) / 1_000_000).toLocaleString()} STX<br>
+            <small><i>API: GET /extended/v2/addresses/{principal}/balances/stx</i></small>
+          `;
+          
+          const stxDetailsContainer = document.createElement("div");
+          stxDetailsContainer.style.display = "none";
+          stxDetailsContainer.style.marginTop = "10px";
+          
+          stxItem.addEventListener("click", () => {
+            if (stxDetailsContainer.style.display === "block") {
+              stxDetailsContainer.style.display = "none";
+              stxDetailsContainer.innerHTML = "";
             } else {
-              bnsHtml += `<p>No BNS names found for this address.</p>`;
+              const pre = document.createElement("pre");
+              pre.textContent = JSON.stringify(stxData, null, 2);
+              stxDetailsContainer.innerHTML = "";
+              stxDetailsContainer.appendChild(pre);
+              stxDetailsContainer.style.display = "block";
             }
-            bnsContainer.innerHTML = bnsHtml;
+          });
+          
+          stxItem.appendChild(stxDetailsContainer);
+          list.appendChild(stxItem);
+          
+          // FT Balance Item
+          const ftItem = document.createElement("li");
+          ftItem.classList.add("clickable");
+          ftItem.innerHTML = `
+            <strong>Fungible Tokens:</strong> ${ftData.results.length} tokens<br>
+            <small><i>API: GET /extended/v2/addresses/{principal}/balances/ft</i></small>
+          `;
+          
+          const ftDetailsContainer = document.createElement("div");
+          ftDetailsContainer.style.display = "none";
+          ftDetailsContainer.style.marginTop = "10px";
+          
+          ftItem.addEventListener("click", () => {
+            if (ftDetailsContainer.style.display === "block") {
+              ftDetailsContainer.style.display = "none";
+              ftDetailsContainer.innerHTML = "";
+            } else {
+              const pre = document.createElement("pre");
+              pre.textContent = JSON.stringify(ftData, null, 2);
+              ftDetailsContainer.innerHTML = "";
+              ftDetailsContainer.appendChild(pre);
+              ftDetailsContainer.style.display = "block";
+            }
+          });
+          
+          ftItem.appendChild(ftDetailsContainer);
+          list.appendChild(ftItem);
+          
+          balanceContainer.appendChild(list);
+        }
+
+        async function fetchContractDetails(contractId) {
+          const detailsUrl = `${API_BASE_URL}/extended/v1/contract/${contractId}`;
+          try {
+            const response = await fetch(detailsUrl);
+            if (!response.ok) {
+              contractContainer.innerHTML = "";
+              return;
+            }
+            const contractData = await response.json();
+            
+            await fetchContractEvents(contractId, contractData);
+            
           } catch (error) {
-            bnsContainer.innerHTML = `<p style="color: red;">Failed to fetch BNS names: ${error.message}</p>`;
+            console.log("Not a contract or error fetching contract details:", error.message);
+            contractContainer.innerHTML = "";
           }
         }
+
+        async function fetchContractEvents(contractId, contractData) {
+          const eventsUrl = `${API_BASE_URL}/extended/v1/contract/${contractId}/events?limit=10`;
+          try {
+            const response = await fetch(eventsUrl);
+            if (!response.ok) {
+              displayContractInfo(contractData, null);
+              return;
+            }
+            const eventsData = await response.json();
+            
+            displayContractInfo(contractData, eventsData);
+            
+          } catch (error) {
+            displayContractInfo(contractData, null);
+          }
+        }
+
+        function displayContractInfo(contractData, eventsData) {
+          contractContainer.innerHTML = "<h2>Smart Contract</h2>";
+          
+          const list = document.createElement("ul");
+          
+          // Contract Details Item
+          const contractItem = document.createElement("li");
+          contractItem.classList.add("clickable");
+          contractItem.innerHTML = `
+            <strong>Contract ID:</strong> ${contractData.contract_id}<br>
+            <small><i>API: GET /extended/v1/contract/{contract_id}</i></small>
+          `;
+          
+          const contractDetailsContainer = document.createElement("div");
+          contractDetailsContainer.style.display = "none";
+          contractDetailsContainer.style.marginTop = "10px";
+          
+          contractItem.addEventListener("click", () => {
+            if (contractDetailsContainer.style.display === "block") {
+              contractDetailsContainer.style.display = "none";
+              contractDetailsContainer.innerHTML = "";
+            } else {
+              const pre = document.createElement("pre");
+              pre.textContent = JSON.stringify(contractData, null, 2);
+              contractDetailsContainer.innerHTML = "";
+              contractDetailsContainer.appendChild(pre);
+              contractDetailsContainer.style.display = "block";
+            }
+          });
+          
+          contractItem.appendChild(contractDetailsContainer);
+          list.appendChild(contractItem);
+          
+          // Contract Events Item
+          if (eventsData) {
+            const eventsItem = document.createElement("li");
+            eventsItem.classList.add("clickable");
+            eventsItem.innerHTML = `
+              <strong>Contract Events:</strong> ${eventsData.total} total<br>
+              <small><i>API: GET /extended/v1/contract/{contract_id}/events</i></small>
+            `;
+            
+            const eventsDetailsContainer = document.createElement("div");
+            eventsDetailsContainer.style.display = "none";
+            eventsDetailsContainer.style.marginTop = "10px";
+            
+            eventsItem.addEventListener("click", () => {
+              if (eventsDetailsContainer.style.display === "block") {
+                eventsDetailsContainer.style.display = "none";
+                eventsDetailsContainer.innerHTML = "";
+              } else {
+                const pre = document.createElement("pre");
+                pre.textContent = JSON.stringify(eventsData, null, 2);
+                eventsDetailsContainer.innerHTML = "";
+                eventsDetailsContainer.appendChild(pre);
+                eventsDetailsContainer.style.display = "block";
+              }
+            });
+            
+            eventsItem.appendChild(eventsDetailsContainer);
+            list.appendChild(eventsItem);
+          }
+          
+          contractContainer.appendChild(list);
+        }
+
 
         // NEW FEATURE: Fetch NFT Holdings
         async function fetchNftHoldings(principal) {
@@ -257,25 +373,44 @@
             if (!response.ok) throw new Error("Could not fetch NFT holdings.");
             const data = await response.json();
 
-            let nftHtml = `<h3>NFT Holdings (${data.total})</h3>`;
-            if (data.results.length > 0) {
-              nftHtml += `<div class="grid-container">`;
-              data.results.forEach((nft) => {
-                nftHtml += `<div class="nft-card">
-                                <strong>${
-                                  nft.asset_identifier.split("::")[1]
-                                }</strong>
-                                <span>ID: ${nft.value.repr}</span>
-                            </div>`;
-              });
-              nftHtml += `</div><p><small><i>Note: Displaying images requires additional contract calls to get metadata URLs.</i></small></p>`;
-            } else {
-              nftHtml += `<p>No NFTs found for this address.</p>`;
-            }
-            nftContainer.innerHTML = nftHtml;
+            displayNftHoldings(data);
           } catch (error) {
             nftContainer.innerHTML = `<p style="color: red;">Failed to fetch NFT holdings: ${error.message}</p>`;
           }
+        }
+
+        function displayNftHoldings(data) {
+          nftContainer.innerHTML = "<h3>NFT Holdings</h3>";
+          
+          const list = document.createElement("ul");
+          
+          const nftItem = document.createElement("li");
+          nftItem.classList.add("clickable");
+          nftItem.innerHTML = `
+            <strong>NFT Holdings:</strong> ${data.total} total<br>
+            <small><i>API: GET /extended/v1/tokens/nft/holdings</i></small>
+          `;
+          
+          const nftDetailsContainer = document.createElement("div");
+          nftDetailsContainer.style.display = "none";
+          nftDetailsContainer.style.marginTop = "10px";
+          
+          nftItem.addEventListener("click", () => {
+            if (nftDetailsContainer.style.display === "block") {
+              nftDetailsContainer.style.display = "none";
+              nftDetailsContainer.innerHTML = "";
+            } else {
+              const pre = document.createElement("pre");
+              pre.textContent = JSON.stringify(data, null, 2);
+              nftDetailsContainer.innerHTML = "";
+              nftDetailsContainer.appendChild(pre);
+              nftDetailsContainer.style.display = "block";
+            }
+          });
+          
+          nftItem.appendChild(nftDetailsContainer);
+          list.appendChild(nftItem);
+          nftContainer.appendChild(list);
         }
 
         async function fetchMempoolTransactions(principal) {
@@ -308,9 +443,13 @@
           pendingContainer.innerHTML = "<h2>Pending Transactions</h2>";
           if (transactions.length === 0) {
             pendingContainer.innerHTML +=
-              "<p>No pending transactions in the mempool.</p>";
+              "<p>No pending transactions in the mempool.<br><small><i>API: GET /extended/v1/address/{principal}/mempool</i></small></p>";
             return;
           }
+          const apiNote = document.createElement("p");
+          apiNote.innerHTML = "<small><i>API: GET /extended/v1/address/{principal}/mempool</i></small>";
+          pendingContainer.appendChild(apiNote);
+          
           const list = document.createElement("ul");
           transactions.forEach((tx) =>
             list.appendChild(createTransactionListItem(tx, true))
@@ -323,8 +462,12 @@
             "<h2>Confirmed Transactions (Recent)</h2>";
           if (transactions.length === 0) {
             resultsContainer.innerHTML +=
-              "<p>No confirmed transactions found.</p>";
+              "<p>No confirmed transactions found.<br><small><i>API: GET /extended/v2/addresses/{principal}/transactions</i></small></p>";
           } else {
+            const apiNote = document.createElement("p");
+            apiNote.innerHTML = "<small><i>API: GET /extended/v2/addresses/{principal}/transactions</i></small>";
+            resultsContainer.appendChild(apiNote);
+            
             const list = document.createElement("ul");
             transactions.forEach((txData) =>
               list.appendChild(createTransactionListItem(txData.tx, false))
@@ -400,7 +543,11 @@
             const pre = document.createElement("pre");
             pre.textContent = JSON.stringify(txDetails, null, 2);
 
+            const apiNote = document.createElement("p");
+            apiNote.innerHTML = "<small><i>API: GET /extended/v1/tx/{tx_id}?unanchored=true</i></small>";
+
             container.innerHTML = "";
+            container.appendChild(apiNote);
             container.appendChild(pre);
           } catch (error) {
             container.innerHTML = `<p style="color: red;">${error.message}</p>`;
