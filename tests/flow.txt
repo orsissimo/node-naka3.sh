@@ -1,0 +1,13 @@
+Terminal 1:
+cd ../naka3/playbooks/three-miners
+./three-miners.sh snapshot restore (this also starts the miners)
+
+Terminal 2:
+Execute blockstack-cli command actions
+- Test 1: ensure the blockstack-cli can send a transaction (see the create-transaction.sh script)
+- Test 2: ensure the blockstack-cli can deploy a contract (see the deploy-contract.sh script)
+- Test 3: let's try to fill the mempool with as many things as possible
+- Test 4: let's try to send some transactions, then call ./three-miners.sh stop in terminal 3, then send some transactions and deploy some contracts, then ./three-miners.sh resume in terminal 3, and finally check the mempool to see if the transactions are still there
+
+Terminal 3:
+./three-miners.sh resume or ./three-miners.sh stop
