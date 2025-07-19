@@ -139,8 +139,8 @@ class ContractTester:
         return False
     
     def test_contract_deployment(self):
-        """Test 2: Deploy a contract"""
-        print(f"\n=== TEST 2: Contract Deployment Test on {self.miner} ===")
+        """Deploy a contract"""
+        print(f"\n=== Contract Deployment Test on {self.miner} ===")
         
         if not self.wait_for_node_ready():
             return False
@@ -161,21 +161,49 @@ class ContractTester:
         print(f"Publisher balance before: {balance_before}")
         print(f"Using nonce: {nonce}")
         
-        # Create contract file
-        contract_content = '(define-public (say-hello) (begin (print "Hello!") (ok true)))'
+        # Create contract file with both read-only and public functions
+        contract_content = '''
+;; Simple counter contract
+(define-data-var counter uint u0)
+(define-data-var last-caller principal tx-sender)
+
+;; Read-only function to get counter value
+(define-read-only (get-counter)
+  (var-get counter))
+
+;; Read-only function to get last caller
+(define-read-only (get-last-caller)
+  (var-get last-caller))
+
+;; Public function to increment counter
+(define-public (increment)
+  (begin
+    (var-set counter (+ (var-get counter) u1))
+    (var-set last-caller tx-sender)
+    (print {event: "incremented", new-value: (var-get counter), caller: tx-sender})
+    (ok (var-get counter))))
+
+;; Public function to reset counter
+(define-public (reset)
+  (begin
+    (var-set counter u0)
+    (var-set last-caller tx-sender)
+    (print {event: "reset", caller: tx-sender})
+    (ok u0)))
+        '''.strip()
         contract_name = f"mycontract{nonce}"
         
         with open("./tmp/contract.clar", "w") as f:
             f.write(contract_content)
         
         print(f"Contract name: {contract_name}")
-        print(f"Contract content: {contract_content}")
+        print("Contract: Counter with increment/reset functions")
         
         # Create contract deployment using blockstack-cli
         try:
             cli_cmd = [
                 "blockstack-cli", "--testnet", "publish",
-                self.publisher_key, "200", str(nonce), contract_name, "./tmp/contract.clar"
+                self.publisher_key, "1000", str(nonce), contract_name, "./tmp/contract.clar"
             ]
             
             print("Creating contract deployment...")
@@ -307,6 +335,185 @@ class ContractTester:
         
         print("  ✓ ALL ASSERTIONS PASSED - Contract successfully deployed")
         return True
+    
+    def call_read_only_function(self, contract_name, function_name, args=None):
+        """Call a read-only contract function using REST API"""
+        try:
+            # Use correct REST API endpoint for read-only calls  
+            url = f"{self.api_url}/v2/contracts/call-read/{self.publisher_addr}/{contract_name}/{function_name}"
+            
+            # POST with sender and arguments
+            payload = {
+                "sender": self.publisher_addr,
+                "arguments": args if args else []
+            }
+            
+            response = requests.post(url, json=payload)
+            
+            if response.status_code == 200:
+                data = response.json()
+                print(f"API Response: {json.dumps(data, indent=2)}")
+                if data.get("okay"):
+                    return data.get("result")
+                else:
+                    print(f"✗ Read-only call failed: {data}")
+                    return None
+            else:
+                # Print error details for debugging
+                print(f"✗ Read-only call failed: HTTP {response.status_code}")
+                try:
+                    error_data = response.json()
+                    print(f"Error details: {error_data}")
+                except:
+                    print(f"Error text: {response.text}")
+                return None
+                
+        except Exception as e:
+            print(f"✗ Error calling read-only function: {e}")
+            return None
+    
+    def call_public_function(self, contract_name, function_name, current_nonce, args=""):
+        """Call a public contract function (creates transaction)"""
+        try:
+            cmd = [
+                "blockstack-cli", "--testnet", "contract-call",
+                self.publisher_key, "1000", str(current_nonce),
+                self.publisher_addr, contract_name, function_name
+            ]
+            if args:
+                cmd.append(args)
+            
+            print(f"Calling {function_name}...")
+            
+            # Use same method: pipe to xxd -r -p
+            with open("./tmp/contract-call-tx.bin", "wb") as f:
+                cli_process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                xxd_process = subprocess.Popen(
+                    ["xxd", "-r", "-p"], 
+                    stdin=cli_process.stdout, 
+                    stdout=f,
+                    stderr=subprocess.PIPE
+                )
+                cli_process.stdout.close()
+                cli_process.wait()
+                xxd_process.wait()
+                
+                if cli_process.returncode != 0:
+                    _, cli_err = cli_process.communicate()
+                    print(f"✗ CLI failed: {cli_err.decode()}")
+                    return None
+            
+            # Submit transaction
+            with open("./tmp/contract-call-tx.bin", "rb") as f:
+                response = requests.post(
+                    f"{self.api_url}/v2/transactions",
+                    headers={"Content-Type": "application/octet-stream"},
+                    data=f.read()
+                )
+            
+            if response.status_code != 200:
+                print(f"✗ Contract call failed: {response.text}")
+                return None
+            
+            txid = response.json()
+            txid = txid.strip('"') if isinstance(txid, str) else str(txid)
+            print(f"✓ Contract call transaction ID: {txid}")
+            return txid
+            
+        except Exception as e:
+            print(f"✗ Error calling public function: {e}")
+            return None
+    
+    def wait_for_contract_call_confirmation(self, txid, initial_nonce):
+        """Wait for contract call confirmation"""
+        print("Waiting for contract call confirmation...")
+        
+        for _ in range(60):  # 1 minute max
+            try:
+                publisher_info = self.get_account_info(self.publisher_addr)
+                if publisher_info and publisher_info['nonce'] > initial_nonce:
+                    print("✓ Contract call confirmed!")
+                    return True
+                
+                print(".", end="", flush=True)
+                time.sleep(1)
+                
+            except Exception as e:
+                print(f"Error during confirmation wait: {e}")
+                time.sleep(1)
+        
+        print("\n✗ Contract call confirmation timeout")
+        return False
+    
+    def test_contract_interaction(self, contract_name):
+        """Test contract interaction with both read and write calls"""
+        print(f"\n=== Contract Interaction Test ===")
+        
+        # Give contract time to be fully available
+        print("Waiting for contract to be available...")
+        time.sleep(5)
+        
+        # 1. Read initial counter value
+        print("1. Reading initial counter value...")
+        counter_value = self.call_read_only_function(contract_name, "get-counter")
+        if counter_value is not None:
+            print(f"✓ Initial counter value: {counter_value}")
+        else:
+            print("✗ Failed to read initial counter")
+            return False
+        
+        # 2. Call increment function
+        publisher_info = self.get_account_info(self.publisher_addr)
+        current_nonce = publisher_info['nonce']
+        
+        print("2. Calling increment function...")
+        txid = self.call_public_function(contract_name, "increment", current_nonce)
+        if not txid:
+            return False
+        
+        # Wait for confirmation
+        if not self.wait_for_contract_call_confirmation(txid, current_nonce):
+            return False
+        
+        # 3. Read counter value after increment
+        print("3. Reading counter value after increment...")
+        new_counter_value = self.call_read_only_function(contract_name, "get-counter")
+        if new_counter_value is not None:
+            print(f"✓ New counter value: {new_counter_value}")
+            # Convert hex to uint: 0x0100000000000000000000000000000001 = u1
+            if new_counter_value == "0x0100000000000000000000000000000001":
+                print("✓ Counter increment verified! (u0 → u1)")
+            elif new_counter_value == "0x0100000000000000000000000000000000":
+                print("✗ Counter still at u0 - increment failed")
+                return False
+            else:
+                print(f"✓ Counter incremented to: {new_counter_value}")
+        else:
+            print("✗ Failed to read new counter")
+            return False
+        
+        # 4. Read last caller
+        print("4. Reading last caller...")
+        last_caller = self.call_read_only_function(contract_name, "get-last-caller")
+        if last_caller is not None:
+            print(f"✓ Last caller: {last_caller}")
+        else:
+            print("✗ Failed to read last caller")
+        
+        # 5. Show transaction details
+        try:
+            print("5. Fetching contract call transaction details...")
+            tx_response = requests.get(f"{self.api_url}/v3/transaction/{txid}")
+            if tx_response.status_code == 200:
+                tx_data = tx_response.json()
+                print("Contract call transaction details:")
+                print(json.dumps(tx_data, indent=2))
+            else:
+                print(f"Could not fetch transaction details: {tx_response.status_code}")
+        except Exception as e:
+            print(f"Error fetching transaction details: {e}")
+        
+        return True
 
 def signal_handler(*_):
     """Handle cleanup on exit"""
@@ -323,11 +530,21 @@ def main():
         if not node_manager.start_node():
             return
         
-        # Run Test 2: Contract deployment test
+        # Run contract deployment test
         tester = ContractTester("miner1")
-        success = tester.test_contract_deployment()
+        deploy_success = tester.test_contract_deployment()
         
-        if success:
+        interaction_success = False
+        if deploy_success:
+            # Extract contract name from the deployed contract
+            contract_name = f"mycontract{tester.initial_nonce}"
+            
+            # Run contract interaction test
+            interaction_success = tester.test_contract_interaction(contract_name)
+        
+        overall_success = deploy_success and interaction_success
+        
+        if overall_success:
             print("\n✓ All tests passed!")
         else:
             print("\n✗ Tests failed!")
@@ -336,11 +553,13 @@ def main():
         node_manager.stop_node()
         
         # Run assertion test to verify contract deployed
-        if success:
+        if deploy_success:
             assertion_passed = tester.verify_contract_deployed()
             print(f"\n=== FINAL RESULT ===")
-            if assertion_passed:
-                print("✓ ALL TESTS PASSED - Contract successfully deployed")
+            if assertion_passed and interaction_success:
+                print("✓ ALL TESTS PASSED - Contract successfully deployed and tested")
+            elif assertion_passed:
+                print("✓ CONTRACT DEPLOYED - But interaction test failed")
             else:
                 print("✗ ASSERTION FAILED - Contract deployment verification failed")
         else:

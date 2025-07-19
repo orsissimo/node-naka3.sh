@@ -160,8 +160,8 @@ class TransactionTester:
         return False
     
     def test_transaction(self):
-        """Test 1: Send a transaction"""
-        print(f"\n=== TEST 1: Transaction Test on {self.miner} ===")
+        """Send a transaction"""
+        print(f"\n=== Transaction Test on {self.miner} ===")
         
         if not self.wait_for_node_ready():
             return False
@@ -345,7 +345,7 @@ def main():
         if not node_manager.start_node():
             return
         
-        # Run Test 1: Transaction test
+        # Run transaction test
         tester = TransactionTester("miner1")
         success = tester.test_transaction()
         
