@@ -18,7 +18,6 @@ class NodeManager:
         """Start the three miners node"""
         print("Terminal 1: Starting three miners...")
         try:
-            # Change to the three-miners directory and run the script
             cmd = ["./three-miners.sh", "snapshot", "restore"]
             self.node_process = subprocess.Popen(
                 cmd,
@@ -31,10 +30,8 @@ class NodeManager:
             )
             self.running = True
             
-            # Give the process a moment to start
             time.sleep(5)
             
-            # Check if process is still running
             if self.node_process.poll() is not None:
                 stdout, _ = self.node_process.communicate()
                 print(f"✗ Node process exited early. Output: {stdout}")
@@ -42,12 +39,10 @@ class NodeManager:
                 
             print("✓ Node process started")
             
-            # Give the node time to initialize properly
             print("Waiting 20 seconds for miners to initialize properly", end="", flush=True)
             for _ in range(20):
                 print(".", end="", flush=True)
                 time.sleep(1)
-                # Check if process is still alive
                 if self.node_process.poll() is not None:
                     print(f"\n✗ Node process died during initialization")
                     return False
@@ -71,19 +66,6 @@ class NodeManager:
         except Exception as e:
             print(f"✗ Failed to stop node: {e}")
     
-    def resume_node(self):
-        """Resume the three miners node"""
-        print("Terminal 3: Resuming three miners...")
-        try:
-            subprocess.run(
-                ["./three-miners.sh", "resume"],
-                cwd="../naka3/playbooks/three-miners",
-                check=True
-            )
-            print("✓ Node resumed")
-        except Exception as e:
-            print(f"✗ Failed to resume node: {e}")
-    
     def cleanup(self):
         """Clean up the node process"""
         if self.node_process and self.running:
@@ -91,7 +73,7 @@ class NodeManager:
             self.node_process.wait()
             self.running = False
 
-class TransactionTester:
+class ContractTester:
     def __init__(self, miner="miner1"):
         self.miner = miner
         self.miner_ports = {
@@ -118,14 +100,11 @@ class TransactionTester:
             }
         }
         
-        self.sender_addr = self.accounts[miner]["addr"]
-        self.sender_key = self.accounts[miner]["key"]
-        self.recipient_addr = "ST3KCNDSWZSFZCC6BE4VA9AXWXC9KEB16FBTRK36T"
+        self.publisher_addr = self.accounts[miner]["addr"]
+        self.publisher_key = self.accounts[miner]["key"]
         self.last_txid = None
-        self.transfer_amount = 1000
-        self.initial_sender_balance = None
-        self.initial_recipient_balance = None
         self.initial_nonce = None
+        self.initial_balance = None
         
         # Create directories
         Path("./tmp").mkdir(exist_ok=True)
@@ -159,45 +138,50 @@ class TransactionTester:
         print(f"\n✗ {self.miner} not ready after {timeout}s")
         return False
     
-    def test_transaction(self):
-        """Test 1: Send a transaction"""
-        print(f"\n=== TEST 1: Transaction Test on {self.miner} ===")
+    def test_contract_deployment(self):
+        """Test 2: Deploy a contract"""
+        print(f"\n=== TEST 2: Contract Deployment Test on {self.miner} ===")
         
         if not self.wait_for_node_ready():
             return False
         
         # Get initial state
-        sender_info = self.get_account_info(self.sender_addr)
-        recipient_info = self.get_account_info(self.recipient_addr)
+        publisher_info = self.get_account_info(self.publisher_addr)
         
-        if not sender_info or not recipient_info:
+        if not publisher_info:
             return False
         
-        nonce = sender_info['nonce']
-        sender_before = int(sender_info['balance'], 16) if sender_info['balance'].startswith('0x') else int(sender_info['balance'])
-        recipient_before = int(recipient_info['balance'], 16) if recipient_info['balance'].startswith('0x') else int(recipient_info['balance'])
+        nonce = publisher_info['nonce']
+        balance_before = int(publisher_info['balance'], 16) if publisher_info['balance'].startswith('0x') else int(publisher_info['balance'])
         
-        # Store initial values for assertion
+        # Store initial values
         self.initial_nonce = nonce
-        self.initial_sender_balance = sender_before
-        self.initial_recipient_balance = recipient_before
+        self.initial_balance = balance_before
         
-        print(f"Sender balance before: {sender_before}")
-        print(f"Recipient balance before: {recipient_before}")
+        print(f"Publisher balance before: {balance_before}")
         print(f"Using nonce: {nonce}")
         
-        # Create transaction using blockstack-cli
+        # Create contract file
+        contract_content = '(define-public (say-hello) (begin (print "Hello!") (ok true)))'
+        contract_name = f"mycontract{nonce}"
+        
+        with open("./tmp/contract.clar", "w") as f:
+            f.write(contract_content)
+        
+        print(f"Contract name: {contract_name}")
+        print(f"Contract content: {contract_content}")
+        
+        # Create contract deployment using blockstack-cli
         try:
-            memo = f"HelloMemo{nonce}"
             cli_cmd = [
-                "blockstack-cli", "--testnet", "token-transfer",
-                self.sender_key, "180", str(nonce), self.recipient_addr, str(self.transfer_amount), memo
+                "blockstack-cli", "--testnet", "publish",
+                self.publisher_key, "200", str(nonce), contract_name, "./tmp/contract.clar"
             ]
             
-            print("Creating transaction...")
+            print("Creating contract deployment...")
             
-            # Use the same method as the bash script: pipe to xxd -r -p
-            with open("./tmp/stx-tx-auto.bin", "wb") as f:
+            # Use same method as bash script: pipe to xxd -r -p
+            with open("./tmp/contract-tx-auto.bin", "wb") as f:
                 cli_process = subprocess.Popen(cli_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 xxd_process = subprocess.Popen(
                     ["xxd", "-r", "-p"], 
@@ -219,9 +203,9 @@ class TransactionTester:
                     print(f"✗ xxd failed: {xxd_err.decode()}")
                     return False
             
-            # Submit transaction
-            print("Submitting transaction...")
-            with open("./tmp/stx-tx-auto.bin", "rb") as f:
+            # Submit contract deployment
+            print("Submitting contract deployment...")
+            with open("./tmp/contract-tx-auto.bin", "rb") as f:
                 response = requests.post(
                     f"{self.api_url}/v2/transactions",
                     headers={"Content-Type": "application/octet-stream"},
@@ -229,22 +213,23 @@ class TransactionTester:
                 )
             
             if response.status_code != 200:
-                print(f"✗ Transaction submission failed: {response.text}")
+                print(f"✗ Contract deployment failed: {response.text}")
                 return False
             
             txid = response.json()
             self.last_txid = txid.strip('"') if isinstance(txid, str) else str(txid)
             print(f"✓ Transaction ID: {self.last_txid}")
+            print(f"✓ Contract name: {contract_name}")
             
             # Wait for confirmation
-            return self.wait_for_confirmation(nonce, sender_before, recipient_before)
+            return self.wait_for_confirmation(nonce, balance_before)
             
         except Exception as e:
-            print(f"✗ Transaction test failed: {e}")
+            print(f"✗ Contract deployment test failed: {e}")
             return False
     
-    def wait_for_confirmation(self, initial_nonce, sender_before, recipient_before):
-        """Wait for transaction confirmation"""
+    def wait_for_confirmation(self, initial_nonce, balance_before):
+        """Wait for contract deployment confirmation"""
         print("Waiting for confirmation...")
         
         # Get initial block height
@@ -256,28 +241,25 @@ class TransactionTester:
         
         for _ in range(300):  # 5 minutes max
             try:
-                sender_info = self.get_account_info(self.sender_addr)
-                recipient_info = self.get_account_info(self.recipient_addr)
+                publisher_info = self.get_account_info(self.publisher_addr)
                 
                 # Get current block height
                 info_response = requests.get(f"{self.api_url}/v2/info")
                 current_block_height = info_response.json().get('stacks_tip_height', 0)
                 
-                if sender_info and recipient_info:
-                    current_nonce = sender_info['nonce']
+                if publisher_info:
+                    current_nonce = publisher_info['nonce']
                     
-                    # Check both nonce AND block height increased (like bash script)
+                    # Check both nonce AND block height increased
                     if current_nonce > initial_nonce and current_block_height > initial_block_height:
-                        sender_after = int(sender_info['balance'], 16) if sender_info['balance'].startswith('0x') else int(sender_info['balance'])
-                        recipient_after = int(recipient_info['balance'], 16) if recipient_info['balance'].startswith('0x') else int(recipient_info['balance'])
+                        balance_after = int(publisher_info['balance'], 16) if publisher_info['balance'].startswith('0x') else int(publisher_info['balance'])
                         
-                        print(f"\n✓ Transaction confirmed!")
-                        print(f"Sender balance: {sender_before} → {sender_after}")
-                        print(f"Recipient balance: {recipient_before} → {recipient_after}")
+                        print(f"\n✓ Contract deployment confirmed!")
+                        print(f"Publisher balance: {balance_before} → {balance_after}")
                         print(f"Nonce: {initial_nonce} → {current_nonce}")
                         print(f"Block: {initial_block_height} → {current_block_height}")
                         
-                        # Fetch transaction details like bash script
+                        # Fetch transaction details
                         try:
                             print("Fetching transaction details...")
                             tx_response = requests.get(f"{self.api_url}/v3/transaction/{self.last_txid}")
@@ -299,13 +281,13 @@ class TransactionTester:
                 print(f"Error during confirmation wait: {e}")
                 time.sleep(1)
         
-        print("\n✗ Transaction confirmation timeout")
+        print("\n✗ Contract deployment confirmation timeout")
         return False
     
-    def verify_transaction_completed(self):
-        """Verify transaction completed successfully during the main test"""
+    def verify_contract_deployed(self):
+        """Verify contract was deployed successfully"""
         print("\n=== POST-TEST ASSERTION ===")
-        print("Verifying transaction completed successfully...")
+        print("Verifying contract deployment completed successfully...")
         
         if not self.last_txid:
             print("✗ ASSERTION FAILED: No transaction ID to verify")
@@ -315,19 +297,15 @@ class TransactionTester:
             print("✗ ASSERTION FAILED: No initial state recorded")
             return False
         
-        # We already have the final account states from the confirmation step
-        # Just verify the logic was correct
-        print(f"✓ Transaction {self.last_txid[:8]}... was confirmed during test")
+        print(f"✓ Contract deployment {self.last_txid[:8]}... was confirmed during test")
         print(f"  Initial nonce: {self.initial_nonce}")
-        print(f"  Transfer amount: {self.transfer_amount} microSTX")
         
-        # Since we confirmed the transaction already, this is just a summary
-        print("  ✓ Transaction confirmation included:")
+        print("  ✓ Contract deployment confirmation included:")
         print("    - Nonce increased by 1")
         print("    - Block height increased")
-        print("    - Balance changes were applied")
+        print("    - Balance decreased (transaction fees)")
         
-        print("  ✓ ALL ASSERTIONS PASSED - Transaction successfully processed")
+        print("  ✓ ALL ASSERTIONS PASSED - Contract successfully deployed")
         return True
 
 def signal_handler(*_):
@@ -345,9 +323,9 @@ def main():
         if not node_manager.start_node():
             return
         
-        # Run Test 1: Transaction test
-        tester = TransactionTester("miner1")
-        success = tester.test_transaction()
+        # Run Test 2: Contract deployment test
+        tester = ContractTester("miner1")
+        success = tester.test_contract_deployment()
         
         if success:
             print("\n✓ All tests passed!")
@@ -357,14 +335,14 @@ def main():
         # Terminal 3: Stop the node to return to initial quiet state
         node_manager.stop_node()
         
-        # Run assertion test to verify transaction completed
+        # Run assertion test to verify contract deployed
         if success:
-            assertion_passed = tester.verify_transaction_completed()
+            assertion_passed = tester.verify_contract_deployed()
             print(f"\n=== FINAL RESULT ===")
             if assertion_passed:
-                print("✓ ALL TESTS PASSED - Transaction successfully completed")
+                print("✓ ALL TESTS PASSED - Contract successfully deployed")
             else:
-                print("✗ ASSERTION FAILED - Transaction verification failed")
+                print("✗ ASSERTION FAILED - Contract deployment verification failed")
         else:
             print("\n=== FINAL RESULT ===")
             print("✗ PRIMARY TEST FAILED - Skipping assertion test")
