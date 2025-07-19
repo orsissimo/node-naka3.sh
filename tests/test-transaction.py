@@ -329,6 +329,59 @@ class TransactionTester:
         
         print("  ✓ ALL ASSERTIONS PASSED - Transaction successfully processed")
         return True
+    
+    def verify_chain_progression(self):
+        """Verify that the blockchain is still progressing after our test"""
+        print("\n=== Chain Progression Verification ===")
+        
+        try:
+            # Get initial heights
+            initial_info = requests.get(f"{self.api_url}/v2/info", timeout=10).json()
+            initial_stacks_height = initial_info.get('stacks_tip_height', 0)
+            initial_burn_height = initial_info.get('burn_block_height', 0)
+            
+            print(f"Initial heights - Stacks: {initial_stacks_height}, Burn: {initial_burn_height}")
+            
+            max_retries = 5
+            wait_time = 9  # 9 seconds per retry = 45 seconds total
+            
+            for retry in range(max_retries):
+                print(f"Waiting {wait_time} seconds to check chain progression (attempt {retry + 1}/{max_retries})...")
+                time.sleep(wait_time)
+                
+                # Get current heights
+                current_info = requests.get(f"{self.api_url}/v2/info", timeout=10).json()
+                current_stacks_height = current_info.get('stacks_tip_height', 0)
+                current_burn_height = current_info.get('burn_block_height', 0)
+                
+                print(f"Current heights - Stacks: {current_stacks_height}, Burn: {current_burn_height}")
+                
+                # Check progression
+                stacks_progressed = current_stacks_height > initial_stacks_height
+                burn_progressed = current_burn_height >= initial_burn_height
+                
+                if stacks_progressed and burn_progressed:
+                    print(f"✓ Stacks chain progressed: {initial_stacks_height} → {current_stacks_height}")
+                    print(f"✓ Burn chain stable/progressed: {initial_burn_height} → {current_burn_height}")
+                    print("✓ CHAIN PROGRESSION VERIFIED - Network is healthy")
+                    return True
+                elif stacks_progressed:
+                    print(f"✓ Stacks chain progressed: {initial_stacks_height} → {current_stacks_height}")
+                    print(f"⚠ Burn chain did not progress: {initial_burn_height} → {current_burn_height}")
+                    print("✓ CHAIN PROGRESSION VERIFIED - Stacks network is healthy")
+                    return True
+                else:
+                    print(f"⚠ Stacks chain did not progress yet: {initial_stacks_height} → {current_stacks_height}")
+                    if retry < max_retries - 1:
+                        print("Retrying...")
+            
+            # If we get here, all retries failed
+            print("✗ CHAIN PROGRESSION FAILED - Network may be stalled after 5 retries")
+            return False
+                
+        except Exception as e:
+            print(f"✗ Error verifying chain progression: {e}")
+            return False
 
 def signal_handler(*_):
     """Handle cleanup on exit"""
@@ -354,15 +407,23 @@ def main():
         else:
             print("\n✗ Tests failed!")
         
+        # Verify chain progression BEFORE stopping the node
+        chain_healthy = False
+        if success:
+            chain_healthy = tester.verify_chain_progression()
+        
         # Terminal 3: Stop the node to return to initial quiet state
         node_manager.stop_node()
         
         # Run assertion test to verify transaction completed
         if success:
             assertion_passed = tester.verify_transaction_completed()
+            
             print(f"\n=== FINAL RESULT ===")
-            if assertion_passed:
-                print("✓ ALL TESTS PASSED - Transaction successfully completed")
+            if assertion_passed and chain_healthy:
+                print("✓ ALL TESTS PASSED - Transaction successful and chain healthy")
+            elif assertion_passed:
+                print("⚠ PARTIAL SUCCESS - Transaction passed but chain progression uncertain")
             else:
                 print("✗ ASSERTION FAILED - Transaction verification failed")
         else:
