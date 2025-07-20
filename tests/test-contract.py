@@ -110,6 +110,27 @@ class ContractTester:
         Path("./tmp").mkdir(exist_ok=True)
         Path("./logs").mkdir(exist_ok=True)
     
+    def cleanup_tmp_files(self):
+        """Clean up temporary files created during testing"""
+        try:
+            tmp_dir = Path("./tmp")
+            if tmp_dir.exists():
+                # Remove all .bin and .clar files
+                for file_pattern in ["*.bin", "*.clar"]:
+                    for file_path in tmp_dir.glob(file_pattern):
+                        file_path.unlink()
+                        
+                # Count remaining files for verification
+                remaining_files = list(tmp_dir.iterdir())
+                if remaining_files:
+                    print(f"✓ Cleaned tmp folder, {len(remaining_files)} files remain")
+                else:
+                    print("✓ Cleaned tmp folder completely")
+            else:
+                print("✓ No tmp folder to clean")
+        except Exception as e:
+            print(f"⚠ Error cleaning tmp files: {e}")
+    
     def get_account_info(self, address):
         """Get account nonce and balance"""
         try:
@@ -161,40 +182,10 @@ class ContractTester:
         print(f"Publisher balance before: {balance_before}")
         print(f"Using nonce: {nonce}")
         
-        # Create contract file with both read-only and public functions
-        contract_content = '''
-;; Simple counter contract
-(define-data-var counter uint u0)
-(define-data-var last-caller principal tx-sender)
-
-;; Read-only function to get counter value
-(define-read-only (get-counter)
-  (var-get counter))
-
-;; Read-only function to get last caller
-(define-read-only (get-last-caller)
-  (var-get last-caller))
-
-;; Public function to increment counter
-(define-public (increment)
-  (begin
-    (var-set counter (+ (var-get counter) u1))
-    (var-set last-caller tx-sender)
-    (print {event: "incremented", new-value: (var-get counter), caller: tx-sender})
-    (ok (var-get counter))))
-
-;; Public function to reset counter
-(define-public (reset)
-  (begin
-    (var-set counter u0)
-    (var-set last-caller tx-sender)
-    (print {event: "reset", caller: tx-sender})
-    (ok u0)))
-        '''.strip()
+        # Copy contract from file
+        import shutil
+        shutil.copy("./contract-counter.clar", "./tmp/contract.clar")
         contract_name = f"mycontract{nonce}"
-        
-        with open("./tmp/contract.clar", "w") as f:
-            f.write(contract_content)
         
         print(f"Contract name: {contract_name}")
         print("Contract: Counter with increment/reset functions")
@@ -631,6 +622,10 @@ def main():
         print(f"Error: {e}")
     finally:
         node_manager.cleanup()
+        
+        # Clean up tmp files after test completion
+        if 'tester' in locals():
+            tester.cleanup_tmp_files()
 
 if __name__ == "__main__":
     main()

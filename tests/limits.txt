@@ -1,0 +1,28 @@
+Based on my research, here are the key limits for contracts and NFTs on the Stacks blockchain:
+
+  Contract Limits
+
+  - Mempool limit: 25 pending transactions per account
+  - Contract size: No specific size limit found in documentation
+  - Transaction atomicity: All balance-affecting transactions are atomic
+
+  NFT Limits
+
+  - No hard limit: Like other blockchains using similar standards, Stacks NFTs follow SIP-009 standard
+  - Token ID datatype: Typically uint (similar to ERC-721's uint256), providing extremely large theoretical limits
+  - Practical limit: 2^256 tokens per contract (approximately 10^77)
+
+  Key Characteristics
+
+  - Standard: Stacks uses SIP-009 for NFT compliance
+  - Security: NFTs are secured by Bitcoin through Proof-of-Transfer consensus
+  - Block production: ~10 second block times
+  - Data storage: NFT metadata typically stored off-chain (IPFS)
+
+  Important Notes
+
+  - The 25 pending transaction limit per account is the main practical constraint
+  - No documented hard limits on contract deployment or NFT minting quantities
+  - Stacks ecosystem prioritizes Bitcoin security and composability
+
+  The limits are generally quite generous and shouldn't restrict typical NFT projects or contract deployments.

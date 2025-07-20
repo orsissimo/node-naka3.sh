@@ -95,6 +95,27 @@ class MempoolStressTester:
         Path("./tmp").mkdir(exist_ok=True)
         Path("./logs").mkdir(exist_ok=True)
     
+    def cleanup_tmp_files(self):
+        """Clean up temporary files created during testing"""
+        try:
+            tmp_dir = Path("./tmp")
+            if tmp_dir.exists():
+                # Remove all .bin and .clar files
+                for file_pattern in ["*.bin", "*.clar"]:
+                    for file_path in tmp_dir.glob(file_pattern):
+                        file_path.unlink()
+                        
+                # Count remaining files for verification
+                remaining_files = list(tmp_dir.iterdir())
+                if remaining_files:
+                    print(f"✓ Cleaned tmp folder, {len(remaining_files)} files remain")
+                else:
+                    print("✓ Cleaned tmp folder completely")
+            else:
+                print("✓ No tmp folder to clean")
+        except Exception as e:
+            print(f"⚠ Error cleaning tmp files: {e}")
+    
     def get_account_info(self, miner_name, address):
         """Get account nonce and balance for a specific miner"""
         try:
@@ -232,12 +253,10 @@ class MempoolStressTester:
             miner_info = self.miners[miner_name]
             contract_name = f"contract{miner_name}{nonce}"
             
-            # Simple contract
-            contract_content = f'(define-public (hello-{nonce}) (ok "Hello from {contract_name}"))'
+            # Copy contract from file
+            import shutil
             contract_file = f"./tmp/contract_{miner_name}_{nonce}.clar"
-            
-            with open(contract_file, "w") as f:
-                f.write(contract_content)
+            shutil.copy("./contract-counter.clar", contract_file)
             
             cli_cmd = [
                 "blockstack-cli", "--testnet", "publish",
@@ -598,6 +617,10 @@ def main():
         print(f"Error: {e}")
     finally:
         node_manager.cleanup()
+        
+        # Clean up tmp files after test completion
+        if 'tester' in locals():
+            tester.cleanup_tmp_files()
 
 if __name__ == "__main__":
     main()
