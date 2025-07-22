@@ -74,8 +74,9 @@ class NodeManager:
             self.running = False
 
 class NFTTester:
-    def __init__(self, miner="miner1"):
+    def __init__(self, miner="miner1", contract_file="contract-nft.clar"):
         self.miner = miner
+        self.contract_file = contract_file
         self.miner_ports = {
             "miner1": 20443,
             "miner2": 30443,
@@ -185,9 +186,10 @@ class NFTTester:
         print(f"Publisher balance before: {balance_before}")
         print(f"Using nonce: {nonce}")
         
-        # Copy NFT contract from file
+        # Copy NFT contract from specified file
         import shutil
-        shutil.copy("./contract-nft.clar", "./tmp/nft-contract.clar")
+        shutil.copy(f"./{self.contract_file}", "./tmp/nft-contract.clar")
+        print(f"Using contract file: {self.contract_file}")
         self.contract_name = f"testnft{nonce}"
         
         print(f"NFT Contract name: {self.contract_name}")
@@ -197,7 +199,7 @@ class NFTTester:
         try:
             cli_cmd = [
                 "blockstack-cli", "--testnet", "publish",
-                self.publisher_key, "2000", str(nonce), self.contract_name, "./tmp/nft-contract.clar"
+                self.publisher_key, "20000", str(nonce), self.contract_name, "./tmp/nft-contract.clar"
             ]
             
             print("Creating NFT contract deployment...")
@@ -347,7 +349,7 @@ class NFTTester:
         try:
             cmd = [
                 "blockstack-cli", "--testnet", "contract-call",
-                self.publisher_key, "2000", str(current_nonce),
+                self.publisher_key, "20000", str(current_nonce),
                 self.publisher_addr, self.contract_name, function_name
             ]
             if args:
@@ -562,6 +564,16 @@ def signal_handler(*_):
     sys.exit(0)
 
 def main():
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="Test NFT contract deployment and interaction")
+    parser.add_argument("--contract", default="contract-nft.clar", 
+                       help="Contract file to deploy (default: contract-nft.clar)")
+    parser.add_argument("--miner", default="miner1", choices=["miner1", "miner2", "miner3"],
+                       help="Miner to use for deployment (default: miner1)")
+    
+    args = parser.parse_args()
+    
     signal.signal(signal.SIGINT, signal_handler)
     
     node_manager = NodeManager()
@@ -571,8 +583,8 @@ def main():
         if not node_manager.start_node():
             return
         
-        # Run NFT deployment test
-        tester = NFTTester("miner1")
+        # Run NFT deployment test with specified contract
+        tester = NFTTester(args.miner, args.contract)
         deploy_success = tester.test_nft_deployment()
         
         interaction_success = False

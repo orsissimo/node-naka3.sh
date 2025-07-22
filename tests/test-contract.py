@@ -74,8 +74,9 @@ class NodeManager:
             self.running = False
 
 class ContractTester:
-    def __init__(self, miner="miner1"):
+    def __init__(self, miner="miner1", contract_file="contract-counter.clar"):
         self.miner = miner
+        self.contract_file = contract_file
         self.miner_ports = {
             "miner1": 20443,
             "miner2": 30443,
@@ -182,9 +183,10 @@ class ContractTester:
         print(f"Publisher balance before: {balance_before}")
         print(f"Using nonce: {nonce}")
         
-        # Copy contract from file
+        # Copy contract from specified file
         import shutil
-        shutil.copy("./contract-counter.clar", "./tmp/contract.clar")
+        shutil.copy(f"./{self.contract_file}", "./tmp/contract.clar")
+        print(f"Using contract file: {self.contract_file}")
         contract_name = f"mycontract{nonce}"
         
         print(f"Contract name: {contract_name}")
@@ -565,6 +567,16 @@ def signal_handler(*_):
     sys.exit(0)
 
 def main():
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="Test contract deployment and interaction")
+    parser.add_argument("--contract", default="contract-counter.clar", 
+                       help="Contract file to deploy (default: contract-counter.clar)")
+    parser.add_argument("--miner", default="miner1", choices=["miner1", "miner2", "miner3"],
+                       help="Miner to use for deployment (default: miner1)")
+    
+    args = parser.parse_args()
+    
     signal.signal(signal.SIGINT, signal_handler)
     
     node_manager = NodeManager()
@@ -574,8 +586,8 @@ def main():
         if not node_manager.start_node():
             return
         
-        # Run contract deployment test
-        tester = ContractTester("miner1")
+        # Run contract deployment test with specified contract
+        tester = ContractTester(args.miner, args.contract)
         deploy_success = tester.test_contract_deployment()
         
         interaction_success = False
