@@ -9,70 +9,7 @@ import requests
 from pathlib import Path
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
-
-class NodeManager:
-    def __init__(self):
-        self.node_process = None
-        self.running = False
-        
-    def start_node(self):
-        """Start the three miners node"""
-        print("Terminal 1: Starting three miners...")
-        try:
-            cmd = ["./three-miners.sh", "snapshot", "restore"]
-            self.node_process = subprocess.Popen(
-                cmd,
-                cwd="../naka3/playbooks/three-miners",
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                bufsize=1,
-                universal_newlines=True
-            )
-            self.running = True
-            
-            time.sleep(5)
-            
-            if self.node_process.poll() is not None:
-                stdout, _ = self.node_process.communicate()
-                print(f"✗ Node process exited early. Output: {stdout}")
-                return False
-                
-            print("✓ Node process started")
-            
-            print("Waiting 20 seconds for miners to initialize properly", end="", flush=True)
-            for _ in range(20):
-                print(".", end="", flush=True)
-                time.sleep(1)
-                if self.node_process.poll() is not None:
-                    print(f"\n✗ Node process died during initialization")
-                    return False
-            print(" ✓")
-            
-        except Exception as e:
-            print(f"✗ Failed to start node: {e}")
-            return False
-        return True
-    
-    def stop_node(self):
-        """Stop the three miners node"""
-        print("Terminal 3: Stopping three miners...")
-        try:
-            subprocess.run(
-                ["./three-miners.sh", "stop"],
-                cwd="../naka3/playbooks/three-miners",
-                check=True
-            )
-            print("✓ Node stopped")
-        except Exception as e:
-            print(f"✗ Failed to stop node: {e}")
-    
-    def cleanup(self):
-        """Clean up the node process"""
-        if self.node_process and self.running:
-            self.node_process.terminate()
-            self.node_process.wait()
-            self.running = False
+from utils import NodeManager
 
 class MempoolStressTester:
     def __init__(self):
@@ -256,7 +193,7 @@ class MempoolStressTester:
             # Copy contract from file
             import shutil
             contract_file = f"./tmp/contract_{miner_name}_{nonce}.clar"
-            shutil.copy("./contract-counter.clar", contract_file)
+            shutil.copy("./contracts/contract-counter.clar", contract_file)
             
             cli_cmd = [
                 "blockstack-cli", "--testnet", "publish",
