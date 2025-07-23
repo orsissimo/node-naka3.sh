@@ -1,0 +1,150 @@
+# Test Stacks Multi-Miner - Note Rapide
+
+## Per stoppare i singoli miner:
+- cd /home/simone/Desktop/node-naka3.sh/naka3/playbooks/three-miners
+- Stop specific miner (pause)
+    ../../naka3.sh -c "./config-miner-1.sh" node 1 stop    # Stop miner1
+    ../../naka3.sh -c "./config-miner-2.sh" node 2 stop    # Stop miner2
+
+- Resume specific miner  
+    ../../naka3.sh -c "./config-miner-1.sh" node 1 resume  # Resume miner1
+    ../../naka3.sh -c "./config-miner-2.sh" node 2 resume  # Resume miner2
+
+## Timing & Race Conditions
+- tx durante cambio miner leader → vedere chi la include
+- tx proprio quando arriva nuovo bitcoin block → test anchoring
+- stessa tx mandata ai 3 miner simultaneamente → chi vince?
+- tx conflittuali (stesso nonce, fee diverse) su miner separati
+- double spend: stesso UTXO speso su 2 miner diversi
+
+## Network Split & Fork
+- disconnetti 1 miner, fai minare gli altri 2, poi riconnetti → fork resolution?
+- iptables per simulare network partition
+- kill random miner durante operazioni critiche
+- bitcoin reorg mentre stacks sta anchoring
+
+## Resource Limits & Stress
+- deploy contratto gigante (max size possibile)
+- ricorsione profonda fino a stack overflow
+- loop infinito per bruciare tutto il gas
+- migliaia di NFT mint in batch
+- flood di micro-transazioni con fee minime
+- saturare memoria con map enormi nel contratto
+
+## Cross-Contract Chaos
+- contract A → B → C chain calls
+- race condition su map updates (stesso contratto chiamato in parallelo)
+- inter-contract transfer loops
+- mint/burn massicci per testare token economics
+
+## Edge Cases Transazioni
+- tx con signature valida ma nonce sbagliato
+- tx con gas limit = 0
+- transfer con amount = esatto balance disponibile
+- fee che supera balance totale
+- transazioni malformate ma parseable
+
+## Bitcoin Integration
+- bitcoin block timing irregolare (veloce poi lentissimo)
+- bitcoin reorg con invalidateblock/reconsiderblock
+- anchoring durante instabilità bitcoin chain
+- STX transfer durante epoch boundary
+
+## Database & Corruption
+- kill miner durante write operations
+- corrompere manualmente db files
+- simulare disk full durante mining
+- memory leak test con operazioni prolungate
+
+## Performance Profiling
+- throughput max con 3 miner vs 1 miner
+- latency sotto diverse load
+- I/O bottleneck simulation
+- bandwidth limiting tra miner
+
+## Advanced Contract Tests
+- precision overflow con uint max
+- storage exhaustion test
+- garbage collection stress
+- contract upgrade durante chiamate attive
+- read-modify-write race conditions
+
+## Security & Attack Vectors
+- byzantine behavior simulation (1 miner cattivo)
+- front-running attempts
+- timing attack su block predictability
+- contract access control bypass attempts
+- multi-sig edge cases con chiavi compromesse
+
+## Quick Commands da Ricordare
+```
+# Network split
+iptables -A INPUT -s <miner_ip> -j DROP
+
+# Bitcoin reorg
+bitcoin-cli invalidateblock <hash>
+
+# Stress test - NO OUTPUT durante mass batching!
+for i in {1..1000}; do curl -s -X POST ... >/dev/null 2>&1; done
+
+# Monitor resources
+top -p <miner_pid>
+```
+
+## Performance Tips
+- NO echo/printf durante mass batching → rallenta tutto
+- usa curl -s e redirect >/dev/null per speed
+- disabilita logs verbose durante stress test
+- monitor separato invece di output real-time
+- batch size ottimale: ~100-500 tx per volta
+
+## PoX & Stacking Specifici
+- reward cycle durante network split
+- stacking con miner disconnesso
+- PoX anchor block conflicts
+- liquid supply changes durante stress
+- stack/unstack durante epoch transition
+
+## Logging & Debug
+- tail -f su tutti i log files simultaneamente
+- timestamp correlation tra bitcoin/stacks events
+- structured logging per automated analysis
+- custom metrics collection durante test
+- debug mode vs production mode performance
+
+## Cleanup & Reset Procedures
+- script per reset completo dello stato
+- backup/restore tra test diversi
+- purge mempool su tutti i nodi
+- reset bitcoin regtest to clean state
+- verifica che tutto sia pulito prima del test successivo
+
+## Disaster Recovery
+- hard crash durante mining
+- corruption detection e recovery
+- bootstrap da zero vs recovery parziale
+- cross-contamination tra test runs
+- backup strategy per test environment
+
+## Test Automation Framework
+- script master che orchestri tutti i test
+- parallel test execution
+- automatic health check tra test
+- risultati aggregati e comparison
+- CI/CD per regression testing
+
+## Monitoring Automatico
+- script che monitora health real-time
+- alert quando qualcosa va storto
+- resource usage tracking automatico
+- deadlock/hang detection
+- performance baseline establishment
+
+## Cose da Verificare Sempre
+- consistency tra i 3 miner dopo ogni test
+- mempool status su tutti i nodi
+- bitcoin/stacks sync status
+- error logs per crash/corruption
+- network connectivity tra tutti i nodi
+- disk space e file descriptor usage
+- memory leaks o resource non rilasciati
