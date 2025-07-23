@@ -1,5 +1,15 @@
 # Test Stacks Multi-Miner - Note Rapide
 
+- nft, contract, transaction --> diventano mattoncini in libreria
+- ora creare ricette:
+    - ricetta nft grossi e chiamate
+    - anche contract grosso
+    - 
+
+- capire da dove arriva toomuchchaining (a cosa è dovuto?)
+
+---
+
 ## Per stoppare i singoli miner:
 - cd /home/simone/Desktop/node-naka3.sh/naka3/playbooks/three-miners
 - Stop specific miner (pause)

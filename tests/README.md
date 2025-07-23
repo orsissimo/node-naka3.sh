@@ -1,47 +1,50 @@
-# Test Scripts
+# Stacks Modular Test Framework
 
-## Overview
+Smart, efficient, minimal testing framework with reusable modules.
 
-Test scripts for Stacks blockchain functionality using three-miner setup.
+## Quick Start
 
-## Scripts
+```python
+from utils import Runner, Recipes
 
-**test-mempool.py** - Batched transaction stress testing
-
-- Submits transactions rapidly to fill blocks, then waits for mining
-- Tests mempool capacity, transaction processing, and network resilience
-
-**test-contract.py** - Contract deployment and interaction
-
-- Deploys specified contract using blockstack-cli
-- Calls read-only and public contract functions
-- Verifies deployment confirmation and chain progression
-
-```bash
-python3 test-contract.py --contract contract-counter.clar --miner miner1
+runner = Runner()
+result = runner.run(Recipes.tx_test())  # Basic transaction test
 ```
 
-**test-nft.py** - NFT contract deployment and operations
+## Modules
 
-- Deploys SIP-009 NFT contract
-- Tests minting, ownership queries, and token transfers
-- Validates NFT functionality and metadata
+- **Transaction**: `transfer()`, `batch()`, `stress()`
+- **Contract**: `deploy()`, `read()`, `call()`, `deploy_and_test()`
+- **NFT**: `mint()`, `transfer()`, `burn()`, `deploy_and_mint()`
+- **Mempool**: `flood()`, `mixed_stress()`, `info()`
+- **NodeManager**: `start_node()`, `stop_miner()`, `resume_miner()`
+
+## Available Tests
 
 ```bash
-python3 test-nft.py --contract contract-nft.clar --miner miner1
+./example_usage.py                    # Demo all modules
+./test-modular-transaction.py         # Transaction tests
+./test-modular-comprehensive.py       # Full test suite
+./test-miner-control.py test          # Miner control test
 ```
 
-**test-transaction.py** - Basic token transfers
+## Recipe System
 
-- Creates and submits STX token transfer transactions
-- Tests basic network functionality and transaction confirmation
+```python
+recipe = Recipe("Test", "Description", [
+    Step("Transfer", "transaction", "transfer", {...}),
+    Step("Deploy", "contract", "deploy", {...})
+])
+result = runner.run(recipe)
+```
 
-## Contracts
+## Predefined Recipes
 
-- `contract-counter.clar` - Simple counter with increment/reset
-- `contract-nft.clar` - SIP-009 compliant NFT
-- `cyberpunk2140a.clar` - Custom NFT contract
+- `Recipes.tx_test()` - Basic STX transfer
+- `Recipes.contract_test()` - Contract deployment
+- `Recipes.nft_test()` - NFT operations
+- `Recipes.mempool_test()` - Mempool stress
+- `Recipes.full_test()` - Complete test suite
+- `Recipes.miner_control_test()` - Individual miner control
 
-## Usage
-
-All scripts auto-start/stop the three-miner network. Use `--help` for options.
+Efficient, working, modular.

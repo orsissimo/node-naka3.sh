@@ -77,6 +77,26 @@ class NodeManager:
         except Exception as e:
             print(f"✗ Failed to resume node: {e}")
     
+    def stop_miner(self, miner_id: int):
+        """Stop specific miner (1, 2, or 3)"""
+        print(f"Stopping miner{miner_id}...")
+        try:
+            cmd = [f"../../naka3.sh", "-c", f"./config-miner-{miner_id}.sh", "node", str(miner_id), "stop"]
+            subprocess.run(cmd, cwd="../naka3/playbooks/three-miners", check=True)
+            print(f"✓ Miner{miner_id} stopped")
+        except Exception as e:
+            print(f"✗ Failed to stop miner{miner_id}: {e}")
+    
+    def resume_miner(self, miner_id: int):
+        """Resume specific miner (1, 2, or 3)"""
+        print(f"Resuming miner{miner_id}...")
+        try:
+            cmd = [f"../../naka3.sh", "-c", f"./config-miner-{miner_id}.sh", "node", str(miner_id), "resume"]
+            subprocess.run(cmd, cwd="../naka3/playbooks/three-miners", check=True)
+            print(f"✓ Miner{miner_id} resumed")
+        except Exception as e:
+            print(f"✗ Failed to resume miner{miner_id}: {e}")
+    
     def cleanup(self):
         """Clean up the node process"""
         if self.node_process and self.running:
