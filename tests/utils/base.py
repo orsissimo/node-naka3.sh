@@ -83,9 +83,19 @@ class StacksTestBase:
         """Get current nonce for account"""
         return self.get_account_info(miner)["nonce"]
     
-    def get_balance(self, miner: str) -> int:
-        """Get STX balance for account"""
-        return int(self.get_account_info(miner)["balance"], 16)
+    def get_balance(self, miner: str, address: Optional[str] = None) -> int:
+        """Get STX balance for account or any address"""
+        if address is None:
+            # Get balance for the miner's own account
+            return int(self.get_account_info(miner)["balance"], 16)
+        else:
+            # Get balance for any address using the miner's API
+            account = self.get_account(miner)
+            response = self.api_call(account, f"/v2/accounts/{address}")
+            response.raise_for_status()
+            account_info = response.json()
+            balance_hex = account_info.get('balance', '0x0')
+            return int(balance_hex, 16) if balance_hex.startswith('0x') else int(balance_hex)
     
     def get_block_height(self, miner: str) -> int:
         """Get current block height"""
@@ -126,7 +136,7 @@ class StacksTestBase:
         
         return False
     
-    def verify_transaction(self, miner: str, txid: str, initial_nonce: int, initial_balance: int, initial_height: int) -> Dict[str, Any]:
+    def verify_transaction(self, miner: str, txid: str, initial_nonce: int, initial_balance: int, initial_height: int, recipient_address: Optional[str] = None) -> Dict[str, Any]:
         """Verify transaction by checking endpoint, nonce increase, and height increase"""
         account = self.get_account(miner)
         
@@ -143,6 +153,19 @@ class StacksTestBase:
             current_nonce = self.get_nonce(miner)
             current_balance = self.get_balance(miner)
             current_height = self.get_block_height(miner)
+            
+            # Get recipient balance if tracking transfers
+            current_recipient_balance = None
+            if recipient_address:
+                try:
+                    response = self.api_call(account, f"/v2/accounts/{recipient_address}")
+                    response.raise_for_status()
+                    account_info = response.json()
+                    balance_hex = account_info.get('balance', '0x0')
+                    current_recipient_balance = int(balance_hex, 16) if balance_hex.startswith('0x') else int(balance_hex)
+                except Exception as e:
+                    print(f"⚠ Could not get recipient balance: {e}")
+                    current_recipient_balance = None
             
             # ALWAYS fetch transaction details from /v3/transaction endpoint
             print(f"\n=== FETCHING TRANSACTION DETAILS ===")
@@ -193,7 +216,7 @@ class StacksTestBase:
                         elif tx_hex.count('08') > 0:  # Contract deployment pattern
                             print(f"  Detected operation: Contract deployment")
             
-            return {
+            result = {
                 'success': True,
                 'txid': txid,
                 'nonce_change': current_nonce - initial_nonce,
@@ -201,6 +224,15 @@ class StacksTestBase:
                 'height_change': current_height - initial_height,
                 'transaction_data': tx_data
             }
+            
+            # Add recipient balance change if tracking transfers
+            if recipient_address and current_recipient_balance is not None:
+                # We need initial recipient balance - get it from the method signature
+                # For now, just add the current recipient balance
+                result['recipient_balance'] = current_recipient_balance
+                result['recipient_address'] = recipient_address
+            
+            return result
             
         except Exception as e:
             print(f"✗ Transaction verification failed: {e}")
