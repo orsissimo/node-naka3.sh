@@ -3,11 +3,10 @@ from .node_manager import NodeManager
 from .transaction import Transaction
 from .contract import Contract
 from .nft import NFT
-from .mempool import Mempool
-from .recipes import Recipe, Step, Runner, Recipes
+from .recipes import Recipe, Step, Runner
 
 __all__ = [
     'StacksTestBase', 'Account', 'NodeManager',
-    'Transaction', 'Contract', 'NFT', 'Mempool',
-    'Recipe', 'Step', 'Runner', 'Recipes'
+    'Transaction', 'Contract', 'NFT',
+    'Recipe', 'Step', 'Runner'
 ]

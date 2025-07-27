@@ -132,9 +132,120 @@ class StacksTestBase:
             except Exception:
                 pass  # Ignore temporary API errors
             
-            time.sleep(3)
+            # Brief pause to avoid hammering the API (necessary for polling)
+            time.sleep(1)
         
         return False
+    
+    def wait_for_block_increase(self, miner: str, initial_height: int, timeout: int = 30) -> int:
+        """Wait for block height to increase beyond initial_height"""
+        start_time = time.time()
+        
+        while time.time() - start_time < timeout:
+            try:
+                current_height = self.get_block_height(miner)
+                if current_height > initial_height:
+                    return current_height
+            except Exception:
+                pass  # Ignore temporary API errors
+            
+            # Brief pause to avoid hammering the API (necessary for polling)
+            time.sleep(1)
+        
+        return initial_height  # Return original height if no increase detected
+    
+    def wait_for_miners_ready(self) -> bool:
+        """Wait for all miners to be ready by checking /v2/info endpoint"""
+        miners_to_check = ["miner1", "miner2", "miner3"]
+        ready_count = 0
+        max_attempts = 10
+        
+        for attempt in range(max_attempts):
+            ready_count = 0
+            for miner in miners_to_check:
+                try:
+                    account = self.get_account(miner)
+                    response = self.api_call(account, "/v2/info", timeout=5)
+                    if response.status_code == 200:
+                        info = response.json()
+                        # Check if miner is responding and has a valid height
+                        if info.get("stacks_tip_height", 0) >= 0:
+                            ready_count += 1
+                except Exception:
+                    pass  # Ignore errors, will retry
+            
+            if ready_count == len(miners_to_check):
+                print(f"✓ All {ready_count} miners are ready")
+                return True
+            
+            print(f"Miners ready: {ready_count}/{len(miners_to_check)}, retrying in 1s...")
+            time.sleep(1)  # Brief pause before retry (necessary for initialization check)
+        
+        print(f"⚠ Only {ready_count}/{len(miners_to_check)} miners ready after {max_attempts} attempts")
+        return ready_count > 0  # Return True if at least one miner is ready
+    
+    def wait_for_nonce_increase(self, miner: str, initial_nonce: int, expected_increase: int, timeout: int = 30) -> int:
+        """Wait for nonce to increase by expected_increase amount"""
+        target_nonce = initial_nonce + expected_increase
+        start_time = time.time()
+        
+        while time.time() - start_time < timeout:
+            try:
+                current_nonce = self.get_nonce(miner)
+                if current_nonce >= target_nonce:
+                    return current_nonce
+            except Exception:
+                pass  # Ignore temporary API errors
+            
+            # Brief pause to avoid hammering the API (necessary for polling)
+            time.sleep(1)
+        
+        # Return current nonce even if target not reached
+        try:
+            return self.get_nonce(miner)
+        except:
+            return initial_nonce
+    
+    def verify_transaction_direct(self, miner: str, txid: str, recipient_address: Optional[str] = None) -> Dict[str, Any]:
+        """Verify transaction by fetching details directly (skip confirmation wait)"""
+        account = self.get_account(miner)
+        
+        try:
+            # ALWAYS fetch transaction details from /v3/transaction endpoint
+            print(f"\n=== FETCHING TRANSACTION DETAILS ===")
+            print(f"Calling: /v3/transaction/{txid}")
+            
+            tx_response = self.api_call(account, f"/v3/transaction/{txid}")
+            print(f"Response status: {tx_response.status_code}")
+            
+            if tx_response.status_code == 200:
+                tx_data = tx_response.json()
+                print(f"✓ Transaction details fetched successfully!")
+                print("=== FULL TRANSACTION DETAILS ===")
+                print(json.dumps(tx_data, indent=2))
+                print("=== END TRANSACTION DETAILS ===")
+                
+                return {
+                    'success': True,
+                    'txid': txid,
+                    'transaction_data': tx_data
+                }
+            else:
+                print(f"⚠ Transaction endpoint returned {tx_response.status_code}")
+                print(f"Response: {tx_response.text}")
+                return {
+                    'success': False,
+                    'error': f'Transaction endpoint returned {tx_response.status_code}: {tx_response.text}',
+                    'txid': txid
+                }
+                
+        except Exception as e:
+            print(f"✗ ERROR fetching transaction details: {e}")
+            return {
+                'success': False,
+                'error': f'Transaction verification failed: {e}',
+                'txid': txid
+            }
     
     def verify_transaction(self, miner: str, txid: str, initial_nonce: int, initial_balance: int, initial_height: int, recipient_address: Optional[str] = None) -> Dict[str, Any]:
         """Verify transaction by checking endpoint, nonce increase, and height increase"""

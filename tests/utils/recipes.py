@@ -8,7 +8,6 @@ from .node_manager import NodeManager
 from .transaction import Transaction
 from .contract import Contract
 from .nft import NFT
-from .mempool import Mempool
 
 @dataclass
 class Step:
@@ -37,8 +36,7 @@ class Runner(StacksTestBase):
             'transaction': Transaction(),
             'contract': Contract(),
             'nft': NFT(),
-            'mempool': Mempool(),
-            'node': self.node
+                        'node': self.node
         }
     
     def run(self, recipe: Recipe) -> Dict[str, Any]:
