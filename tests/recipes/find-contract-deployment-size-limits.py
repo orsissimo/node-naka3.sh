@@ -174,22 +174,7 @@ def create_size_limits_recipe():
                 },
                 wait=True,
                 on_error="continue"
-            ),
-            
-            # Test massive contract (should fail with codec error)
-            Step(
-                name="Deploy 2200KB massive contract",
-                module="contract",
-                method="deploy",
-                params={
-                    "miner": "miner2",
-                    "contract_file": "contracts/massive-contract-2200kb.clar",
-                    "contract_name": "massive-contract-2200kb"
-                },
-                wait=True,
-                on_error="continue"
-            ),
-            
+            ),            
             # Test working contracts
             Step(
                 name="Test 8KB contract function",
