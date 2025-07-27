@@ -22,6 +22,17 @@ class Contract(StacksTestBase):
         
         account = self.get_account(miner)
         
+        # Validate contract file content
+        try:
+            with open(contract_file, 'r') as f:
+                contract_code = f.read().strip()
+            if not contract_code:
+                raise ValueError("Contract file is empty")
+            print(f"✓ Contract file loaded ({len(contract_code)} characters)")
+        except Exception as e:
+            print(f"✗ Error reading contract file: {e}")
+            raise
+        
         # Get initial state for verification
         initial_nonce = self.get_nonce(miner) if nonce is None else nonce
         initial_balance = self.get_balance(miner)
@@ -32,13 +43,47 @@ class Contract(StacksTestBase):
         print(f"File: {contract_file}")
         print(f"Initial balance: {initial_balance}")
         print(f"Using nonce: {initial_nonce}")
+        print(f"Account: {account.address}")
         
-        # Use higher fee for contracts (especially NFTs need more gas)
-        fee = "20000" if "nft" in contract_file.lower() or "nft" in contract_name.lower() else "1000"
+        # Use appropriate fee for contracts - higher for NFTs, reasonable for others
+        if "nft" in contract_file.lower() or "nft" in contract_name.lower() or "cyberpunk" in contract_name.lower():
+            fee = "50000"  # Higher fee for complex NFT contracts
+        else:
+            fee = "10000"  # Standard fee for contracts
+            
+        print(f"Using fee: {fee} µSTX")
+        
         cmd = ["blockstack-cli", "--testnet", "publish", account.private_key, fee, str(initial_nonce), contract_name, contract_file]
-        tx_binary = self.run_cli_command(cmd, binary_output=True)
-        response = self.api_call(account, "/v2/transactions", "POST", tx_binary)
-        response.raise_for_status()
+        
+        print(f"Creating contract deployment transaction...")
+        print(f"Command: {' '.join(cmd)}")
+        
+        try:
+            tx_binary = self.run_cli_command(cmd, binary_output=True)
+            print(f"✓ Transaction binary created (length: {len(tx_binary)} bytes)")
+        except Exception as e:
+            print(f"✗ Failed to create transaction binary: {e}")
+            raise
+        
+        print(f"Submitting transaction to {account.api_url}/v2/transactions...")
+        
+        try:
+            response = self.api_call(account, "/v2/transactions", "POST", tx_binary)
+            print(f"Response status: {response.status_code}")
+            
+            if response.status_code != 200:
+                print(f"✗ Transaction submission failed")
+                print(f"Response headers: {dict(response.headers)}")
+                try:
+                    error_data = response.json()
+                    print(f"Error details: {json.dumps(error_data, indent=2)}")
+                except:
+                    print(f"Error text: {response.text}")
+                
+            response.raise_for_status()
+        except Exception as e:
+            print(f"✗ API call failed: {e}")
+            raise
         
         txid = response.text.strip('"')
         print(f"✓ Contract deployment submitted: {txid}")
@@ -97,7 +142,9 @@ class Contract(StacksTestBase):
         fee = "20000" if "nft" in contract_name.lower() else "1000"
         cmd = ["blockstack-cli", "--testnet", "contract-call", account.private_key, fee, str(initial_nonce), contract_address, contract_name, function_name]
         if args:
-            cmd.extend(args)
+            # Each argument must be prefixed with -e
+            for arg in args:
+                cmd.extend(["-e", arg])
         
         tx_binary = self.run_cli_command(cmd, binary_output=True)
         response = self.api_call(account, "/v2/transactions", "POST", tx_binary)

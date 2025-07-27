@@ -82,22 +82,7 @@ def create_cyberpunk_nft_recipe():
                 wait=True,
                 on_error="continue"
             ),
-            # Step 6: Read user balance before mint
-            Step(
-                name="Read user balance before mint",
-                module="contract",
-                method="read",
-                params={
-                    "miner": "miner1",
-                    "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
-                    "contract_name": "cyberpunk2140a",
-                    "function_name": "get-balance",
-                    "args": ["'STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6"]
-                },
-                wait=True,
-                on_error="continue"
-            ),
-            # Step 7: Read collection attributes
+            # Step 6: Read collection attributes
             Step(
                 name="Read collection attribute",
                 module="contract",
@@ -111,7 +96,7 @@ def create_cyberpunk_nft_recipe():
                 wait=True,
                 on_error="continue"
             ),
-            # Step 8: Check if collection data is frozen
+            # Step 7: Check if collection data is frozen
             Step(
                 name="Check collection data frozen",
                 module="contract",
@@ -125,7 +110,67 @@ def create_cyberpunk_nft_recipe():
                 wait=True,
                 on_error="continue"
             ),
-            # Step 9: Mint cyberpunk NFT
+            # Step 8: Set token URI (write function)
+            Step(
+                name="Set token URI",
+                module="contract",
+                method="call",
+                params={
+                    "miner": "miner1",
+                    "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
+                    "contract_name": "cyberpunk2140a",
+                    "function_name": "set-token-uri",
+                    "args": ["\"https://cyberpunk2140.com/metadata/{id}.json\""]
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            # Step 10: Set collection attribute (write function)
+            Step(
+                name="Set collection attribute",
+                module="contract",
+                method="call",
+                params={
+                    "miner": "miner1",
+                    "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
+                    "contract_name": "cyberpunk2140a",
+                    "function_name": "set-collection-attribute",
+                    "args": ["u\"Cyberpunk 2140 NFT Collection\""]
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            # Step 11: Set collection icon data (write function)
+            Step(
+                name="Set collection icon data",
+                module="contract",
+                method="call",
+                params={
+                    "miner": "miner1",
+                    "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
+                    "contract_name": "cyberpunk2140a",
+                    "function_name": "set-collection-icon-data",
+                    "args": ["0x89504e470d0a1a0a0000000d49484452"]  # Sample PNG header bytes
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            # Step 12: Set tokens (write function)
+            Step(
+                name="Set tokens data",
+                module="contract",
+                method="call",
+                params={
+                    "miner": "miner1",
+                    "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
+                    "contract_name": "cyberpunk2140a",
+                    "function_name": "set-tokens",
+                    "args": ["(list {id: u1, data: 0x89504e470d0a1a0a, attribute: u\"First Token\"} {id: u2, data: 0x89504e470d0a1a0b, attribute: u\"Second Token\"})"]
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            # Step 13: Mint cyberpunk NFT
             Step(
                 name="Mint cyberpunk NFT",
                 module="contract",
@@ -137,9 +182,9 @@ def create_cyberpunk_nft_recipe():
                     "function_name": "mint"
                 },
                 wait=True,
-                on_error="stop"
+                on_error="continue"
             ),
-            # Step 10: Read minted count after mint
+            # Step 12: Read minted count after mint
             Step(
                 name="Read minted count after mint",
                 module="contract",
@@ -153,91 +198,20 @@ def create_cyberpunk_nft_recipe():
                 wait=True,
                 on_error="continue"
             ),
-            # Step 11: Read user balance after mint
+            # Step 13: Read collection attribute after setting
             Step(
-                name="Read user balance after mint",
+                name="Read collection attribute after setting",
                 module="contract",
                 method="read",
                 params={
                     "miner": "miner1",
                     "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
                     "contract_name": "cyberpunk2140a",
-                    "function_name": "get-balance",
-                    "args": ["'STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6"]
+                    "function_name": "get-collection-attribute"
                 },
                 wait=True,
                 on_error="continue"
             ),
-            # Step 12: Read minted IDs list
-            Step(
-                name="Read minted IDs list",
-                module="contract",
-                method="read",
-                params={
-                    "miner": "miner1",
-                    "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
-                    "contract_name": "cyberpunk2140a",
-                    "function_name": "get-minted-ids"
-                },
-                wait=True,
-                on_error="continue"
-            ),
-            # Step 13: Read partner percent
-            Step(
-                name="Read partner percent",
-                module="contract",
-                method="read",
-                params={
-                    "miner": "miner1",
-                    "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
-                    "contract_name": "cyberpunk2140a",
-                    "function_name": "get-partner-percent"
-                },
-                wait=True,
-                on_error="continue"
-            ),
-            # Step 14: Read royalty percent
-            Step(
-                name="Read royalty percent",
-                module="contract",
-                method="read",
-                params={
-                    "miner": "miner1",
-                    "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
-                    "contract_name": "cyberpunk2140a",
-                    "function_name": "get-royalty-percent"
-                },
-                wait=True,
-                on_error="continue"
-            ),
-            # Step 15: Read partner address
-            Step(
-                name="Read partner address",
-                module="contract",
-                method="read",
-                params={
-                    "miner": "miner1",
-                    "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
-                    "contract_name": "cyberpunk2140a",
-                    "function_name": "get-partner-address"
-                },
-                wait=True,
-                on_error="continue"
-            ),
-            # Step 16: Read team address
-            Step(
-                name="Read team address",
-                module="contract",
-                method="read",
-                params={
-                    "miner": "miner1",
-                    "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
-                    "contract_name": "cyberpunk2140a",
-                    "function_name": "get-team-address"
-                },
-                wait=True,
-                on_error="continue"
-            )
         ]
     )
 
