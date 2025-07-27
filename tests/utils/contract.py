@@ -45,11 +45,13 @@ class Contract(StacksTestBase):
         print(f"Using nonce: {Colors.format_dim(str(initial_nonce))}")
         print(f"Account: {Colors.format_info(account.address)}")
         
-        # Use appropriate fee for contracts - higher for NFTs, reasonable for others
-        if "nft" in contract_file.lower() or "nft" in contract_name.lower() or "cyberpunk" in contract_name.lower():
-            fee = "50000"  # Higher fee for complex NFT contracts
-        else:
-            fee = "10000"  # Standard fee for contracts
+        # Calculate dynamic fee based on contract size
+        # Stacks requires approximately 1 µSTX per byte for contract deployment
+        contract_size = len(contract_code)
+        base_fee = max(contract_size, 10000)  # At least 1 µSTX per byte, minimum 10k
+        
+        # Add buffer for safety (10% extra)
+        fee = str(int(base_fee * 1.1))
             
         print(f"Using fee: {Colors.format_success(f'{fee} µSTX')}")
         
@@ -138,8 +140,13 @@ class Contract(StacksTestBase):
         print(f"Initial balance: {Colors.format_dim(str(initial_balance))}")
         print(f"Using nonce: {Colors.format_dim(str(initial_nonce))}")
         
-        # Use higher fee for NFT contract calls
-        fee = "20000" if "nft" in contract_name.lower() else "1000"
+        # Use higher fee for complex contract calls
+        if "huge" in contract_name.lower() or "mega" in contract_name.lower():
+            fee = "50000"  # High fee for huge contracts
+        elif "nft" in contract_name.lower():
+            fee = "25000"  # Higher fee for NFT contract calls
+        else:
+            fee = "5000"  # Standard fee for regular contracts
         print(f"Using fee: {Colors.format_success(f'{fee} µSTX')}")
         
         cmd = ["blockstack-cli", "--testnet", "contract-call", account.private_key, fee, str(initial_nonce), contract_address, contract_name, function_name]

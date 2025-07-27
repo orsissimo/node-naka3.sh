@@ -10,151 +10,133 @@
 
 ---
 
-## Per stoppare i singoli miner:
-- cd /home/simone/Desktop/node-naka3.sh/naka3/playbooks/three-miners
-- Stop specific miner (pause)
-    ../../naka3.sh -c "./config-miner-1.sh" node 1 stop    # Stop miner1
-    ../../naka3.sh -c "./config-miner-2.sh" node 2 stop    # Stop miner2
+Perfect! Now let me suggest additional edge case testing scenarios based on your ideas and blockchain stress testing best practices:
 
-- Resume specific miner  
-    ../../naka3.sh -c "./config-miner-1.sh" node 1 resume  # Resume miner1
-    ../../naka3.sh -c "./config-miner-2.sh" node 2 resume  # Resume miner2
+  ✅ HUGE CONTRACTS CREATED + ADDITIONAL EDGE CASES TO IMPLEMENT
 
-## Timing & Race Conditions
-- tx durante cambio miner leader → vedere chi la include
-- tx proprio quando arriva nuovo bitcoin block → test anchoring
-- stessa tx mandata ai 3 miner simultaneamente → chi vince?
-- tx conflittuali (stesso nonce, fee diverse) su miner separati
-- double spend: stesso UTXO speso su 2 miner diversi
+  What We've Built:
 
-## Network Split & Fork
-- disconnetti 1 miner, fai minare gli altri 2, poi riconnetti → fork resolution?
-- iptables per simulare network partition
-- kill random miner durante operazioni critiche
-- bitcoin reorg mentre stacks sta anchoring
+  1. huge-nft-mega.clar (~50KB) - Massive NFT with complex marketplace, gaming, breeding, staking
+  2. huge-contract-mega.clar (~60KB) - Algorithmic beast with math, crypto, simulations, game mechanics
+  3. huge-nft-stress-test.py - Tests NFT deployment limits, gas limits, function complexity
+  4. huge-contract-stress-test.py - Tests computation limits, recursive algorithms, data processing
 
-## Resource Limits & Stress
-- deploy contratto gigante (max size possibile)
-- ricorsione profonda fino a stack overflow
-- loop infinito per bruciare tutto il gas
-- migliaia di NFT mint in batch
-- flood di micro-transazioni con fee minime
-- saturare memoria con map enormi nel contratto
+  🔥 CRITICAL EDGE CASES TO IMPLEMENT NEXT:
 
-## Cross-Contract Chaos
-- contract A → B → C chain calls
-- race condition su map updates (stesso contratto chiamato in parallelo)
-- inter-contract transfer loops
-- mint/burn massicci per testare token economics
+  1. Resource Exhaustion & Memory Limits
 
-## Edge Cases Transazioni
-- tx con signature valida ma nonce sbagliato
-- tx con gas limit = 0
-- transfer con amount = esatto balance disponibile
-- fee che supera balance totale
-- transazioni malformate ma parseable
+  # Recipe: memory-bomb-stress-test.py
+  - Deploy contract with MASSIVE maps (100k+ entries)
+  - Test stack overflow with deep recursion (fibonacci(1000))
+  - Create contracts with enormous string/buffer data
+  - Test gas limit exhaustion scenarios
+  - Memory leak simulation with repeated operations
 
-## Bitcoin Integration
-- bitcoin block timing irregolare (veloce poi lentissimo)
-- bitcoin reorg con invalidateblock/reconsiderblock
-- anchoring durante instabilità bitcoin chain
-- STX transfer durante epoch boundary
+  2. Transaction Timing & Race Conditions
 
-## Database & Corruption
-- kill miner durante write operations
-- corrompere manualmente db files
-- simulare disk full durante mining
-- memory leak test con operazioni prolungate
+  # Recipe: timing-attack-stress-test.py  
+  - Submit identical nonce transactions to different miners simultaneously
+  - Test transaction during miner leader changes
+  - Submit transactions during Bitcoin block anchoring
+  - Double-spend attempts across multiple miners
+  - Conflicting transactions (same nonce, different fees)
 
-## Performance Profiling
-- throughput max con 3 miner vs 1 miner
-- latency sotto diverse load
-- I/O bottleneck simulation
-- bandwidth limiting tra miner
+  3. Network Chaos & Byzantine Behavior
 
-## Advanced Contract Tests
-- precision overflow con uint max
-- storage exhaustion test
-- garbage collection stress
-- contract upgrade durante chiamate attive
-- read-modify-write race conditions
+  # Recipe: network-chaos-stress-test.py
+  - Kill random miners during critical operations
+  - Simulate network partitions between miners
+  - Test fork resolution after miner reconnection
+  - Bitcoin reorg simulation during STX operations
+  - Miner desync recovery testing
 
-## Security & Attack Vectors
-- byzantine behavior simulation (1 miner cattivo)
-- front-running attempts
-- timing attack su block predictability
-- contract access control bypass attempts
-- multi-sig edge cases con chiavi compromesse
+  4. Transaction Malformation & Edge Cases
 
-## Quick Commands da Ricordare
-```
-# Network split
-iptables -A INPUT -s <miner_ip> -j DROP
+  # Recipe: malformed-transaction-test.py
+  - Zero gas limit transactions
+  - Invalid signatures with valid format
+  - Transfer exact total balance (edge case)
+  - Fee exceeding available balance
+  - Malformed but parseable transaction data
+  - Extreme memo sizes and special characters
 
-# Bitcoin reorg
-bitcoin-cli invalidateblock <hash>
+  5. Contract Interaction Chaos
 
-# Stress test - NO OUTPUT durante mass batching!
-for i in {1..1000}; do curl -s -X POST ... >/dev/null 2>&1; done
+  # Recipe: cross-contract-chaos-test.py  
+  - A→B→C→D chain calls (deep contract calling)
+  - Recursive contract calls (A calls A)
+  - Parallel contract calls from multiple miners
+  - Contract upgrade during active function calls
+  - Inter-contract transfer loops and deadlocks
 
-# Monitor resources
-top -p <miner_pid>
-```
+  6. Economic Attack Vectors
 
-## Performance Tips
-- NO echo/printf durante mass batching → rallenta tutto
-- usa curl -s e redirect >/dev/null per speed
-- disabilita logs verbose durante stress test
-- monitor separato invece di output real-time
-- batch size ottimale: ~100-500 tx per volta
+  # Recipe: economic-attack-test.py
+  - Massive batch minting to drain STX supply
+  - Fee manipulation attacks
+  - Front-running simulation
+  - STX transfer during epoch boundaries
+  - Reward cycle manipulation attempts
 
-## PoX & Stacking Specifici
-- reward cycle durante network split
-- stacking con miner disconnesso
-- PoX anchor block conflicts
-- liquid supply changes durante stress
-- stack/unstack durante epoch transition
+  7. Database Corruption & Recovery
 
-## Logging & Debug
-- tail -f su tutti i log files simultaneamente
-- timestamp correlation tra bitcoin/stacks events
-- structured logging per automated analysis
-- custom metrics collection durante test
-- debug mode vs production mode performance
+  # Recipe: corruption-recovery-test.py
+  - Kill miner during write operations
+  - Simulate disk full scenarios
+  - Database file corruption simulation
+  - Recovery from partial state corruption
+  - Cleanup verification after crashes
 
-## Cleanup & Reset Procedures
-- script per reset completo dello stato
-- backup/restore tra test diversi
-- purge mempool su tutti i nodi
-- reset bitcoin regtest to clean state
-- verifica che tutto sia pulito prima del test successivo
+  🎯 RECOMMENDED IMPLEMENTATION ORDER:
 
-## Disaster Recovery
-- hard crash durante mining
-- corruption detection e recovery
-- bootstrap da zero vs recovery parziale
-- cross-contamination tra test runs
-- backup strategy per test environment
+  High Priority (Immediate):
+  1. Memory/Resource exhaustion - Tests fundamental limits
+  2. Transaction timing attacks - Real-world attack vectors
+  3. Malformed transactions - Security edge cases
 
-## Test Automation Framework
-- script master che orchestri tutti i test
-- parallel test execution
-- automatic health check tra test
-- risultati aggregati e comparison
-- CI/CD per regression testing
+  Medium Priority:
+  4. Network chaos - Infrastructure resilience
+  5. Cross-contract chaos - Complex interaction patterns
 
-## Monitoring Automatico
-- script che monitora health real-time
-- alert quando qualcosa va storto
-- resource usage tracking automatico
-- deadlock/hang detection
-- performance baseline establishment
+  Advanced:
+  6. Economic attacks - Economic security
+  7. Corruption recovery - Disaster recovery
 
-## Cose da Verificare Sempre
-- consistency tra i 3 miner dopo ogni test
-- mempool status su tutti i nodi
-- bitcoin/stacks sync status
-- error logs per crash/corruption
-- network connectivity tra tutti i nodi
-- disk space e file descriptor usage
-- memory leaks o resource non rilasciati
+  🔧 TECHNICAL IMPLEMENTATION SUGGESTIONS:
+
+  Memory Bomb Contract Example:
+
+  ;; Contract designed to exhaust memory/gas
+  (define-map giant-storage uint (buff 64000))  ; Max buffer size
+  (define-public (memory-bomb (iterations uint))
+    (fold store-giant-data (list u1 u2 u3 ... u1000) u0))
+
+  Race Condition Test:
+
+  # Submit same transaction to multiple miners simultaneously
+  def race_condition_test():
+      with ThreadPoolExecutor(max_workers=3) as executor:
+          futures = [
+              executor.submit(submit_tx, "miner1", same_tx),
+              executor.submit(submit_tx, "miner2", same_tx),
+              executor.submit(submit_tx, "miner3", same_tx)
+          ]
+
+  Network Chaos Simulation:
+
+  # Kill miner during operation
+  subprocess.run(["docker", "kill", "miner2"])
+  time.sleep(5)
+  subprocess.run(["docker", "start", "miner2"])
+
+  💡 ADVANCED EDGE CASES FROM YOUR IDEAS:
+
+  - Precision overflow with uint max values
+  - Storage exhaustion with contract maps
+  - Byzantine miner behavior simulation
+  - Timing attacks on block predictability
+  - Multi-sig edge cases with compromised keys
+  - PoX reward cycle during network splits
+  - Anchoring conflicts during Bitcoin instability
+
+  Would you like me to implement any of these specific edge case recipes? The memory exhaustion and timing attack tests would be particularly valuable for finding real system limits!
