@@ -36,7 +36,7 @@ class NodeManager:
             print("✓ Node process started")
             
             # Give the node time to initialize properly with 1 second + endpoint check
-            print("Checking miners initialization", end="", flush=True)
+            print("Checking miners initialization", end="\n", flush=True)
             time.sleep(1)  # Brief initial wait as requested
             
             # Check if process is still alive
@@ -47,9 +47,7 @@ class NodeManager:
             # Now check if miners are ready via endpoint
             from .base import StacksTestBase
             base = StacksTestBase()
-            if base.wait_for_miners_ready():
-                print(" ✓")
-            else:
+            if not base.wait_for_miners_ready():
                 print(" ⚠ (some miners may not be fully ready)")
                 # Continue anyway as long as the process is alive
             

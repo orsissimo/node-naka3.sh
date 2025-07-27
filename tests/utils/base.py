@@ -9,6 +9,60 @@ import subprocess
 from typing import Dict, List, Optional, Union, Any
 from dataclasses import dataclass
 
+class Colors:
+    """ANSI color codes for consistent terminal output"""
+    # Main colors
+    BLUE = '\033[94m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    RED = '\033[91m'
+    CYAN = '\033[96m'
+    MAGENTA = '\033[95m'
+    WHITE = '\033[97m'
+    
+    # Styles
+    BOLD = '\033[1m'
+    DIM = '\033[2m'
+    UNDERLINE = '\033[4m'
+    
+    # Reset
+    RESET = '\033[0m'
+    
+    @staticmethod
+    def format_header(text: str) -> str:
+        """Format main section headers"""
+        return f"{Colors.BOLD}{Colors.CYAN}{text}{Colors.RESET}"
+    
+    @staticmethod
+    def format_subheader(text: str) -> str:
+        """Format subsection headers"""
+        return f"{Colors.BOLD}{Colors.BLUE}{text}{Colors.RESET}"
+    
+    @staticmethod
+    def format_success(text: str) -> str:
+        """Format success messages"""
+        return f"{Colors.GREEN}{text}{Colors.RESET}"
+    
+    @staticmethod
+    def format_warning(text: str) -> str:
+        """Format warning messages"""
+        return f"{Colors.YELLOW}{text}{Colors.RESET}"
+    
+    @staticmethod
+    def format_error(text: str) -> str:
+        """Format error messages"""
+        return f"{Colors.RED}{text}{Colors.RESET}"
+    
+    @staticmethod
+    def format_info(text: str) -> str:
+        """Format info messages"""
+        return f"{Colors.WHITE}{text}{Colors.RESET}"
+    
+    @staticmethod
+    def format_dim(text: str) -> str:
+        """Format secondary/dim text"""
+        return f"{Colors.DIM}{text}{Colors.RESET}"
+
 @dataclass
 class Account:
     name: str
@@ -175,13 +229,13 @@ class StacksTestBase:
                     pass  # Ignore errors, will retry
             
             if ready_count == len(miners_to_check):
-                print(f"✓ All {ready_count} miners are ready")
+                print(f"{Colors.format_success(f'✓ All {ready_count} miners are ready')}")
                 return True
             
-            print(f"Miners ready: {ready_count}/{len(miners_to_check)}, retrying in 1s...")
+            print(f"{Colors.format_dim(f'Miners ready: {ready_count}/{len(miners_to_check)}, retrying in 1s...')}")
             time.sleep(1)  # Brief pause before retry (necessary for initialization check)
         
-        print(f"⚠ Only {ready_count}/{len(miners_to_check)} miners ready after {max_attempts} attempts")
+        print(f"{Colors.format_warning(f'⚠ Only {ready_count}/{len(miners_to_check)} miners ready after {max_attempts} attempts')}")
         return ready_count > 0  # Return True if at least one miner is ready
     
     def wait_for_nonce_increase(self, miner: str, initial_nonce: int, expected_increase: int, timeout: int = 30) -> int:
@@ -212,18 +266,18 @@ class StacksTestBase:
         
         try:
             # ALWAYS fetch transaction details from /v3/transaction endpoint
-            print(f"\n=== FETCHING TRANSACTION DETAILS ===")
-            print(f"Calling: /v3/transaction/{txid}")
+            print(f"\n{Colors.format_subheader('=== FETCHING TRANSACTION DETAILS ===')}")
+            print(f"Calling: {Colors.format_dim(f'/v3/transaction/{txid}')}")
             
             tx_response = self.api_call(account, f"/v3/transaction/{txid}")
-            print(f"Response status: {tx_response.status_code}")
+            print(f"Response status: {Colors.format_info(str(tx_response.status_code))}")
             
             if tx_response.status_code == 200:
                 tx_data = tx_response.json()
-                print(f"✓ Transaction details fetched successfully!")
-                print("=== FULL TRANSACTION DETAILS ===")
-                print(json.dumps(tx_data, indent=2))
-                print("=== END TRANSACTION DETAILS ===")
+                print(f"{Colors.format_success('✓ Transaction details fetched successfully!')}")
+                print(f"{Colors.format_subheader('=== FULL TRANSACTION DETAILS ===')}")
+                print(f"{Colors.format_dim(json.dumps(tx_data, indent=2))}")
+                print(f"{Colors.format_subheader('=== END TRANSACTION DETAILS ===')}")
                 
                 return {
                     'success': True,
@@ -231,8 +285,8 @@ class StacksTestBase:
                     'transaction_data': tx_data
                 }
             else:
-                print(f"⚠ Transaction endpoint returned {tx_response.status_code}")
-                print(f"Response: {tx_response.text}")
+                print(f"{Colors.format_warning(f'⚠ Transaction endpoint returned {tx_response.status_code}')}")
+                print(f"Response: {Colors.format_error(tx_response.text)}")
                 return {
                     'success': False,
                     'error': f'Transaction endpoint returned {tx_response.status_code}: {tx_response.text}',
@@ -240,7 +294,7 @@ class StacksTestBase:
                 }
                 
         except Exception as e:
-            print(f"✗ ERROR fetching transaction details: {e}")
+            print(f"{Colors.format_error(f'✗ ERROR fetching transaction details')}: {Colors.format_error(str(e))}")
             return {
                 'success': False,
                 'error': f'Transaction verification failed: {e}',
@@ -275,57 +329,57 @@ class StacksTestBase:
                     balance_hex = account_info.get('balance', '0x0')
                     current_recipient_balance = int(balance_hex, 16) if balance_hex.startswith('0x') else int(balance_hex)
                 except Exception as e:
-                    print(f"⚠ Could not get recipient balance: {e}")
+                    print(f"{Colors.format_warning(f'⚠ Could not get recipient balance')}: {Colors.format_error(str(e))}")
                     current_recipient_balance = None
             
             # ALWAYS fetch transaction details from /v3/transaction endpoint
-            print(f"\n=== FETCHING TRANSACTION DETAILS ===")
-            print(f"Calling: /v3/transaction/{txid}")
+            print(f"\n{Colors.format_subheader('=== FETCHING TRANSACTION DETAILS ===')}")
+            print(f"Calling: {Colors.format_dim(f'/v3/transaction/{txid}')}")
             
             tx_data = None
             try:
                 tx_response = self.api_call(account, f"/v3/transaction/{txid}")
-                print(f"Response status: {tx_response.status_code}")
+                print(f"Response status: {Colors.format_info(str(tx_response.status_code))}")
                 
                 if tx_response.status_code == 200:
                     tx_data = tx_response.json()
-                    print(f"✓ Transaction details fetched successfully!")
-                    print("=== FULL TRANSACTION DETAILS ===")
-                    print(json.dumps(tx_data, indent=2))
-                    print("=== END TRANSACTION DETAILS ===")
+                    print(f"{Colors.format_success('✓ Transaction details fetched successfully!')}")
+                    print(f"{Colors.format_subheader('=== FULL TRANSACTION DETAILS ===')}")
+                    print(f"{Colors.format_dim(json.dumps(tx_data, indent=2))}")
+                    print(f"{Colors.format_subheader('=== END TRANSACTION DETAILS ===')}")
                 else:
-                    print(f"⚠ Transaction endpoint returned {tx_response.status_code}")
-                    print(f"Response: {tx_response.text}")
+                    print(f"{Colors.format_warning(f'⚠ Transaction endpoint returned {tx_response.status_code}')}")
+                    print(f"Response: {Colors.format_error(tx_response.text)}")
                     
             except Exception as e:
-                print(f"✗ ERROR fetching transaction details: {e}")
+                print(f"{Colors.format_error(f'✗ ERROR fetching transaction details')}: {Colors.format_error(str(e))}")
                 # Still continue with verification even if we can't get details
             
             # Verify confirmation
-            print(f"\n✓ Transaction {txid} confirmed!")
-            print(f"  Balance: {initial_balance} → {current_balance} (change: {current_balance - initial_balance})")
-            print(f"  Nonce: {initial_nonce} → {current_nonce} (change: {current_nonce - initial_nonce})")  
-            print(f"  Block: {initial_height} → {current_height} (change: {current_height - initial_height})")
+            print(f"\n{Colors.format_success(f'✓ Transaction {txid} confirmed!')}")
+            print(f"  Balance: {Colors.format_dim(f'{initial_balance} → {current_balance}')} (change: {Colors.format_info(str(current_balance - initial_balance))})")
+            print(f"  Nonce: {Colors.format_dim(f'{initial_nonce} → {current_nonce}')} (change: {Colors.format_info(str(current_nonce - initial_nonce))})")  
+            print(f"  Block: {Colors.format_dim(f'{initial_height} → {current_height}')} (change: {Colors.format_info(str(current_height - initial_height))})")
             
             if tx_data:
-                print(f"\n=== TRANSACTION SUMMARY ===")
+                print(f"\n{Colors.format_subheader('=== TRANSACTION SUMMARY ===')}")
                 # The response format is different - it's wrapped with transaction data
                 result = tx_data.get('result', 'unknown')
-                print(f"  Result: {result}")
-                print(f"  Status: success" if result != 'unknown' else "  Status: unknown")
-                print(f"  Raw response keys: {list(tx_data.keys())}")
+                print(f"  Result: {Colors.format_info(result)}")
+                print(f"  Status: {Colors.format_success('success')}" if result != 'unknown' else f"  Status: {Colors.format_warning('unknown')}")
+                print(f"  Raw response keys: {Colors.format_dim(str(list(tx_data.keys())))}")
                 
                 # Try to decode the transaction hex if available
                 if 'tx' in tx_data:
-                    print(f"  Transaction hex length: {len(tx_data['tx'])}")
+                    print(f"  Transaction hex length: {Colors.format_dim(str(len(tx_data['tx'])))}")
                     # Try to extract transaction type from hex pattern
                     tx_hex = tx_data['tx']
                     if len(tx_hex) > 16:
                         # Contract calls usually have specific patterns
                         if '046d696e74' in tx_hex:  # "mint" in hex
-                            print(f"  Detected operation: NFT mint")
+                            print(f"  Detected operation: {Colors.format_success('NFT mint')}")
                         elif tx_hex.count('08') > 0:  # Contract deployment pattern
-                            print(f"  Detected operation: Contract deployment")
+                            print(f"  Detected operation: {Colors.format_success('Contract deployment')}")
             
             result = {
                 'success': True,
@@ -346,7 +400,7 @@ class StacksTestBase:
             return result
             
         except Exception as e:
-            print(f"✗ Transaction verification failed: {e}")
+            print(f"{Colors.format_error(f'✗ Transaction verification failed')}: {Colors.format_error(str(e))}")
             return {
                 'success': False,
                 'error': f'Transaction verification failed: {e}',
