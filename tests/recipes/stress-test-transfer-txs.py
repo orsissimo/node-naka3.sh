@@ -6,6 +6,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.recipes import Runner, Recipe, Step
 from utils.base import Colors
 from utils.forensics import Forensics
+from utils.transaction import Transaction
 
 def generate_transfers(count: int) -> list:
     """Helper to generate a list of transfers for the recipe."""
@@ -36,7 +37,7 @@ def create_stress_recipe(context: dict):
                     "transfers": generate_transfers(50),
                     "context": context  # Pass the shared context dictionary
                 },
-                wait=False,
+                wait=False, # Let the method handle its own waiting
                 on_error="stop"
             ),
             Step(
@@ -57,14 +58,15 @@ def main():
     test_context = {}
 
     runner = Runner()
-    # IMPORTANT: Register the Forensics module so the runner can use it.
+    # IMPORTANT: Register all modules that will be called by steps.
+    runner.modules['transaction'] = Transaction()
     runner.modules['forensics'] = Forensics()
     
     recipe = create_stress_recipe(test_context)
     result = runner.run(recipe)
     
     # The pass/fail logic is now entirely handled by the recipe steps.
-    # We just need to report the final outcome from the runner.
+    # The main function just reports the final outcome from the runner.
     print("\n" + "="*60)
     print(f"{Colors.format_header('FINAL RECIPE RESULT')}")
     print("="*60)

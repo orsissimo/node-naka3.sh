@@ -49,16 +49,20 @@ class Transaction(StacksTestBase):
         
         return txid
     
-    def batch(self, from_miner: str, transfers: list, context: Optional[dict] = None) -> Dict[str, Any]:
+    def batch(self, from_miner: str, transfers: list, context: Optional[dict] = None) -> bool:
         """
-        Submits transactions rapidly until the 'TooMuchChaining' limit is reached.
-        If a context dictionary is provided, it stores its detailed report there
-        for consumption by subsequent recipe steps.
+        Submits transactions until the 'TooMuchChaining' limit is reached.
+        This method is designed to be the first step in a multi-step recipe.
+        It stores its findings in the provided 'context' dictionary for the
+        next step to analyze.
         """
+        if context is None:
+            raise ValueError("A 'context' dictionary must be provided to the batch method.")
+
         account = self.get_account(from_miner)
         initial_nonce = self.get_nonce(from_miner)
         
-        print(f"\n{Colors.format_header(f'=== BATCH TRANSFER (until limit found) ===')}")
+        print(f"\n{Colors.format_header(f'=== BATCH SUBMISSION (until limit found) ===')}")
         print(f"Starting nonce: {Colors.format_dim(str(initial_nonce))}")
 
         # Phase 1: Preparation
@@ -91,7 +95,7 @@ class Transaction(StacksTestBase):
                     print(f"\n{Colors.format_success('✓ LIMIT FOUND')}: Node correctly rejected transaction with nonce {nonce}.")
                     print(f"  Reason: {Colors.format_warning(error_str)}")
                     limit_found_at_nonce = nonce
-                    break # Stop submitting immediately
+                    break
                 else:
                     print(f"{Colors.format_error(f'✗ UNEXPECTED ERROR at nonce {nonce}')}")
                     raise e
@@ -103,20 +107,16 @@ class Transaction(StacksTestBase):
             self.wait_for_nonce_increase(from_miner, last_submitted_nonce, 1, timeout=60)
             print("Confirmation wait complete.")
 
-        # Phase 4: Package the results
-        report = {
+        # Phase 4: Store the results in the shared context
+        context['batch_report'] = {
             "status": "LimitFound" if limit_found_at_nonce != -1 else "CompletedWithoutLimit",
-            "message": f"Found limit at nonce {limit_found_at_nonce}." if limit_found_at_nonce != -1 else "No limit found.",
             "successful_submissions": successful_submissions,
             "limit_nonce": limit_found_at_nonce,
             "from_miner": from_miner
         }
-
-        # Store the report in the shared context for the next step
-        if context is not None:
-            context['batch_report'] = report
         
-        return report
+        # This step is successful if it completes without an unexpected error.
+        return True
     
     def sponsored_transfer(self, origin_miner: str, sponsor_miner: str, to_address: str, 
                            amount: int, sponsor_nonce: int) -> str:
