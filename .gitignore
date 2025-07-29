@@ -7,3 +7,5 @@ node_modules
 tests/__pycache__
 tests/recipes/__pycache__
 tests/utils/__pycache__
+
+.DS_Store
