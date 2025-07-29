@@ -277,40 +277,80 @@ class StacksTestBase:
         """Wait for nonce to increase by expected_increase amount"""
         target_nonce = initial_nonce + expected_increase
         start_time = time.time()
+        last_error = ""
         
         while time.time() - start_time < timeout:
             try:
                 current_nonce = self.get_nonce(miner)
                 if current_nonce >= target_nonce:
                     return current_nonce
-            except Exception:
-                pass  # Ignore temporary API errors
+                # Reset error on successful API call
+                last_error = ""
+            except Exception as e:
+                # Store the last error but continue trying
+                last_error = str(e)
+                pass
             
-            # Brief pause to avoid hammering the API (necessary for polling)
             time.sleep(1)
         
-        # Return current nonce even if target not reached
+        # If timeout is reached, check the final nonce one last time.
+        # If it still fails, raise an error with the last known issue.
         try:
             return self.get_nonce(miner)
-        except:
-            return initial_nonce
+        except Exception as final_e:
+            raise RuntimeError(f"Failed to get final nonce after timeout. Last known error: {last_error or str(final_e)}")
     
     def verify_transaction_direct(self, miner: str, txid: str, recipient_address: Optional[str] = None) -> Dict[str, Any]:
-        """Verify transaction by fetching details directly (skip confirmation wait)"""
+        """
+        Verifies a transaction by fetching its details directly without waiting.
+        This is a non-blocking status check designed for forensic analysis.
+
+        It returns a dictionary with a 'success' flag and detailed information.
+
+        Args:
+            miner: The name of the miner node to query.
+            txid: The ID of the transaction to verify.
+            recipient_address: (Optional) Not used in this function but kept for signature consistency.
+
+        Returns:
+            A dictionary containing the verification result.
+            - On success: {'success': True, 'txid': ..., 'transaction_data': ...}
+            - On failure: {'success': False, 'txid': ..., 'error': ...}
+        """
         account = self.get_account(miner)
         
         try:
+            # Print headers for clear logging during test runs
             print(f"\n{Colors.format_subheader('=== FETCHING TRANSACTION DETAILS ===')}")
             print(f"Calling: {Colors.format_dim(f'/v3/transaction/{txid}')}")
             
-            tx_response = self.api_call(account, f"/v3/transaction/{txid}")
-            tx_data = self.handle_api_response(tx_response)
+            # Make the API call
+            response = self.api_call(account, f"/v3/transaction/{txid}")
             
+            # Special handling for 404: this is a specific, meaningful state where the
+            # transaction was not found. It's not a server error.
+            if response.status_code == 404:
+                error_msg = f"Transaction not found (404)."
+                print(f"{Colors.format_warning(f'⚠ {error_msg}')}")
+                return {
+                    'success': False,
+                    'error': error_msg,
+                    'txid': txid,
+                    'transaction_data': {'tx_status': 'not_found'}
+                }
+
+            # For all other statuses (200 OK or other errors like 500),
+            # use the centralized handler. It will return JSON on success
+            # or raise a detailed exception on failure.
+            tx_data = self.handle_api_response(response)
+            
+            # Log the successful fetch and the full data for debugging
             print(f"{Colors.format_success('✓ Transaction details fetched successfully!')}")
-            print(f"{Colors.format_subheader('=== FULL TRANSACTION DETAILS ===')}")
+            print(f"{Colors.format_subheader('--- FULL TRANSACTION DETAILS ---')}")
             print(f"{Colors.format_dim(json.dumps(tx_data, indent=2))}")
-            print(f"{Colors.format_subheader('=== END TRANSACTION DETAILS ===')}")
+            print(f"{Colors.format_subheader('--- END TRANSACTION DETAILS ---')}")
             
+            # Return the structured success response
             return {
                 'success': True,
                 'txid': txid,
@@ -318,10 +358,13 @@ class StacksTestBase:
             }
                 
         except Exception as e:
-            print(f"{Colors.format_error(f'✗ ERROR fetching transaction details')}: {Colors.format_error(str(e))}")
+            # This block catches any other failure, such as a connection error
+            # or an exception raised by handle_api_response.
+            error_str = str(e)
+            print(f"{Colors.format_error('✗ ERROR fetching transaction details')}: {Colors.format_error(error_str)}")
             return {
                 'success': False,
-                'error': f'Transaction verification failed: {e}',
+                'error': f'Failed to verify transaction: {error_str}',
                 'txid': txid
             }
     
@@ -399,11 +442,17 @@ class StacksTestBase:
                     # Try to extract transaction type from hex pattern
                     tx_hex = tx_data['tx']
                     if len(tx_hex) > 16:
-                        # Contract calls usually have specific patterns
-                        if '046d696e74' in tx_hex:  # "mint" in hex
-                            print(f"  Detected operation: {Colors.format_success('NFT mint')}")
-                        elif tx_hex.count('08') > 0:  # Contract deployment pattern
-                            print(f"  Detected operation: {Colors.format_success('Contract deployment')}")
+                        # Check the 'tx_type' field from the API response for accurate identification
+                        tx_type = tx_data.get('transaction', {}).get('tx_type', 'unknown')
+                        if tx_type == 'token_transfer':
+                            print(f"  Detected operation: {Colors.format_success('Token Transfer')}")
+                        elif tx_type == 'contract_call':
+                            function_name = tx_data.get('transaction', {}).get('contract_call', {}).get('function_name', 'unknown')
+                            print(f"  Detected operation: {Colors.format_success(f'Contract Call: {function_name}')}")
+                        elif tx_type == 'smart_contract':
+                            print(f"  Detected operation: {Colors.format_success('Contract Deployment')}")
+                        else:
+                            print(f"  Detected operation: {Colors.format_info(tx_type)}")
             
             result = {
                 'success': True,

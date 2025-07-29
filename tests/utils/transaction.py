@@ -3,6 +3,7 @@ import json
 import os
 from typing import Optional, Dict, Any
 from .base import StacksTestBase, Colors
+from .exceptions import BatchProcessingError
 
 class Transaction(StacksTestBase):
     
@@ -48,149 +49,74 @@ class Transaction(StacksTestBase):
         
         return txid
     
-    
-    def batch(self, from_miner: str, transfers: list, wait_between: bool = False) -> list:
-        """Submit multiple transactions rapidly to be included in the same block"""
+    def batch(self, from_miner: str, transfers: list, context: Optional[dict] = None) -> Dict[str, Any]:
+        """
+        Submits transactions rapidly until the 'TooMuchChaining' limit is reached.
+        If a context dictionary is provided, it stores its detailed report there
+        for consumption by subsequent recipe steps.
+        """
         account = self.get_account(from_miner)
         initial_nonce = self.get_nonce(from_miner)
-        initial_height = self.get_block_height(from_miner)
         
-        print(f"\n{Colors.format_header(f'=== BATCH TRANSFER ({len(transfers)} transactions) ===')}")
+        print(f"\n{Colors.format_header(f'=== BATCH TRANSFER (until limit found) ===')}")
         print(f"Starting nonce: {Colors.format_dim(str(initial_nonce))}")
-        print(f"Block height: {Colors.format_dim(str(initial_height))}")
-        
-        # Phase 1: Prepare all transactions as binary data
+
+        # Phase 1: Preparation
         prepared_txs = []
         for i, t in enumerate(transfers):
             try:
                 nonce = initial_nonce + i
-                cmd = ["blockstack-cli", "--testnet", "token-transfer", account.private_key, "180", str(nonce), t['to'], str(t['amount'])]
-                if t.get('memo'):
-                    cmd.append(t['memo'])
-                
+                cmd = ["blockstack-cli", "--testnet", "token-transfer", account.private_key, "180", str(nonce), t['to'], str(t['amount']), t.get('memo', '')]
                 tx_binary = self.run_cli_command(cmd, binary_output=True)
-                prepared_txs.append({
-                    'binary': tx_binary,
-                    'transfer': t,
-                    'nonce': nonce,
-                    'index': i
-                })
-                amount_text = f"{t['amount']} µSTX"
-                to_text = f"{t['to'][:10]}..."
-                print(f"{Colors.format_success(f'✓ Prepared tx {i+1}')}: {Colors.format_info(amount_text)} to {Colors.format_dim(to_text)} (nonce {Colors.format_dim(str(nonce))})")
+                prepared_txs.append({'binary': tx_binary, 'transfer': t, 'nonce': nonce})
             except Exception as e:
-                print(f"{Colors.format_error(f'✗ Failed to prepare tx {i+1}')}: {Colors.format_error(str(e))}")
-                prepared_txs.append({
-                    'error': str(e),
-                    'transfer': t,
-                    'nonce': initial_nonce + i,
-                    'index': i
-                })
+                raise RuntimeError(f"Failed to prepare transaction for nonce {initial_nonce + i}: {e}")
         
-        # Phase 2: Submit all transactions rapidly without waiting
-        results = []
-        submitted_txs = []
+        # Phase 2: Intelligent Submission
+        successful_submissions = []
+        limit_found_at_nonce = -1
         
-        print(f"\n{Colors.format_subheader(f'Submitting {len(prepared_txs)} transactions rapidly...')}")
-        start_time = time.time()
+        print(f"\n{Colors.format_subheader(f'Submitting transactions until mempool chaining limit is reached...')}")
         
         for tx_data in prepared_txs:
-            if 'error' in tx_data:
-                results.append({'success': False, 'error': tx_data['error'], 'transfer': tx_data['transfer'], 'nonce': tx_data['nonce']})
-                continue
-                
+            nonce = tx_data['nonce']
             try:
                 response = self.api_call(account, "/v2/transactions", "POST", tx_data['binary'])
                 txid = self.handle_api_response(response)
-                
-                submitted_txs.append(txid)
-                results.append({'success': True, 'txid': txid, 'transfer': tx_data['transfer'], 'nonce': tx_data['nonce']})
-                submitted_index = tx_data['index'] + 1
-                print(f"{Colors.format_success(f'✓ Submitted tx {submitted_index}')}: {Colors.format_dim(txid)}")
-                
+                successful_submissions.append({'txid': txid, 'transfer': tx_data['transfer'], 'nonce': nonce})
+                print(f"{Colors.format_success(f'✓ Submitted tx (nonce {nonce})')}: {Colors.format_dim(txid)}")
             except Exception as e:
-                failed_index = tx_data['index'] + 1
-                print(f"{Colors.format_error(f'✗ Failed to submit tx {failed_index}')}: {Colors.format_error(str(e))}")
-                results.append({'success': False, 'error': str(e), 'transfer': tx_data['transfer'], 'nonce': tx_data['nonce']})
+                error_str = str(e)
+                if "TooMuchChaining" in error_str or "Nonce would exceed chaining limit" in error_str:
+                    print(f"\n{Colors.format_success('✓ LIMIT FOUND')}: Node correctly rejected transaction with nonce {nonce}.")
+                    print(f"  Reason: {Colors.format_warning(error_str)}")
+                    limit_found_at_nonce = nonce
+                    break # Stop submitting immediately
+                else:
+                    print(f"{Colors.format_error(f'✗ UNEXPECTED ERROR at nonce {nonce}')}")
+                    raise e
         
-        submission_time = time.time() - start_time
-        successful_submissions = len([r for r in results if r.get('success', False)])
-        
-        print(f"{Colors.format_success(f'✓ Batch submission complete')}: {Colors.format_info(f'{successful_submissions}/{len(transfers)}')} transactions submitted in {Colors.format_dim(f'{submission_time:.2f}s')}")
-        
-        if successful_submissions > 0:
-            print(f"{Colors.format_subheader('Waiting for batch transactions to be confirmed...')}")
-            
-            # Wait for the final nonce to reach expected value (initial + successful submissions)
-            final_nonce = self.wait_for_nonce_increase(from_miner, initial_nonce, successful_submissions, timeout=30)
-            final_height = self.get_block_height(from_miner)
-            
-            if final_nonce >= initial_nonce + successful_submissions:
-                print(f"{Colors.format_success('✓ All batch transactions confirmed')} (nonce: {Colors.format_dim(f'{initial_nonce} → {final_nonce}')})")
-                print(f"{Colors.format_success('✓ Block height')}: {Colors.format_dim(f'{initial_height} → {final_height}')}")
-                
-                # Now verify each transaction individually using the existing verify_transaction method
-                verified_count = 0
-                same_block_count = 0
-                
-                for i, result in enumerate(results):
-                    if result.get('success', False):
-                        print(f"\n{Colors.format_subheader(f'Verifying batch transaction {i+1}/{len(results)}')}: {Colors.format_dim(result['txid'])}")
-                        try:
-                            # Use the existing verify_transaction method but skip the confirmation wait
-                            # since we already waited for all transactions
-                            verification = self.verify_transaction_direct(
-                                from_miner, 
-                                result['txid'], 
-                                result['transfer'].get('to')
-                            )
-                            
-                            if verification.get('success', False):
-                                verified_count += 1
-                                tx_data = verification.get('transaction_data', {})
-                                if 'index_block_hash' in tx_data:
-                                    # Check if this transaction is in the same block as others
-                                    # For simplicity, we'll count transactions in the final block
-                                    same_block_count += 1
-                                    print(f"{Colors.format_success(f'✓ Transaction {i+1} verified and included in block')}")
-                                else:
-                                    print(f"{Colors.format_warning(f'⚠ Transaction {i+1} verified but block info unavailable')}")
-                            else:
-                                print(f"{Colors.format_error(f'✗ Transaction {i+1} verification failed')}: {Colors.format_error(verification.get('error', 'Unknown error'))}")
-                        except Exception as e:
-                            print(f"{Colors.format_error(f'✗ Transaction {i+1} verification error')}: {Colors.format_error(str(e))}")
-                
-                print(f"\n{Colors.format_success('✓ Batch verification complete')}: {Colors.format_info(f'{verified_count}/{successful_submissions}')} transactions verified")
-                print(f"{Colors.format_success('✓')} {Colors.format_info(f'{same_block_count}/{successful_submissions}')} transactions confirmed in blocks")
-                
-                # Show final account state for the batch sender
-                print(f"\n{Colors.format_header('=== FINAL BATCH SENDER ACCOUNT STATE ===')}")
-                try:
-                    account = self.get_account(from_miner)
-                    response = self.api_call(account, f"/v2/accounts/{account.address}")
-                    response.raise_for_status()
-                    final_account_info = response.json()
-                    print(f"Account: {Colors.format_info(account.address)}")
-                    print(f"Final nonce: {Colors.format_success(str(final_account_info.get('nonce', 'unknown')))}")
-                    print(f"Final balance: {Colors.format_success(str(final_account_info.get('balance', 'unknown')))}")
-                    print(f"{Colors.format_subheader('=== FULL ACCOUNT INFO ===')}")
-                    print(f"{Colors.format_dim(json.dumps(final_account_info, indent=2))}")
-                    print(f"{Colors.format_subheader('=== END ACCOUNT INFO ===')}")
-                except Exception as e:
-                    print(f"{Colors.format_warning(f'⚠ Could not fetch final account state')}: {Colors.format_error(str(e))}")
-            else:
-                print(f"{Colors.format_warning(f'⚠ Expected nonce {initial_nonce + successful_submissions}, got {final_nonce}')}")
-                print(f"{Colors.format_warning('⚠ Some batch transactions may have failed')}")
-        
-        failed_submissions = len([r for r in results if not r.get('success', False)])
-        if failed_submissions > 0:
-            raise RuntimeError(f"Batch failed: {failed_submissions}/{len(transfers)} transactions could not be submitted.")
-            
-        final_nonce_after_wait = self.get_nonce(from_miner)
-        if final_nonce_after_wait < initial_nonce + successful_submissions:
-            raise RuntimeError(f"Batch confirmation failed: Expected nonce {initial_nonce + successful_submissions}, but only reached {final_nonce_after_wait}. Transactions were dropped.")
+        # Phase 3: Wait for submitted transactions to confirm
+        if successful_submissions:
+            print(f"\n{Colors.format_subheader('Waiting for submitted transactions to confirm...')}")
+            last_submitted_nonce = successful_submissions[-1]['nonce']
+            self.wait_for_nonce_increase(from_miner, last_submitted_nonce, 1, timeout=60)
+            print("Confirmation wait complete.")
 
-        return results
+        # Phase 4: Package the results
+        report = {
+            "status": "LimitFound" if limit_found_at_nonce != -1 else "CompletedWithoutLimit",
+            "message": f"Found limit at nonce {limit_found_at_nonce}." if limit_found_at_nonce != -1 else "No limit found.",
+            "successful_submissions": successful_submissions,
+            "limit_nonce": limit_found_at_nonce,
+            "from_miner": from_miner
+        }
+
+        # Store the report in the shared context for the next step
+        if context is not None:
+            context['batch_report'] = report
+        
+        return report
     
     def sponsored_transfer(self, origin_miner: str, sponsor_miner: str, to_address: str, 
                            amount: int, sponsor_nonce: int) -> str:
