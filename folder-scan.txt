@@ -1,0 +1,3097 @@
+==================================================
+      Folder Scan Report for: /home/simone/Desktop/node-naka3.sh/tests
+      Generated on: Tue Jul 29 07:44:13 PM CEST 2025
+==================================================
+
+### DIRECTORY STRUCTURE ###
+
+/home/simone/Desktop/node-naka3.sh/tests
+├── contracts
+│   ├── contract-1000kb.clar
+│   ├── contract-100kb.clar
+│   ├── contract-1200kb.clar
+│   ├── contract-120kb.clar
+│   ├── contract-1500kb.clar
+│   ├── contract-160kb.clar
+│   ├── contract-16kb.clar
+│   ├── contract-2000kb.clar
+│   ├── contract-200kb.clar
+│   ├── contract-2200kb.clar
+│   ├── contract-2250kb.clar
+│   ├── contract-240kb.clar
+│   ├── contract-24kb.clar
+│   ├── contract-300kb.clar
+│   ├── contract-400kb.clar
+│   ├── contract-40kb.clar
+│   ├── contract-500kb.clar
+│   ├── contract-600kb.clar
+│   ├── contract-60kb.clar
+│   ├── contract-700kb.clar
+│   ├── contract-800kb.clar
+│   ├── contract-80kb.clar
+│   ├── contract-8kb.clar
+│   ├── contract-900kb.clar
+│   ├── contract-counter.clar
+│   └── cyberpunk2140a.clar
+├── generate-contracts.py
+├── idee.txt
+├── __init__.py
+├── logs
+├── recipes
+│   ├── find-contract-deployment-size-limits.py
+│   ├── __pycache__
+│   │   ├── cyberpunk-nft-deploy-interact.cpython-311.pyc
+│   │   ├── simple-counter-deploy-interact.cpython-311.pyc
+│   │   └── single-and-batch-transfers.cpython-311.pyc
+│   ├── simple-counter-deploy-interact.py
+│   ├── simple-cyberpunk-nft-deploy-interact.py
+│   └── simple-single-and-batch-transfers.py
+├── test-mempool.py
+└── utils
+    ├── base.py
+    ├── contract.py
+    ├── __init__.py
+    ├── nft.py
+    ├── node_manager.py
+    ├── __pycache__
+    │   ├── base.cpython-311.pyc
+    │   ├── contract.cpython-311.pyc
+    │   ├── __init__.cpython-311.pyc
+    │   ├── nft.cpython-311.pyc
+    │   ├── node_manager.cpython-311.pyc
+    │   ├── recipes.cpython-311.pyc
+    │   └── transaction.cpython-311.pyc
+    ├── recipes.py
+    └── transaction.py
+
+7 directories, 51 files
+
+
+##################################################
+###               FILE CONTENTS                ###
+##################################################
+
+
+---[ START content of: /home/simone/Desktop/node-naka3.sh/tests/recipes/find-contract-deployment-size-limits.py ]---
+#!/usr/bin/env python3
+
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from utils.recipes import Runner, Recipe, Step
+from utils.base import Colors
+
+def create_size_limits_recipe():
+    return Recipe(
+        name="Find Exact Stacks Size Limits",
+        description="Binary search to find exact contract deployment size limits",
+        setup=True,
+        cleanup=True,
+        steps=[
+            # Test small contracts (should all pass)
+            Step(
+                name="Deploy 8KB contract",
+                module="contract",
+                method="deploy",
+                params={
+                    "miner": "miner1",
+                    "contract_file": "contracts/contract-8kb.clar",
+                    "contract_name": "contract-8kb"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            Step(
+                name="Deploy 40KB contract",
+                module="contract",
+                method="deploy",
+                params={
+                    "miner": "miner1",
+                    "contract_file": "contracts/contract-40kb.clar",
+                    "contract_name": "contract-40kb"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            Step(
+                name="Deploy 80KB contract",
+                module="contract",
+                method="deploy",
+                params={
+                    "miner": "miner1",
+                    "contract_file": "contracts/contract-80kb.clar",
+                    "contract_name": "contract-80kb"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            Step(
+                name="Deploy 120KB contract",
+                module="contract",
+                method="deploy",
+                params={
+                    "miner": "miner1",
+                    "contract_file": "contracts/contract-120kb.clar",
+                    "contract_name": "contract-120kb"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            
+            # Test medium contracts (start looking for limits)
+            Step(
+                name="Deploy 200KB contract",
+                module="contract",
+                method="deploy",
+                params={
+                    "miner": "miner2",
+                    "contract_file": "contracts/contract-200kb.clar",
+                    "contract_name": "contract-200kb"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            Step(
+                name="Deploy 400KB contract",
+                module="contract",
+                method="deploy",
+                params={
+                    "miner": "miner2",
+                    "contract_file": "contracts/contract-400kb.clar",
+                    "contract_name": "contract-400kb"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            Step(
+                name="Deploy 600KB contract",
+                module="contract",
+                method="deploy",
+                params={
+                    "miner": "miner2",
+                    "contract_file": "contracts/contract-600kb.clar",
+                    "contract_name": "contract-600kb"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            Step(
+                name="Deploy 800KB contract",
+                module="contract",
+                method="deploy",
+                params={
+                    "miner": "miner2",
+                    "contract_file": "contracts/contract-800kb.clar",
+                    "contract_name": "contract-800kb"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            
+            # Test large contracts (likely to fail somewhere here)
+            Step(
+                name="Deploy 1000KB contract",
+                module="contract",
+                method="deploy",
+                params={
+                    "miner": "miner3",
+                    "contract_file": "contracts/contract-1000kb.clar",
+                    "contract_name": "contract-1000kb"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            Step(
+                name="Deploy 1200KB contract",
+                module="contract",
+                method="deploy",
+                params={
+                    "miner": "miner3",
+                    "contract_file": "contracts/contract-1200kb.clar",
+                    "contract_name": "contract-1200kb"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            Step(
+                name="Deploy 1500KB contract",
+                module="contract",
+                method="deploy",
+                params={
+                    "miner": "miner3",
+                    "contract_file": "contracts/contract-1500kb.clar",
+                    "contract_name": "contract-1500kb"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            Step(
+                name="Deploy 2000KB contract",
+                module="contract",
+                method="deploy",
+                params={
+                    "miner": "miner1",
+                    "contract_file": "contracts/contract-2000kb.clar",
+                    "contract_name": "contract-2000kb"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            Step(
+                name="Deploy 2250KB contract",
+                module="contract",
+                method="deploy",
+                params={
+                    "miner": "miner1",
+                    "contract_file": "contracts/contract-2250kb.clar",
+                    "contract_name": "contract-2250kb"
+                },
+                wait=True,
+                on_error="continue"
+            ),            
+            # Test working contracts
+            Step(
+                name="Test 8KB contract function",
+                module="contract",
+                method="call",
+                params={
+                    "miner": "miner1",
+                    "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
+                    "contract_name": "contract-8kb",
+                    "function_name": "calc-function-0001",
+                    "args": ["u12345"]
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            Step(
+                name="Test 120KB contract function",
+                module="contract",
+                method="call",
+                params={
+                    "miner": "miner1",
+                    "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
+                    "contract_name": "contract-120kb",
+                    "function_name": "calc-function-0500",
+                    "args": ["u54321"]
+                },
+                wait=True,
+                on_error="continue"
+            )
+        ]
+    )
+
+def main():
+    """Execute the size limits test recipe"""
+    print("=" * 80)
+    print(f"{Colors.format_header('FIND EXACT STACKS SIZE LIMITS')}")
+    print("=" * 80)
+    
+    runner = Runner()
+    recipe = create_size_limits_recipe()
+    result = runner.run(recipe)
+    
+    print(f"\nRecipe: {Colors.format_info(result['name'])}")
+    print(f"Overall Success: {Colors.format_success('✓ PASSED') if result['success'] else Colors.format_error('✗ FAILED')}")
+    duration_text = f"{result.get('duration', 0):.2f} seconds"
+    print(f"Duration: {Colors.format_dim(duration_text)}")
+    
+    print(f"\n{Colors.format_header('SIZE LIMIT ANALYSIS:')}")
+    
+    for i, step in enumerate(result.get('steps', []), 1):
+        status = Colors.format_success('✓') if step.get('success', False) else Colors.format_error('✗')
+        print(f"  {i}. {step.get('name', 'Unknown')}: {status}")
+        
+        if not step.get('success', False) and 'error' in step:
+            error_preview = step['error'][:100] + "..." if len(step['error']) > 100 else step['error']
+            print(f"     {Colors.format_error(error_preview)}")
+
+if __name__ == "__main__":
+    main()
+---[  END  content of: /home/simone/Desktop/node-naka3.sh/tests/recipes/find-contract-deployment-size-limits.py ]---
+
+
+---[ START content of: /home/simone/Desktop/node-naka3.sh/tests/recipes/simple-single-and-batch-transfers.py ]---
+#!/usr/bin/env python3
+
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from utils.recipes import Runner, Recipe, Step
+from utils.base import Colors
+
+def create_single_and_batch_transfers_recipe():
+    return Recipe(
+        name="Single and Batch Transfers Test",
+        description="Test single STX transfer followed by multiple batch transfers",
+        setup=True,  # Use recipe's built-in node management
+        cleanup=True,  # Use recipe's built-in node management
+        steps=[
+            # Step 1: Single STX transfer
+            Step(
+                name="Single STX transfer",
+                module="transaction",
+                method="transfer",
+                params={
+                    "from_miner": "miner1",
+                    "to_address": "ST3KCNDSWZSFZCC6BE4VA9AXWXC9KEB16FBTRK36T",
+                    "amount": 1000,
+                    "memo": "SingleTransfer"
+                },
+                wait=True,
+                on_error="stop"
+            ),
+            # Step 2: True batch transfer (10 transactions submitted rapidly for same block)
+            Step(
+                name="True batch transfer",
+                module="transaction",
+                method="batch",
+                params={
+                    "from_miner": "miner1",
+                    "transfers": [
+                        {"to": "ST11NJTTKGVT6D1HY4NJRVQWMQM7TVAR091EJ8P2Y", "amount": 500, "memo": "BatchTx1"},
+                        {"to": "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM", "amount": 750, "memo": "BatchTx2"},
+                        {"to": "ST3KCNDSWZSFZCC6BE4VA9AXWXC9KEB16FBTRK36T", "amount": 300, "memo": "BatchTx3"},
+                        {"to": "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM", "amount": 400, "memo": "BatchTx4"},
+                        {"to": "ST11NJTTKGVT6D1HY4NJRVQWMQM7TVAR091EJ8P2Y", "amount": 200, "memo": "BatchTx5"},
+                        {"to": "ST3KCNDSWZSFZCC6BE4VA9AXWXC9KEB16FBTRK36T", "amount": 600, "memo": "BatchTx6"},
+                        {"to": "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM", "amount": 100, "memo": "BatchTx7"},
+                        {"to": "ST11NJTTKGVT6D1HY4NJRVQWMQM7TVAR091EJ8P2Y", "amount": 350, "memo": "BatchTx8"},
+                        {"to": "ST3KCNDSWZSFZCC6BE4VA9AXWXC9KEB16FBTRK36T", "amount": 150, "memo": "BatchTx9"},
+                        {"to": "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM", "amount": 250, "memo": "BatchTx10"}
+                    ]
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            # Step 3: Final transfer from miner2 (wait for this one to confirm all)
+            Step(
+                name="Reverse transfer",
+                module="transaction", 
+                method="transfer",
+                params={
+                    "from_miner": "miner2",
+                    "to_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
+                    "amount": 250,
+                    "memo": "ReverseTransfer" 
+                },
+                wait=True,
+                on_error="continue"
+            )
+        ]
+    )
+
+def main():
+    """Execute the single and batch transfers recipe test"""
+    print("=" * 60)
+    print(f"{Colors.format_header('RECIPE TO TEST SINGLE AND BATCH STX TRANSFERS')}")
+    print("=" * 60)
+    
+    runner = Runner()
+    recipe = create_single_and_batch_transfers_recipe()
+    
+    # Run the recipe with built-in node management
+    result = runner.run(recipe)
+    
+    # Print results summary  
+    print("\n" + "=" * 60)
+    print(f"{Colors.format_header('RECIPE EXECUTION RESULTS')}")
+    print("=" * 60)
+    
+    print(f"Recipe: {Colors.format_info(result['name'])}")
+    print(f"Overall Success: {Colors.format_success('✓ PASSED') if result['success'] else Colors.format_error('✗ FAILED')}")
+    duration_text = f"{result.get('duration', 0):.2f} seconds"
+    print(f"Duration: {Colors.format_dim(duration_text)}")
+    print(f"Setup Success: {Colors.format_success('✓') if result.get('setup_success', False) else Colors.format_error('✗')}")
+    print(f"Cleanup Success: {Colors.format_success('✓') if result.get('cleanup_success', False) else Colors.format_error('✗')}")
+    
+    steps_count = len(result.get('steps', []))
+    print(f"\n{Colors.format_subheader(f'Step Results ({steps_count} steps)')}")
+    for i, step in enumerate(result.get('steps', []), 1):
+        status = Colors.format_success('✓ PASSED') if step.get('success', False) else Colors.format_error('✗ FAILED')
+        duration = step.get('duration', 0)
+        retries = step.get('retries', 0)
+        duration_retries_text = f"{duration:.2f}s, {retries} retries"
+        print(f"  {Colors.format_info(f'{i}.')} {Colors.format_dim(step.get('name', 'Unknown'))}: {status} ({Colors.format_dim(duration_retries_text)})")
+        
+        if not step.get('success', False) and 'error' in step:
+            print(f"     Error: {Colors.format_error(step['error'])}")
+        elif step.get('success', False) and 'result' in step:
+            step_result = step['result']
+            # Show transaction ID for transfers
+            if isinstance(step_result, str) and len(step_result) == 64:  # Looks like a txid
+                print(f"     Transaction ID: {Colors.format_dim(step_result)}")
+            else:
+                result_preview = str(step_result)
+                if len(result_preview) > 100:
+                    result_preview = result_preview[:100] + "..."
+                print(f"     Result: {Colors.format_dim(result_preview)}")
+    
+    # Final summary
+    print("\n" + "=" * 60)
+    print(f"{Colors.format_header('FINAL RESULT')}")
+    print("=" * 60)
+    
+    if result['success']:
+        print(f"{Colors.format_success('✓ ALL TESTS PASSED')} - Single and batch transfers completed successfully")
+        print(f"{Colors.format_success('✓ Recipe-based test')} demonstrating multiple transfer scenarios")
+        return True
+    else:
+        print(f"{Colors.format_error('✗ TESTS FAILED')} - Recipe execution encountered errors")
+        failed_steps = [step for step in result.get('steps', []) if not step.get('success', False)]
+        if failed_steps:
+            print(f"{Colors.format_warning('Failed steps:')}")
+            for step in failed_steps:
+                print(f"  - {Colors.format_error(step.get('name', 'Unknown'))}: {Colors.format_error(step.get('error', 'No error details'))}")
+        return False
+
+if __name__ == "__main__":
+    import sys
+    success = main()
+    sys.exit(0 if success else 1)
+---[  END  content of: /home/simone/Desktop/node-naka3.sh/tests/recipes/simple-single-and-batch-transfers.py ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/recipes/__pycache__/single-and-batch-transfers.cpython-311.pyc (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/recipes/__pycache__/simple-counter-deploy-interact.cpython-311.pyc (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/recipes/__pycache__/cyberpunk-nft-deploy-interact.cpython-311.pyc (in excluded directory) ]---
+
+
+---[ START content of: /home/simone/Desktop/node-naka3.sh/tests/recipes/simple-cyberpunk-nft-deploy-interact.py ]---
+#!/usr/bin/env python3
+
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from utils.recipes import Runner, Recipe, Step
+from utils.base import Colors
+
+def create_cyberpunk_nft_recipe():
+    return Recipe(
+        name="Cyberpunk NFT Test",
+        description="Deploy cyberpunk NFT contract, mint tokens, test interactions",
+        setup=True,  # Use recipe's built-in node management
+        cleanup=True,  # Use recipe's built-in node management
+        steps=[
+            # Step 1: Deploy cyberpunk NFT contract
+            Step(
+                name="Deploy cyberpunk NFT contract",
+                module="contract",
+                method="deploy",
+                params={
+                    "miner": "miner1",
+                    "contract_file": "contracts/cyberpunk2140a.clar",
+                    "contract_name": "cyberpunk2140a"
+                },
+                wait=True,
+                on_error="stop"
+            ),
+            # Step 2: Read max token count
+            Step(
+                name="Read max token count",
+                module="contract", 
+                method="read",
+                params={
+                    "miner": "miner1",
+                    "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
+                    "contract_name": "cyberpunk2140a",
+                    "function_name": "get-last-token-id"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            # Step 3: Read mint price
+            Step(
+                name="Read mint price",
+                module="contract",
+                method="read",
+                params={
+                    "miner": "miner1",
+                    "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
+                    "contract_name": "cyberpunk2140a",
+                    "function_name": "get-mint-price"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            # Step 4: Read available count
+            Step(
+                name="Read available count",
+                module="contract",
+                method="read",
+                params={
+                    "miner": "miner1",
+                    "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
+                    "contract_name": "cyberpunk2140a",
+                    "function_name": "get-available-count"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            # Step 5: Read minted count
+            Step(
+                name="Read initial minted count",
+                module="contract",
+                method="read",
+                params={
+                    "miner": "miner1",
+                    "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
+                    "contract_name": "cyberpunk2140a",
+                    "function_name": "get-minted-count"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            # Step 6: Read collection attributes
+            Step(
+                name="Read collection attribute",
+                module="contract",
+                method="read",
+                params={
+                    "miner": "miner1",
+                    "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
+                    "contract_name": "cyberpunk2140a",
+                    "function_name": "get-collection-attribute"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            # Step 7: Check if collection data is frozen
+            Step(
+                name="Check collection data frozen",
+                module="contract",
+                method="read",
+                params={
+                    "miner": "miner1",
+                    "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
+                    "contract_name": "cyberpunk2140a",
+                    "function_name": "is-collection-data-frozen"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            # Step 8: Set token URI (write function)
+            Step(
+                name="Set token URI",
+                module="contract",
+                method="call",
+                params={
+                    "miner": "miner1",
+                    "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
+                    "contract_name": "cyberpunk2140a",
+                    "function_name": "set-token-uri",
+                    "args": ["\"https://cyberpunk2140.com/metadata/{id}.json\""]
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            # Step 10: Set collection attribute (write function)
+            Step(
+                name="Set collection attribute",
+                module="contract",
+                method="call",
+                params={
+                    "miner": "miner1",
+                    "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
+                    "contract_name": "cyberpunk2140a",
+                    "function_name": "set-collection-attribute",
+                    "args": ["u\"Cyberpunk 2140 NFT Collection\""]
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            # Step 11: Set collection icon data (write function)
+            Step(
+                name="Set collection icon data",
+                module="contract",
+                method="call",
+                params={
+                    "miner": "miner1",
+                    "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
+                    "contract_name": "cyberpunk2140a",
+                    "function_name": "set-collection-icon-data",
+                    "args": ["0x89504e470d0a1a0a0000000d49484452"]  # Sample PNG header bytes
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            # Step 12: Set tokens (write function)
+            Step(
+                name="Set tokens data",
+                module="contract",
+                method="call",
+                params={
+                    "miner": "miner1",
+                    "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
+                    "contract_name": "cyberpunk2140a",
+                    "function_name": "set-tokens",
+                    "args": ["(list {id: u1, data: 0x89504e470d0a1a0a, attribute: u\"First Token\"} {id: u2, data: 0x89504e470d0a1a0b, attribute: u\"Second Token\"})"]
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            # Step 13: Mint cyberpunk NFT
+            Step(
+                name="Mint cyberpunk NFT",
+                module="contract",
+                method="call", 
+                params={
+                    "miner": "miner1",
+                    "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
+                    "contract_name": "cyberpunk2140a",
+                    "function_name": "mint"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            # Step 12: Read minted count after mint
+            Step(
+                name="Read minted count after mint",
+                module="contract",
+                method="read",
+                params={
+                    "miner": "miner1",
+                    "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
+                    "contract_name": "cyberpunk2140a",
+                    "function_name": "get-minted-count"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            # Step 13: Read collection attribute after setting
+            Step(
+                name="Read collection attribute after setting",
+                module="contract",
+                method="read",
+                params={
+                    "miner": "miner1",
+                    "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
+                    "contract_name": "cyberpunk2140a",
+                    "function_name": "get-collection-attribute"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+        ]
+    )
+
+def main():
+    """Execute the cyberpunk NFT recipe test"""
+    print("=" * 60)
+    print(f"{Colors.format_header('RECIPE TO TEST CYBERPUNK NFT CONTRACT')}")
+    print("=" * 60)
+    
+    runner = Runner()
+    recipe = create_cyberpunk_nft_recipe()
+    
+    # Run the recipe with built-in node management
+    result = runner.run(recipe)
+    
+    # Print results summary  
+    print("\n" + "=" * 60)
+    print(f"{Colors.format_header('RECIPE EXECUTION RESULTS')}")
+    print("=" * 60)
+    
+    print(f"Recipe: {Colors.format_info(result['name'])}")
+    print(f"Overall Success: {Colors.format_success('✓ PASSED') if result['success'] else Colors.format_error('✗ FAILED')}")
+    duration_text = f"{result.get('duration', 0):.2f} seconds"
+    print(f"Duration: {Colors.format_dim(duration_text)}")
+    print(f"Setup Success: {Colors.format_success('✓') if result.get('setup_success', False) else Colors.format_error('✗')}")
+    print(f"Cleanup Success: {Colors.format_success('✓') if result.get('cleanup_success', False) else Colors.format_error('✗')}")
+    
+    steps_count = len(result.get('steps', []))
+    print(f"\n{Colors.format_subheader(f'Step Results ({steps_count} steps)')}")
+    for i, step in enumerate(result.get('steps', []), 1):
+        status = Colors.format_success('✓ PASSED') if step.get('success', False) else Colors.format_error('✗ FAILED')
+        duration = step.get('duration', 0)
+        retries = step.get('retries', 0)
+        duration_retries_text = f"{duration:.2f}s, {retries} retries"
+        print(f"  {Colors.format_info(f'{i}.')} {Colors.format_dim(step.get('name', 'Unknown'))}: {status} ({Colors.format_dim(duration_retries_text)})")
+        
+        if not step.get('success', False) and 'error' in step:
+            print(f"     Error: {Colors.format_error(step['error'])}")
+        elif step.get('success', False) and 'result' in step:
+            step_result = step['result']
+            result_preview = str(step_result)
+            if len(result_preview) > 100:
+                result_preview = result_preview[:100] + "..."
+            print(f"     Result: {Colors.format_dim(result_preview)}")
+    
+    # Final summary
+    print("\n" + "=" * 60)
+    print(f"{Colors.format_header('FINAL RESULT')}")
+    print("=" * 60)
+    
+    if result['success']:
+        print(f"{Colors.format_success('✓ ALL TESTS PASSED')} - Cyberpunk NFT successfully deployed, minted, and tested")
+        print(f"{Colors.format_success('✓ Recipe-based test')} using direct contract calls for custom functionality")
+        return True
+    else:
+        print(f"{Colors.format_error('✗ TESTS FAILED')} - Recipe execution encountered errors")
+        failed_steps = [step for step in result.get('steps', []) if not step.get('success', False)]
+        if failed_steps:
+            print(f"{Colors.format_warning('Failed steps:')}")
+            for step in failed_steps:
+                print(f"  - {Colors.format_error(step.get('name', 'Unknown'))}: {Colors.format_error(step.get('error', 'No error details'))}")
+        return False
+
+if __name__ == "__main__":
+    import sys
+    success = main()
+    sys.exit(0 if success else 1)
+---[  END  content of: /home/simone/Desktop/node-naka3.sh/tests/recipes/simple-cyberpunk-nft-deploy-interact.py ]---
+
+
+---[ START content of: /home/simone/Desktop/node-naka3.sh/tests/recipes/simple-counter-deploy-interact.py ]---
+#!/usr/bin/env python3
+
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from utils.recipes import Runner, Recipe, Step
+from utils.base import Colors
+
+def create_contract_simple_recipe():
+    return Recipe(
+        name="Contract Simple Test",
+        description="Deploy contract, test interaction, verify chain progression",
+        setup=True,  # Use recipe's built-in node management
+        cleanup=True,  # Use recipe's built-in node management
+        steps=[
+            # Step 1: Deploy counter contract
+            Step(
+                name="Deploy counter contract",
+                module="contract",
+                method="deploy",
+                params={
+                    "miner": "miner1",
+                    "contract_file": "contracts/contract-counter.clar", 
+                    "contract_name": "mycontract"
+                },
+                wait=True,
+                on_error="stop"
+            ),
+            # Step 2: Read initial counter value
+            Step(
+                name="Read initial counter",
+                module="contract",
+                method="read",
+                params={
+                    "miner": "miner1",
+                    "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
+                    "contract_name": "mycontract",
+                    "function_name": "get-counter"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            # Step 3: Read initial last caller
+            Step(
+                name="Read initial last caller",
+                module="contract",
+                method="read",
+                params={
+                    "miner": "miner1",
+                    "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
+                    "contract_name": "mycontract",
+                    "function_name": "get-last-caller"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            # Step 4: Increment counter
+            Step(
+                name="Increment counter",
+                module="contract",
+                method="call",
+                params={
+                    "miner": "miner1",
+                    "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
+                    "contract_name": "mycontract",
+                    "function_name": "increment"
+                },
+                wait=True,
+                on_error="stop"
+            ),
+            # Step 5: Read counter after increment
+            Step(
+                name="Read counter after increment",
+                module="contract",
+                method="read",
+                params={
+                    "miner": "miner1",
+                    "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
+                    "contract_name": "mycontract",
+                    "function_name": "get-counter"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            # Step 6: Read last caller after increment
+            Step(
+                name="Read last caller after increment",
+                module="contract",
+                method="read",
+                params={
+                    "miner": "miner1",
+                    "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
+                    "contract_name": "mycontract",
+                    "function_name": "get-last-caller"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            # Step 7: Reset counter
+            Step(
+                name="Reset counter",
+                module="contract",
+                method="call",
+                params={
+                    "miner": "miner1",
+                    "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
+                    "contract_name": "mycontract",
+                    "function_name": "reset"
+                },
+                wait=True,
+                on_error="stop"
+            ),
+            # Step 8: Read counter after reset
+            Step(
+                name="Read counter after reset",
+                module="contract",
+                method="read",
+                params={
+                    "miner": "miner1",
+                    "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
+                    "contract_name": "mycontract",
+                    "function_name": "get-counter"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            # Step 9: Read last caller after reset
+            Step(
+                name="Read last caller after reset",
+                module="contract",
+                method="read",
+                params={
+                    "miner": "miner1",
+                    "contract_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
+                    "contract_name": "mycontract",
+                    "function_name": "get-last-caller"
+                },
+                wait=True,
+                on_error="continue"
+            )
+        ]
+    )
+
+def main():
+    """Execute the contract simple recipe test"""
+    print("=" * 60)
+    print(f"{Colors.format_header('RECIPE TO TEST COUNTER CONTRACT DEPLOYMENT AND INTERACTIONS')}")
+    print("=" * 60)
+    
+    runner = Runner()
+    recipe = create_contract_simple_recipe()
+    
+    # Run the recipe with built-in node management
+    result = runner.run(recipe)
+    
+    # Print results summary  
+    print("\n" + "=" * 60)
+    print(f"{Colors.format_header('RECIPE EXECUTION RESULTS')}")
+    print("=" * 60)
+    
+    print(f"Recipe: {Colors.format_info(result['name'])}")
+    print(f"Overall Success: {Colors.format_success('✓ PASSED') if result['success'] else Colors.format_error('✗ FAILED')}")
+    duration_text = f"{result.get('duration', 0):.2f} seconds"
+    print(f"Duration: {Colors.format_dim(duration_text)}")
+    print(f"Setup Success: {Colors.format_success('✓') if result.get('setup_success', False) else Colors.format_error('✗')}")
+    print(f"Cleanup Success: {Colors.format_success('✓') if result.get('cleanup_success', False) else Colors.format_error('✗')}")
+    
+    steps_count = len(result.get('steps', []))
+    print(f"\n{Colors.format_subheader(f'Step Results ({steps_count} steps)')}")
+    for i, step in enumerate(result.get('steps', []), 1):
+        status = Colors.format_success('✓ PASSED') if step.get('success', False) else Colors.format_error('✗ FAILED')
+        duration = step.get('duration', 0)
+        retries = step.get('retries', 0)
+        duration_retries_text = f"{duration:.2f}s, {retries} retries"
+        print(f"  {Colors.format_info(f'{i}.')} {Colors.format_dim(step.get('name', 'Unknown'))}: {status} ({Colors.format_dim(duration_retries_text)})")
+        
+        if not step.get('success', False) and 'error' in step:
+            print(f"     Error: {Colors.format_error(step['error'])}")
+        elif step.get('success', False) and 'result' in step:
+            step_result = step['result']
+            if isinstance(step_result, dict) and 'function_results' in step_result:
+                print(f"     Contract: {Colors.format_info(step_result.get('contract_name', 'Unknown'))}")
+                print(f"     Deploy TXID: {Colors.format_dim(step_result.get('deploy_txid', 'Unknown'))}")
+                print(f"     Function tests:")
+                for func_result in step_result.get('function_results', []):
+                    func_status = Colors.format_success('✓') if func_result.get('success', False) else Colors.format_error('✗')
+                    func_name = func_result.get('function', 'unknown')
+                    func_type = func_result.get('type', 'unknown')
+                    print(f"       {func_status} {Colors.format_info(func_name)} ({Colors.format_dim(func_type)})")
+                    if not func_result.get('success', False) and 'error' in func_result:
+                        print(f"         Error: {Colors.format_error(func_result['error'])}")
+            else:
+                result_preview = str(step_result)
+                if len(result_preview) > 100:
+                    result_preview = result_preview[:100] + "..."
+                print(f"     Result: {Colors.format_dim(result_preview)}")
+    
+    # Final summary
+    print("\n" + "=" * 60)
+    print(f"{Colors.format_header('FINAL RESULT')}")
+    print("=" * 60)
+    
+    if result['success']:
+        print(f"{Colors.format_success('✓ ALL TESTS PASSED')} - Contract successfully deployed, tested, and chain healthy")
+        print(f"{Colors.format_success('✓ Recipe-based test')} exactly replicated test-contract.py functionality")
+        return True
+    else:
+        print(f"{Colors.format_error('✗ TESTS FAILED')} - Recipe execution encountered errors")
+        failed_steps = [step for step in result.get('steps', []) if not step.get('success', False)]
+        if failed_steps:
+            print(f"{Colors.format_warning('Failed steps:')}")
+            for step in failed_steps:
+                print(f"  - {Colors.format_error(step.get('name', 'Unknown'))}: {Colors.format_error(step.get('error', 'No error details'))}")
+        return False
+
+if __name__ == "__main__":
+    import sys
+    success = main()
+    sys.exit(0 if success else 1)
+---[  END  content of: /home/simone/Desktop/node-naka3.sh/tests/recipes/simple-counter-deploy-interact.py ]---
+
+
+---[ START content of: /home/simone/Desktop/node-naka3.sh/tests/utils/recipes.py ]---
+import json
+import time
+from typing import Dict, Any, List, Optional
+from dataclasses import dataclass
+
+from .base import StacksTestBase
+from .node_manager import NodeManager
+from .transaction import Transaction
+from .contract import Contract
+from .nft import NFT
+
+@dataclass
+class Step:
+    name: str
+    module: str
+    method: str
+    params: Dict[str, Any]
+    wait: bool = True
+    on_error: str = "stop"
+    retries: int = 0
+
+@dataclass
+class Recipe:
+    name: str
+    description: str
+    steps: List[Step]
+    setup: bool = True
+    cleanup: bool = True
+
+class Runner(StacksTestBase):
+    
+    def __init__(self):
+        super().__init__()
+        self.node = NodeManager()
+        self.modules = {
+            'transaction': Transaction(),
+            'contract': Contract(),
+            'nft': NFT(),
+                        'node': self.node
+        }
+    
+    def run(self, recipe: Recipe) -> Dict[str, Any]:
+        start_time = time.time()
+        result = {
+            'name': recipe.name,
+            'success': True,
+            'steps': [],
+            'start_time': start_time,
+            'setup_success': True,
+            'cleanup_success': True
+        }
+        
+        try:
+            if recipe.setup:
+                self.node.start_node()
+                if not self.verify_chain_progression("miner1"):
+                    result['setup_success'] = False
+                    result['success'] = False
+                    return result
+            
+            # Capture initial chain state before executing steps
+            initial_chain_state = self._capture_chain_state()
+            
+            for step in recipe.steps:
+                step_result = self._run_step(step)
+                result['steps'].append(step_result)
+                
+                if not step_result['success'] and step.on_error == "stop":
+                    result['success'] = False
+                    break
+            
+            # Verify final chain progression after all steps complete
+            final_chain_verification = self._verify_final_chain_progression(initial_chain_state)
+            result.update(final_chain_verification)
+            
+            if any(not s['success'] for s in result['steps']):
+                result['success'] = False
+                
+        except Exception as e:
+            result['success'] = False
+            result['error'] = str(e)
+            
+        finally:
+            if recipe.cleanup:
+                try:
+                    self.node.stop_node()
+                except Exception as e:
+                    result['cleanup_success'] = False
+                    result['cleanup_error'] = str(e)
+        
+        result['duration'] = time.time() - start_time
+        return result
+    
+    def _run_step(self, step: Step) -> Dict[str, Any]:
+        result = {'name': step.name, 'success': False, 'start_time': time.time(), 'retries': 0}
+        
+        for attempt in range(step.retries + 1):
+            try:
+                if step.module not in self.modules:
+                    raise ValueError(f"Unknown module: {step.module}")
+                
+                module = self.modules[step.module]
+                method = getattr(module, step.method)
+                res = method(**step.params)
+                
+                result.update({'success': True, 'result': res, 'retries': attempt})
+                break
+                
+            except Exception as e:
+                result['error'] = str(e)
+                if attempt < step.retries:
+                    time.sleep(2 ** attempt)
+                else:
+                    result['success'] = False
+        
+        result['duration'] = time.time() - result['start_time']
+        return result
+    
+    def _capture_chain_state(self) -> Dict[str, Any]:
+        """Capture initial chain state for all miners"""
+        try:
+            chain_state = {}
+            for miner in ["miner1", "miner2", "miner3"]:
+                account = self.get_account(miner)
+                chain_state[miner] = {
+                    'block_height': self.get_block_height(miner),
+                    'balance': self.get_balance(miner),
+                    'nonce': self.get_nonce(miner),
+                    'address': account.address
+                }
+            return chain_state
+        except Exception as e:
+            return {'error': f"Failed to capture initial chain state: {str(e)}"}
+    
+    def _verify_final_chain_progression(self, initial_state: Dict[str, Any]) -> Dict[str, Any]:
+        """Verify chain progression across all miners after recipe completion"""
+        verification_result = {
+            'chain_progression_verified': True,
+            'chain_verification_details': {}
+        }
+        
+        try:
+            if 'error' in initial_state:
+                verification_result['chain_progression_verified'] = False
+                verification_result['chain_verification_error'] = initial_state['error']
+                return verification_result
+            
+            final_state = {}
+            chain_details = {}
+            
+            for miner in ["miner1", "miner2", "miner3"]:
+                try:
+                    initial = initial_state[miner]
+                    final_state[miner] = {
+                        'block_height': self.get_block_height(miner),
+                        'balance': self.get_balance(miner),
+                        'nonce': self.get_nonce(miner),
+                        'address': initial['address']
+                    }
+                    
+                    # Calculate progression
+                    height_change = final_state[miner]['block_height'] - initial['block_height']
+                    balance_change = final_state[miner]['balance'] - initial['balance']
+                    nonce_change = final_state[miner]['nonce'] - initial['nonce']
+                    
+                    chain_details[miner] = {
+                        'initial_height': initial['block_height'],
+                        'final_height': final_state[miner]['block_height'],
+                        'height_progression': height_change,
+                        'initial_balance': initial['balance'],
+                        'final_balance': final_state[miner]['balance'],
+                        'balance_change': balance_change,
+                        'initial_nonce': initial['nonce'],
+                        'final_nonce': final_state[miner]['nonce'],
+                        'nonce_progression': nonce_change
+                    }
+                    
+                    # Verify reasonable progression
+                    if height_change < 0:
+                        verification_result['chain_progression_verified'] = False
+                        chain_details[miner]['error'] = "Block height decreased"
+                    if nonce_change < 0:
+                        verification_result['chain_progression_verified'] = False
+                        chain_details[miner]['error'] = "Nonce decreased"
+                        
+                except Exception as e:
+                    verification_result['chain_progression_verified'] = False
+                    chain_details[miner] = {'error': f"Failed to verify {miner}: {str(e)}"}
+            
+            verification_result['chain_verification_details'] = chain_details
+            
+            # Check cross-miner consistency
+            heights = [details.get('final_height', 0) for details in chain_details.values() if 'error' not in details]
+            if len(heights) > 1:
+                height_variance = max(heights) - min(heights)
+                verification_result['height_variance'] = height_variance
+                if height_variance > 5:  # Allow some variance but flag large differences
+                    verification_result['chain_progression_verified'] = False
+                    verification_result['chain_verification_error'] = f"Large height variance across miners: {height_variance} blocks"
+            
+        except Exception as e:
+            verification_result['chain_progression_verified'] = False
+            verification_result['chain_verification_error'] = f"Chain verification failed: {str(e)}"
+        
+        return verification_result
+
+class Recipes:
+    pass  # All static methods removed - they were unused
+---[  END  content of: /home/simone/Desktop/node-naka3.sh/tests/utils/recipes.py ]---
+
+
+---[ START content of: /home/simone/Desktop/node-naka3.sh/tests/utils/transaction.py ]---
+import time
+import json
+from typing import Optional, Dict, Any
+from .base import StacksTestBase, Colors
+
+class Transaction(StacksTestBase):
+    
+    def transfer(self, from_miner: str, to_address: str, amount: int, 
+                memo: Optional[str] = None, nonce: Optional[int] = None, silent: bool = False) -> str:
+        account = self.get_account(from_miner)
+        
+        # Get initial state for verification (like test-transaction.py does)
+        initial_nonce = self.get_nonce(from_miner) if nonce is None else nonce
+        initial_sender_balance = self.get_balance(from_miner)
+        initial_recipient_balance = self.get_balance(from_miner, to_address)
+        initial_height = self.get_block_height(from_miner)
+        
+        if not silent:
+            print(f"\n{Colors.format_header('=== STX TRANSFER ===')}")
+            print(f"From: {Colors.format_info(account.address)}")
+            print(f"To: {Colors.format_info(to_address)}")
+            print(f"Amount: {Colors.format_success(f'{amount} µSTX')}")
+            if memo:
+                print(f"Memo: {Colors.format_dim(memo)}")
+            print(f"Sender balance before: {Colors.format_dim(str(initial_sender_balance))}")
+            print(f"Recipient balance before: {Colors.format_dim(str(initial_recipient_balance))}")
+            print(f"Using nonce: {Colors.format_dim(str(initial_nonce))}")
+        
+        cmd = ["blockstack-cli", "--testnet", "token-transfer", account.private_key, "180", str(initial_nonce), to_address, str(amount)]
+        if memo:
+            cmd.append(memo)
+        
+        if not silent:
+            print(f"{Colors.format_dim('Creating transaction...')}")
+        tx_binary = self.run_cli_command(cmd, binary_output=True)
+        
+        if not silent:
+            print(f"{Colors.format_dim('Submitting transaction...')}")
+        response = self.api_call(account, "/v2/transactions", "POST", tx_binary)
+        response.raise_for_status()
+        
+        txid = response.text.strip('"')
+        if not silent:
+            print(f"{Colors.format_success(f'✓ Transaction ID: {txid}')}")
+        
+        # Use consolidated verification with recipient tracking
+        verification = self.verify_transaction(from_miner, txid, initial_nonce, initial_sender_balance, initial_height, to_address)
+        if not verification['success']:
+            raise RuntimeError(f"Transfer verification failed: {verification['error']}")
+        
+        return txid
+    
+    
+    def batch(self, from_miner: str, transfers: list, wait_between: bool = False) -> list:
+        """Submit multiple transactions rapidly to be included in the same block"""
+        account = self.get_account(from_miner)
+        initial_nonce = self.get_nonce(from_miner)
+        initial_height = self.get_block_height(from_miner)
+        
+        print(f"\n{Colors.format_header(f'=== BATCH TRANSFER ({len(transfers)} transactions) ===')}")
+        print(f"Starting nonce: {Colors.format_dim(str(initial_nonce))}")
+        print(f"Block height: {Colors.format_dim(str(initial_height))}")
+        
+        # Phase 1: Prepare all transactions as binary data
+        prepared_txs = []
+        for i, t in enumerate(transfers):
+            try:
+                nonce = initial_nonce + i
+                cmd = ["blockstack-cli", "--testnet", "token-transfer", account.private_key, "180", str(nonce), t['to'], str(t['amount'])]
+                if t.get('memo'):
+                    cmd.append(t['memo'])
+                
+                tx_binary = self.run_cli_command(cmd, binary_output=True)
+                prepared_txs.append({
+                    'binary': tx_binary,
+                    'transfer': t,
+                    'nonce': nonce,
+                    'index': i
+                })
+                amount_text = f"{t['amount']} µSTX"
+                to_text = f"{t['to'][:10]}..."
+                print(f"{Colors.format_success(f'✓ Prepared tx {i+1}')}: {Colors.format_info(amount_text)} to {Colors.format_dim(to_text)} (nonce {Colors.format_dim(str(nonce))})")
+            except Exception as e:
+                print(f"{Colors.format_error(f'✗ Failed to prepare tx {i+1}')}: {Colors.format_error(str(e))}")
+                prepared_txs.append({
+                    'error': str(e),
+                    'transfer': t,
+                    'nonce': initial_nonce + i,
+                    'index': i
+                })
+        
+        # Phase 2: Submit all transactions rapidly without waiting
+        results = []
+        submitted_txs = []
+        
+        print(f"\n{Colors.format_subheader(f'Submitting {len(prepared_txs)} transactions rapidly...')}")
+        start_time = time.time()
+        
+        for tx_data in prepared_txs:
+            if 'error' in tx_data:
+                results.append({'success': False, 'error': tx_data['error'], 'transfer': tx_data['transfer'], 'nonce': tx_data['nonce']})
+                continue
+                
+            try:
+                response = self.api_call(account, "/v2/transactions", "POST", tx_data['binary'])
+                response.raise_for_status()
+                
+                txid = response.text.strip('"')
+                submitted_txs.append(txid)
+                results.append({'success': True, 'txid': txid, 'transfer': tx_data['transfer'], 'nonce': tx_data['nonce']})
+                submitted_index = tx_data['index'] + 1
+                print(f"{Colors.format_success(f'✓ Submitted tx {submitted_index}')}: {Colors.format_dim(txid)}")
+                
+            except Exception as e:
+                failed_index = tx_data['index'] + 1
+                print(f"{Colors.format_error(f'✗ Failed to submit tx {failed_index}')}: {Colors.format_error(str(e))}")
+                results.append({'success': False, 'error': str(e), 'transfer': tx_data['transfer'], 'nonce': tx_data['nonce']})
+        
+        submission_time = time.time() - start_time
+        successful_submissions = len([r for r in results if r.get('success', False)])
+        
+        print(f"{Colors.format_success(f'✓ Batch submission complete')}: {Colors.format_info(f'{successful_submissions}/{len(transfers)}')} transactions submitted in {Colors.format_dim(f'{submission_time:.2f}s')}")
+        
+        # Phase 3: Wait for confirmation and verify all batch transactions
+        if successful_submissions > 0:
+            print(f"{Colors.format_subheader('Waiting for batch transactions to be confirmed...')}")
+            
+            # Wait for the final nonce to reach expected value (initial + successful submissions)
+            final_nonce = self.wait_for_nonce_increase(from_miner, initial_nonce, successful_submissions, timeout=30)
+            final_height = self.get_block_height(from_miner)
+            
+            if final_nonce >= initial_nonce + successful_submissions:
+                print(f"{Colors.format_success('✓ All batch transactions confirmed')} (nonce: {Colors.format_dim(f'{initial_nonce} → {final_nonce}')})")
+                print(f"{Colors.format_success('✓ Block height')}: {Colors.format_dim(f'{initial_height} → {final_height}')}")
+                
+                # Now verify each transaction individually using the existing verify_transaction method
+                verified_count = 0
+                same_block_count = 0
+                
+                for i, result in enumerate(results):
+                    if result.get('success', False):
+                        print(f"\n{Colors.format_subheader(f'Verifying batch transaction {i+1}/{len(results)}')}: {Colors.format_dim(result['txid'])}")
+                        try:
+                            # Use the existing verify_transaction method but skip the confirmation wait
+                            # since we already waited for all transactions
+                            verification = self.verify_transaction_direct(
+                                from_miner, 
+                                result['txid'], 
+                                result['transfer'].get('to')
+                            )
+                            
+                            if verification.get('success', False):
+                                verified_count += 1
+                                tx_data = verification.get('transaction_data', {})
+                                if 'index_block_hash' in tx_data:
+                                    # Check if this transaction is in the same block as others
+                                    # For simplicity, we'll count transactions in the final block
+                                    same_block_count += 1
+                                    print(f"{Colors.format_success(f'✓ Transaction {i+1} verified and included in block')}")
+                                else:
+                                    print(f"{Colors.format_warning(f'⚠ Transaction {i+1} verified but block info unavailable')}")
+                            else:
+                                print(f"{Colors.format_error(f'✗ Transaction {i+1} verification failed')}: {Colors.format_error(verification.get('error', 'Unknown error'))}")
+                        except Exception as e:
+                            print(f"{Colors.format_error(f'✗ Transaction {i+1} verification error')}: {Colors.format_error(str(e))}")
+                
+                print(f"\n{Colors.format_success('✓ Batch verification complete')}: {Colors.format_info(f'{verified_count}/{successful_submissions}')} transactions verified")
+                print(f"{Colors.format_success('✓')} {Colors.format_info(f'{same_block_count}/{successful_submissions}')} transactions confirmed in blocks")
+                
+                # Show final account state for the batch sender
+                print(f"\n{Colors.format_header('=== FINAL BATCH SENDER ACCOUNT STATE ===')}")
+                try:
+                    account = self.get_account(from_miner)
+                    response = self.api_call(account, f"/v2/accounts/{account.address}")
+                    response.raise_for_status()
+                    final_account_info = response.json()
+                    print(f"Account: {Colors.format_info(account.address)}")
+                    print(f"Final nonce: {Colors.format_success(str(final_account_info.get('nonce', 'unknown')))}")
+                    print(f"Final balance: {Colors.format_success(str(final_account_info.get('balance', 'unknown')))}")
+                    print(f"{Colors.format_subheader('=== FULL ACCOUNT INFO ===')}")
+                    print(f"{Colors.format_dim(json.dumps(final_account_info, indent=2))}")
+                    print(f"{Colors.format_subheader('=== END ACCOUNT INFO ===')}")
+                except Exception as e:
+                    print(f"{Colors.format_warning(f'⚠ Could not fetch final account state')}: {Colors.format_error(str(e))}")
+            else:
+                print(f"{Colors.format_warning(f'⚠ Expected nonce {initial_nonce + successful_submissions}, got {final_nonce}')}")
+                print(f"{Colors.format_warning('⚠ Some batch transactions may have failed')}")
+        
+        return results
+    
+    def status(self, miner: str, tx_id: str) -> Dict[str, Any]:
+        account = self.get_account(miner)
+        response = self.api_call(account, f"/extended/v1/tx/{tx_id}")
+        response.raise_for_status()
+        return response.json()
+---[  END  content of: /home/simone/Desktop/node-naka3.sh/tests/utils/transaction.py ]---
+
+
+---[ START content of: /home/simone/Desktop/node-naka3.sh/tests/utils/node_manager.py ]---
+#!/usr/bin/env python3
+
+import subprocess
+import time
+
+class NodeManager:
+    def __init__(self):
+        self.node_process = None
+        self.running = False
+        
+    def start_node(self):
+        """Start the three miners node"""
+        print("Terminal 1: Starting three miners...")
+        try:
+            cmd = ["./three-miners.sh", "snapshot", "restore"]
+            self.node_process = subprocess.Popen(
+                cmd,
+                cwd="../naka3/playbooks/three-miners",
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1,
+                universal_newlines=True
+            )
+            self.running = True
+            
+            # Give the process a moment to start
+            time.sleep(5)
+            
+            # Check if process is still running
+            if self.node_process.poll() is not None:
+                stdout, _ = self.node_process.communicate()
+                print(f"✗ Node process exited early. Output: {stdout}")
+                return False
+                
+            print("✓ Node process started")
+            
+            # Give the node time to initialize properly with 1 second + endpoint check
+            print("Checking miners initialization", end="\n", flush=True)
+            time.sleep(1)  # Brief initial wait as requested
+            
+            # Check if process is still alive
+            if self.node_process.poll() is not None:
+                print(f"\n✗ Node process died during initialization")
+                return False
+            
+            # Now check if miners are ready via endpoint
+            from .base import StacksTestBase
+            base = StacksTestBase()
+            if not base.wait_for_miners_ready():
+                print(" ⚠ (some miners may not be fully ready)")
+                # Continue anyway as long as the process is alive
+            
+        except Exception as e:
+            print(f"✗ Failed to start node: {e}")
+            return False
+        return True
+    
+    def stop_node(self):
+        """Stop the three miners node"""
+        print("Terminal 3: Stopping three miners...")
+        try:
+            subprocess.run(
+                ["./three-miners.sh", "stop"],
+                cwd="../naka3/playbooks/three-miners",
+                check=True
+            )
+            print("✓ Node stopped")
+        except Exception as e:
+            print(f"✗ Failed to stop node: {e}")
+    
+    def resume_node(self):
+        """Resume the three miners node"""
+        print("Terminal 3: Resuming three miners...")
+        try:
+            subprocess.run(
+                ["./three-miners.sh", "resume"],
+                cwd="../naka3/playbooks/three-miners",
+                check=True
+            )
+            print("✓ Node resumed")
+        except Exception as e:
+            print(f"✗ Failed to resume node: {e}")
+    
+    def stop_miner(self, miner_id: int):
+        """Stop specific miner (1, 2, or 3)"""
+        print(f"Stopping miner{miner_id}...")
+        try:
+            cmd = [f"../../naka3.sh", "-c", f"./config-miner-{miner_id}.sh", "node", str(miner_id), "stop"]
+            subprocess.run(cmd, cwd="../naka3/playbooks/three-miners", check=True)
+            print(f"✓ Miner{miner_id} stopped")
+        except Exception as e:
+            print(f"✗ Failed to stop miner{miner_id}: {e}")
+    
+    def resume_miner(self, miner_id: int):
+        """Resume specific miner (1, 2, or 3)"""
+        print(f"Resuming miner{miner_id}...")
+        try:
+            cmd = [f"../../naka3.sh", "-c", f"./config-miner-{miner_id}.sh", "node", str(miner_id), "resume"]
+            subprocess.run(cmd, cwd="../naka3/playbooks/three-miners", check=True)
+            print(f"✓ Miner{miner_id} resumed")
+        except Exception as e:
+            print(f"✗ Failed to resume miner{miner_id}: {e}")
+    
+    def cleanup(self):
+        """Clean up the node process"""
+        if self.node_process and self.running:
+            self.node_process.terminate()
+            self.node_process.wait()
+            self.running = False
+---[  END  content of: /home/simone/Desktop/node-naka3.sh/tests/utils/node_manager.py ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/utils/__pycache__/contract.cpython-311.pyc (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/utils/__pycache__/node_manager.cpython-311.pyc (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/utils/__pycache__/transaction.cpython-311.pyc (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/utils/__pycache__/__init__.cpython-311.pyc (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/utils/__pycache__/base.cpython-311.pyc (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/utils/__pycache__/nft.cpython-311.pyc (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/utils/__pycache__/recipes.cpython-311.pyc (in excluded directory) ]---
+
+
+---[ START content of: /home/simone/Desktop/node-naka3.sh/tests/utils/nft.py ]---
+from typing import Optional, Dict, Any
+from .contract import Contract
+
+class NFT(Contract):
+    """SIP-009 compliant NFT standard methods"""
+    
+    def get_owner(self, miner: str, contract_address: str, contract_name: str, token_id: int) -> Dict[str, Any]:
+        """SIP-009 standard: get-owner function"""
+        # Convert token_id to proper Clarity uint format (32 hex chars)
+        clarity_token_id = f"0x01{token_id:031x}"
+        return self.read(miner, contract_address, contract_name, "get-owner", [clarity_token_id])
+    
+    def transfer(self, miner: str, contract_address: str, contract_name: str, token_id: int, sender: str, recipient: str, nonce: Optional[int] = None) -> str:
+        """SIP-009 standard: transfer function"""
+        return self.call(miner, contract_address, contract_name, "transfer", [f"u{token_id}", f'"{sender}"', f'"{recipient}"'], nonce)
+    
+    def get_last_token_id(self, miner: str, contract_address: str, contract_name: str) -> Dict[str, Any]:
+        """SIP-009 standard: get-last-token-id function"""
+        return self.read(miner, contract_address, contract_name, "get-last-token-id")
+    
+    def get_token_uri(self, miner: str, contract_address: str, contract_name: str, token_id: int) -> Dict[str, Any]:
+        """SIP-009 standard: get-token-uri function"""
+        # Convert token_id to proper Clarity uint format (32 hex chars)
+        clarity_token_id = f"0x01{token_id:031x}"
+        return self.read(miner, contract_address, contract_name, "get-token-uri", [clarity_token_id])
+
+---[  END  content of: /home/simone/Desktop/node-naka3.sh/tests/utils/nft.py ]---
+
+
+---[ START content of: /home/simone/Desktop/node-naka3.sh/tests/utils/__init__.py ]---
+from .base import StacksTestBase, Account
+from .node_manager import NodeManager
+from .transaction import Transaction
+from .contract import Contract
+from .nft import NFT
+from .recipes import Recipe, Step, Runner
+
+__all__ = [
+    'StacksTestBase', 'Account', 'NodeManager',
+    'Transaction', 'Contract', 'NFT',
+    'Recipe', 'Step', 'Runner'
+]
+---[  END  content of: /home/simone/Desktop/node-naka3.sh/tests/utils/__init__.py ]---
+
+
+---[ START content of: /home/simone/Desktop/node-naka3.sh/tests/utils/contract.py ]---
+import os
+import json
+import time
+from typing import Optional, Dict, Any, List
+from .base import StacksTestBase, Colors
+
+class Contract(StacksTestBase):
+    
+    def deploy(self, miner: str, contract_file: str, contract_name: str, nonce: Optional[int] = None) -> str:
+        # Handle relative paths from tests directory
+        if not os.path.isabs(contract_file):
+            # Try from current directory first
+            if not os.path.exists(contract_file):
+                # Try from tests directory
+                test_path = os.path.join(os.path.dirname(__file__), '..', contract_file)
+                if os.path.exists(test_path):
+                    contract_file = test_path
+                else:
+                    raise FileNotFoundError(f"Contract file not found: {contract_file}")
+        elif not os.path.exists(contract_file):
+            raise FileNotFoundError(f"Contract file not found: {contract_file}")
+        
+        account = self.get_account(miner)
+        
+        # Validate contract file content
+        try:
+            with open(contract_file, 'r') as f:
+                contract_code = f.read().strip()
+            if not contract_code:
+                raise ValueError("Contract file is empty")
+            print(f"{Colors.format_success(f'✓ Contract file loaded ({len(contract_code)} characters)')}")
+        except Exception as e:
+            print(f"{Colors.format_error(f'✗ Error reading contract file')}: {Colors.format_error(str(e))}")
+            raise
+        
+        # Get initial state for verification
+        initial_nonce = self.get_nonce(miner) if nonce is None else nonce
+        initial_balance = self.get_balance(miner)
+        initial_height = self.get_block_height(miner)
+        
+        print(f"\n{Colors.format_header('=== CONTRACT DEPLOYMENT ===')}")
+        print(f"Contract: {Colors.format_info(contract_name)}")
+        print(f"File: {Colors.format_dim(contract_file)}")
+        print(f"Initial balance: {Colors.format_dim(str(initial_balance))}")
+        print(f"Using nonce: {Colors.format_dim(str(initial_nonce))}")
+        print(f"Account: {Colors.format_info(account.address)}")
+        
+        # Calculate dynamic fee based on contract size
+        # Stacks requires approximately 1 µSTX per byte for contract deployment
+        contract_size = len(contract_code)
+        base_fee = max(contract_size, 10000)  # At least 1 µSTX per byte, minimum 10k
+        
+        # Add buffer for safety (10% extra)
+        fee = str(int(base_fee * 1.1))
+            
+        print(f"Using fee: {Colors.format_success(f'{fee} µSTX')}")
+        
+        cmd = ["blockstack-cli", "--testnet", "publish", account.private_key, fee, str(initial_nonce), contract_name, contract_file]
+        
+        print(f"{Colors.format_dim('Creating contract deployment transaction...')}")
+        print(f"Command: {Colors.format_dim(' '.join(cmd))}")
+        
+        try:
+            tx_binary = self.run_cli_command(cmd, binary_output=True)
+            print(f"{Colors.format_success(f'✓ Transaction binary created (length: {len(tx_binary)} bytes)')}")
+        except Exception as e:
+            print(f"{Colors.format_error('✗ Failed to create transaction binary')}: {Colors.format_error(str(e))}")
+            raise
+        
+        print(f"{Colors.format_dim(f'Submitting transaction to {account.api_url}/v2/transactions...')}")
+        
+        try:
+            response = self.api_call(account, "/v2/transactions", "POST", tx_binary)
+            print(f"Response status: {Colors.format_info(str(response.status_code))}")
+            
+            if response.status_code != 200:
+                print(f"{Colors.format_error('✗ Transaction submission failed')}")
+                print(f"Response headers: {Colors.format_dim(str(dict(response.headers)))}")
+                try:
+                    error_data = response.json()
+                    print(f"Error details: {Colors.format_error(json.dumps(error_data, indent=2))}")
+                except:
+                    print(f"Error text: {Colors.format_error(response.text)}")
+                
+            response.raise_for_status()
+        except Exception as e:
+            print(f"{Colors.format_error('✗ API call failed')}: {Colors.format_error(str(e))}")
+            raise
+        
+        txid = response.text.strip('"')
+        print(f"{Colors.format_success(f'✓ Contract deployment submitted')}: {Colors.format_info(txid)}")
+        
+        # Verify the transaction
+        verification = self.verify_transaction(miner, txid, initial_nonce, initial_balance, initial_height)
+        if not verification['success']:
+            raise RuntimeError(f"Contract deployment verification failed: {verification['error']}")
+        
+        return txid
+    
+    def read(self, miner: str, contract_address: str, contract_name: str, function_name: str, args: Optional[List[str]] = None) -> Dict[str, Any]:
+        account = self.get_account(miner)
+        request_data = {"sender": account.address, "arguments": args or []}
+        endpoint = f"/v2/contracts/call-read/{contract_address}/{contract_name}/{function_name}"
+        
+        print(f"\n{Colors.format_subheader('--- CONTRACT READ CALL ---')}")
+        print(f"URL: {Colors.format_dim(f'{account.api_url}{endpoint}')}")
+        print(f"Payload: {Colors.format_dim(json.dumps(request_data, indent=2))}")
+        
+        try:
+            response = self.api_call(account, endpoint, "POST", json.dumps(request_data))
+            if response.status_code == 200:
+                data = response.json()
+                print(f"{Colors.format_success('✓ Read-only call successful')}")
+                print(f"Response: {Colors.format_info(json.dumps(data, indent=2))}")
+                return data
+            else:
+                print(f"{Colors.format_error(f'✗ Read-only call failed: HTTP {response.status_code}')}")
+                try:
+                    error_data = response.json()
+                    print(f"Error details: {Colors.format_error(json.dumps(error_data, indent=2))}")
+                except:
+                    print(f"Error text: {Colors.format_error(response.text)}")
+                response.raise_for_status()
+        except Exception as e:
+            print(f"{Colors.format_error('✗ Contract read error')}: {Colors.format_error(str(e))}")
+            raise
+    
+    def call(self, miner: str, contract_address: str, contract_name: str, function_name: str, args: Optional[List[str]] = None, nonce: Optional[int] = None) -> str:
+        account = self.get_account(miner)
+        
+        # Get initial state for verification
+        initial_nonce = self.get_nonce(miner) if nonce is None else nonce
+        initial_balance = self.get_balance(miner)
+        initial_height = self.get_block_height(miner)
+        
+        print(f"\n{Colors.format_header('=== CONTRACT CALL ===')}")
+        print(f"Contract: {Colors.format_info(f'{contract_address}.{contract_name}')}")
+        print(f"Function: {Colors.format_success(function_name)}")
+        print(f"Args: {Colors.format_dim(str(args or []))}")
+        print(f"Initial balance: {Colors.format_dim(str(initial_balance))}")
+        print(f"Using nonce: {Colors.format_dim(str(initial_nonce))}")
+        
+        # Use higher fee for complex contract calls
+        if "huge" in contract_name.lower() or "mega" in contract_name.lower():
+            fee = "50000"  # High fee for huge contracts
+        elif "nft" in contract_name.lower():
+            fee = "25000"  # Higher fee for NFT contract calls
+        else:
+            fee = "5000"  # Standard fee for regular contracts
+        print(f"Using fee: {Colors.format_success(f'{fee} µSTX')}")
+        
+        cmd = ["blockstack-cli", "--testnet", "contract-call", account.private_key, fee, str(initial_nonce), contract_address, contract_name, function_name]
+        if args:
+            # Each argument must be prefixed with -e
+            for arg in args:
+                cmd.extend(["-e", arg])
+        
+        print(f"Command: {Colors.format_dim(' '.join(cmd))}")
+        print(f"{Colors.format_dim('Creating transaction binary...')}")
+        tx_binary = self.run_cli_command(cmd, binary_output=True)
+        print(f"{Colors.format_dim('Submitting contract call...')}")
+        response = self.api_call(account, "/v2/transactions", "POST", tx_binary)
+        response.raise_for_status()
+        
+        txid = response.text.strip('"')
+        print(f"{Colors.format_success('✓ Contract call submitted')}: {Colors.format_info(txid)}")
+        
+        # Verify the transaction
+        verification = self.verify_transaction(miner, txid, initial_nonce, initial_balance, initial_height)
+        if not verification['success']:
+            raise RuntimeError(f"Contract call verification failed: {verification['error']}")
+        
+        return txid
+
+---[  END  content of: /home/simone/Desktop/node-naka3.sh/tests/utils/contract.py ]---
+
+
+---[ START content of: /home/simone/Desktop/node-naka3.sh/tests/utils/base.py ]---
+"""Base classes and utilities for the modular test framework"""
+
+import os
+import json
+import time
+import requests
+import tempfile
+import subprocess
+from typing import Dict, List, Optional, Union, Any
+from dataclasses import dataclass
+
+class Colors:
+    """ANSI color codes for consistent terminal output"""
+    # Main colors
+    BLUE = '\033[94m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    RED = '\033[91m'
+    CYAN = '\033[96m'
+    MAGENTA = '\033[95m'
+    WHITE = '\033[97m'
+    
+    # Styles
+    BOLD = '\033[1m'
+    DIM = '\033[2m'
+    UNDERLINE = '\033[4m'
+    
+    # Reset
+    RESET = '\033[0m'
+    
+    @staticmethod
+    def format_header(text: str) -> str:
+        """Format main section headers"""
+        return f"{Colors.BOLD}{Colors.CYAN}{text}{Colors.RESET}"
+    
+    @staticmethod
+    def format_subheader(text: str) -> str:
+        """Format subsection headers"""
+        return f"{Colors.BOLD}{Colors.BLUE}{text}{Colors.RESET}"
+    
+    @staticmethod
+    def format_success(text: str) -> str:
+        """Format success messages"""
+        return f"{Colors.GREEN}{text}{Colors.RESET}"
+    
+    @staticmethod
+    def format_warning(text: str) -> str:
+        """Format warning messages"""
+        return f"{Colors.YELLOW}{text}{Colors.RESET}"
+    
+    @staticmethod
+    def format_error(text: str) -> str:
+        """Format error messages"""
+        return f"{Colors.RED}{text}{Colors.RESET}"
+    
+    @staticmethod
+    def format_info(text: str) -> str:
+        """Format info messages"""
+        return f"{Colors.WHITE}{text}{Colors.RESET}"
+    
+    @staticmethod
+    def format_dim(text: str) -> str:
+        """Format secondary/dim text"""
+        return f"{Colors.DIM}{text}{Colors.RESET}"
+
+@dataclass
+class Account:
+    name: str
+    address: str
+    private_key: str
+    port: int
+
+    @property
+    def api_url(self) -> str:
+        return f"http://localhost:{self.port}"
+
+class StacksTestBase:
+    """Base class providing common functionality for all test bricks"""
+    
+    ACCOUNTS = {
+        "miner1": Account("miner1", "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6", 
+                         "cb3df38053d132895220b9ce471f6b676db5b9bf0b4adefb55f2118ece2478df01", 20443),
+        "miner2": Account("miner2", "ST11NJTTKGVT6D1HY4NJRVQWMQM7TVAR091EJ8P2Y", 
+                         "21d43d2ae0da1d9d04cfcaac7d397a33733881081f0b2cd038062cf0ccbb752601", 30443),
+        "miner3": Account("miner3", "ST3AM1A56AK2C1XAFJ4115ZSV26EB49BVQ10MGCS0", 
+                         "7036b29cb5e235e5fd9b09ae3e8eec4404e44906814d5d01cbca968a60ed4bfb01", 40443)
+    }
+    
+    def __init__(self):
+        self.temp_dir = tempfile.mkdtemp(prefix="stacks_test_")
+        self.logs_dir = "logs"
+        os.makedirs(self.logs_dir, exist_ok=True)
+    
+    def get_account(self, miner: str) -> Account:
+        """Get account by miner name"""
+        if miner not in self.ACCOUNTS:
+            raise ValueError(f"Unknown miner: {miner}. Available: {list(self.ACCOUNTS.keys())}")
+        return self.ACCOUNTS[miner]
+    
+    def api_call(self, account: Account, endpoint: str, method: str = "GET", 
+                 data: Optional[Union[str, bytes]] = None, timeout: int = 30) -> requests.Response:
+        """Make API call with retry logic"""
+        url = f"{account.api_url}{endpoint}"
+        
+        for attempt in range(3):
+            try:
+                if method == "GET":
+                    response = requests.get(url, timeout=timeout)
+                elif method == "POST":
+                    headers = {"Content-Type": "application/octet-stream" if isinstance(data, bytes) else "application/json"}
+                    response = requests.post(url, data=data, headers=headers, timeout=timeout)
+                else:
+                    raise ValueError(f"Unsupported method: {method}")
+                
+                if response.status_code != 200:
+                    if attempt < 2:
+                        time.sleep(2 ** attempt)
+                        continue
+                return response
+                    
+            except requests.RequestException as e:
+                if attempt < 2:
+                    time.sleep(2 ** attempt)
+                    continue
+                raise e
+        
+        return response
+    
+    def get_account_info(self, miner: str) -> Dict[str, Any]:
+        """Get account info (balance, nonce)"""
+        account = self.get_account(miner)
+        response = self.api_call(account, f"/v2/accounts/{account.address}")
+        response.raise_for_status()
+        return response.json()
+    
+    def get_nonce(self, miner: str) -> int:
+        """Get current nonce for account"""
+        return self.get_account_info(miner)["nonce"]
+    
+    def get_balance(self, miner: str, address: Optional[str] = None) -> int:
+        """Get STX balance for account or any address"""
+        if address is None:
+            # Get balance for the miner's own account
+            return int(self.get_account_info(miner)["balance"], 16)
+        else:
+            # Get balance for any address using the miner's API
+            account = self.get_account(miner)
+            response = self.api_call(account, f"/v2/accounts/{address}")
+            response.raise_for_status()
+            account_info = response.json()
+            balance_hex = account_info.get('balance', '0x0')
+            return int(balance_hex, 16) if balance_hex.startswith('0x') else int(balance_hex)
+    
+    def get_block_height(self, miner: str) -> int:
+        """Get current block height"""
+        account = self.get_account(miner)
+        response = self.api_call(account, "/v2/info")
+        response.raise_for_status()
+        return response.json()["stacks_tip_height"]
+    
+    def run_cli_command(self, command: List[str], binary_output: bool = False) -> bytes:
+        """Run blockstack-cli command and return output"""
+        try:
+            result = subprocess.run(command, capture_output=True, check=True)
+            if binary_output:
+                # Convert hex to binary
+                hex_output = result.stdout.decode().strip()
+                return bytes.fromhex(hex_output)
+            return result.stdout
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(f"CLI command failed: {' '.join(command)}\nError: {e.stderr.decode()}")
+    
+    def wait_for_confirmation(self, miner: str, initial_nonce: int, initial_height: int, 
+                            timeout: int = 60) -> bool:
+        """Wait for transaction confirmation (nonce + height increase)"""
+        start_time = time.time()
+        
+        while time.time() - start_time < timeout:
+            try:
+                current_nonce = self.get_nonce(miner)
+                current_height = self.get_block_height(miner)
+                
+                if current_nonce > initial_nonce and current_height > initial_height:
+                    return True
+                    
+            except Exception:
+                pass  # Ignore temporary API errors
+            
+            # Brief pause to avoid hammering the API (necessary for polling)
+            time.sleep(1)
+        
+        return False
+    
+    def wait_for_block_increase(self, miner: str, initial_height: int, timeout: int = 30) -> int:
+        """Wait for block height to increase beyond initial_height"""
+        start_time = time.time()
+        
+        while time.time() - start_time < timeout:
+            try:
+                current_height = self.get_block_height(miner)
+                if current_height > initial_height:
+                    return current_height
+            except Exception:
+                pass  # Ignore temporary API errors
+            
+            # Brief pause to avoid hammering the API (necessary for polling)
+            time.sleep(1)
+        
+        return initial_height  # Return original height if no increase detected
+    
+    def wait_for_miners_ready(self) -> bool:
+        """Wait for all miners to be ready by checking /v2/info endpoint"""
+        miners_to_check = ["miner1", "miner2", "miner3"]
+        ready_count = 0
+        max_attempts = 10
+        
+        for attempt in range(max_attempts):
+            ready_count = 0
+            for miner in miners_to_check:
+                try:
+                    account = self.get_account(miner)
+                    response = self.api_call(account, "/v2/info", timeout=5)
+                    if response.status_code == 200:
+                        info = response.json()
+                        # Check if miner is responding and has a valid height
+                        if info.get("stacks_tip_height", 0) >= 0:
+                            ready_count += 1
+                except Exception:
+                    pass  # Ignore errors, will retry
+            
+            if ready_count == len(miners_to_check):
+                print(f"{Colors.format_success(f'✓ All {ready_count} miners are ready')}")
+                return True
+            
+            print(f"{Colors.format_dim(f'Miners ready: {ready_count}/{len(miners_to_check)}, retrying in 1s...')}")
+            time.sleep(1)  # Brief pause before retry (necessary for initialization check)
+        
+        print(f"{Colors.format_warning(f'⚠ Only {ready_count}/{len(miners_to_check)} miners ready after {max_attempts} attempts')}")
+        return ready_count > 0  # Return True if at least one miner is ready
+    
+    def wait_for_nonce_increase(self, miner: str, initial_nonce: int, expected_increase: int, timeout: int = 30) -> int:
+        """Wait for nonce to increase by expected_increase amount"""
+        target_nonce = initial_nonce + expected_increase
+        start_time = time.time()
+        
+        while time.time() - start_time < timeout:
+            try:
+                current_nonce = self.get_nonce(miner)
+                if current_nonce >= target_nonce:
+                    return current_nonce
+            except Exception:
+                pass  # Ignore temporary API errors
+            
+            # Brief pause to avoid hammering the API (necessary for polling)
+            time.sleep(1)
+        
+        # Return current nonce even if target not reached
+        try:
+            return self.get_nonce(miner)
+        except:
+            return initial_nonce
+    
+    def verify_transaction_direct(self, miner: str, txid: str, recipient_address: Optional[str] = None) -> Dict[str, Any]:
+        """Verify transaction by fetching details directly (skip confirmation wait)"""
+        account = self.get_account(miner)
+        
+        try:
+            # ALWAYS fetch transaction details from /v3/transaction endpoint
+            print(f"\n{Colors.format_subheader('=== FETCHING TRANSACTION DETAILS ===')}")
+            print(f"Calling: {Colors.format_dim(f'/v3/transaction/{txid}')}")
+            
+            tx_response = self.api_call(account, f"/v3/transaction/{txid}")
+            print(f"Response status: {Colors.format_info(str(tx_response.status_code))}")
+            
+            if tx_response.status_code == 200:
+                tx_data = tx_response.json()
+                print(f"{Colors.format_success('✓ Transaction details fetched successfully!')}")
+                print(f"{Colors.format_subheader('=== FULL TRANSACTION DETAILS ===')}")
+                print(f"{Colors.format_dim(json.dumps(tx_data, indent=2))}")
+                print(f"{Colors.format_subheader('=== END TRANSACTION DETAILS ===')}")
+                
+                return {
+                    'success': True,
+                    'txid': txid,
+                    'transaction_data': tx_data
+                }
+            else:
+                print(f"{Colors.format_warning(f'⚠ Transaction endpoint returned {tx_response.status_code}')}")
+                print(f"Response: {Colors.format_error(tx_response.text)}")
+                return {
+                    'success': False,
+                    'error': f'Transaction endpoint returned {tx_response.status_code}: {tx_response.text}',
+                    'txid': txid
+                }
+                
+        except Exception as e:
+            print(f"{Colors.format_error(f'✗ ERROR fetching transaction details')}: {Colors.format_error(str(e))}")
+            return {
+                'success': False,
+                'error': f'Transaction verification failed: {e}',
+                'txid': txid
+            }
+    
+    def verify_transaction(self, miner: str, txid: str, initial_nonce: int, initial_balance: int, initial_height: int, recipient_address: Optional[str] = None) -> Dict[str, Any]:
+        """Verify transaction by checking endpoint, nonce increase, and height increase"""
+        account = self.get_account(miner)
+        
+        # Wait for confirmation first
+        if not self.wait_for_confirmation(miner, initial_nonce, initial_height):
+            return {
+                'success': False,
+                'error': 'Transaction confirmation timeout',
+                'txid': txid
+            }
+        
+        # Get current state
+        try:
+            current_nonce = self.get_nonce(miner)
+            current_balance = self.get_balance(miner)
+            current_height = self.get_block_height(miner)
+            
+            # Get recipient balance if tracking transfers
+            current_recipient_balance = None
+            if recipient_address:
+                try:
+                    response = self.api_call(account, f"/v2/accounts/{recipient_address}")
+                    response.raise_for_status()
+                    account_info = response.json()
+                    balance_hex = account_info.get('balance', '0x0')
+                    current_recipient_balance = int(balance_hex, 16) if balance_hex.startswith('0x') else int(balance_hex)
+                except Exception as e:
+                    print(f"{Colors.format_warning(f'⚠ Could not get recipient balance')}: {Colors.format_error(str(e))}")
+                    current_recipient_balance = None
+            
+            # ALWAYS fetch transaction details from /v3/transaction endpoint
+            print(f"\n{Colors.format_subheader('=== FETCHING TRANSACTION DETAILS ===')}")
+            print(f"Calling: {Colors.format_dim(f'/v3/transaction/{txid}')}")
+            
+            tx_data = None
+            try:
+                tx_response = self.api_call(account, f"/v3/transaction/{txid}")
+                print(f"Response status: {Colors.format_info(str(tx_response.status_code))}")
+                
+                if tx_response.status_code == 200:
+                    tx_data = tx_response.json()
+                    print(f"{Colors.format_success('✓ Transaction details fetched successfully!')}")
+                    print(f"{Colors.format_subheader('=== FULL TRANSACTION DETAILS ===')}")
+                    print(f"{Colors.format_dim(json.dumps(tx_data, indent=2))}")
+                    print(f"{Colors.format_subheader('=== END TRANSACTION DETAILS ===')}")
+                else:
+                    print(f"{Colors.format_warning(f'⚠ Transaction endpoint returned {tx_response.status_code}')}")
+                    print(f"Response: {Colors.format_error(tx_response.text)}")
+                    
+            except Exception as e:
+                print(f"{Colors.format_error(f'✗ ERROR fetching transaction details')}: {Colors.format_error(str(e))}")
+                # Still continue with verification even if we can't get details
+            
+            # Verify confirmation
+            print(f"\n{Colors.format_success(f'✓ Transaction {txid} confirmed!')}")
+            print(f"  Balance: {Colors.format_dim(f'{initial_balance} → {current_balance}')} (change: {Colors.format_info(str(current_balance - initial_balance))})")
+            print(f"  Nonce: {Colors.format_dim(f'{initial_nonce} → {current_nonce}')} (change: {Colors.format_info(str(current_nonce - initial_nonce))})")  
+            print(f"  Block: {Colors.format_dim(f'{initial_height} → {current_height}')} (change: {Colors.format_info(str(current_height - initial_height))})")
+            
+            if tx_data:
+                print(f"\n{Colors.format_subheader('=== TRANSACTION SUMMARY ===')}")
+                # The response format is different - it's wrapped with transaction data
+                result = tx_data.get('result', 'unknown')
+                print(f"  Result: {Colors.format_info(result)}")
+                print(f"  Status: {Colors.format_success('success')}" if result != 'unknown' else f"  Status: {Colors.format_warning('unknown')}")
+                print(f"  Raw response keys: {Colors.format_dim(str(list(tx_data.keys())))}")
+                
+                # Try to decode the transaction hex if available
+                if 'tx' in tx_data:
+                    print(f"  Transaction hex length: {Colors.format_dim(str(len(tx_data['tx'])))}")
+                    # Try to extract transaction type from hex pattern
+                    tx_hex = tx_data['tx']
+                    if len(tx_hex) > 16:
+                        # Contract calls usually have specific patterns
+                        if '046d696e74' in tx_hex:  # "mint" in hex
+                            print(f"  Detected operation: {Colors.format_success('NFT mint')}")
+                        elif tx_hex.count('08') > 0:  # Contract deployment pattern
+                            print(f"  Detected operation: {Colors.format_success('Contract deployment')}")
+            
+            result = {
+                'success': True,
+                'txid': txid,
+                'nonce_change': current_nonce - initial_nonce,
+                'balance_change': current_balance - initial_balance,
+                'height_change': current_height - initial_height,
+                'transaction_data': tx_data
+            }
+            
+            # Add recipient balance change if tracking transfers
+            if recipient_address and current_recipient_balance is not None:
+                # We need initial recipient balance - get it from the method signature
+                # For now, just add the current recipient balance
+                result['recipient_balance'] = current_recipient_balance
+                result['recipient_address'] = recipient_address
+            
+            return result
+            
+        except Exception as e:
+            print(f"{Colors.format_error(f'✗ Transaction verification failed')}: {Colors.format_error(str(e))}")
+            return {
+                'success': False,
+                'error': f'Transaction verification failed: {e}',
+                'txid': txid
+            }
+    
+    def verify_chain_progression(self, miner: str, retries: int = 5) -> bool:
+        """Verify chain is progressing properly"""
+        for attempt in range(retries):
+            try:
+                initial_height = self.get_block_height(miner)
+                time.sleep(9)  # Wait for block
+                new_height = self.get_block_height(miner)
+                
+                if new_height > initial_height:
+                    return True
+                    
+            except Exception:
+                pass
+                
+            if attempt < retries - 1:
+                time.sleep(5)
+        
+        return False
+    
+    def cleanup(self):
+        """Clean up temporary files"""
+        import shutil
+        if os.path.exists(self.temp_dir):
+            shutil.rmtree(self.temp_dir)
+---[  END  content of: /home/simone/Desktop/node-naka3.sh/tests/utils/base.py ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/contract-500kb.clar (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/contract-160kb.clar (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/contract-2200kb.clar (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/contract-2250kb.clar (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/contract-700kb.clar (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/contract-16kb.clar (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/contract-400kb.clar (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/contract-200kb.clar (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/contract-240kb.clar (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/contract-800kb.clar (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/contract-600kb.clar (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/cyberpunk2140a.clar (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/contract-40kb.clar (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/contract-900kb.clar (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/contract-1500kb.clar (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/contract-60kb.clar (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/contract-300kb.clar (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/contract-1000kb.clar (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/contract-counter.clar (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/contract-120kb.clar (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/contract-2000kb.clar (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/contract-80kb.clar (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/contract-24kb.clar (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/contract-100kb.clar (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/contract-1200kb.clar (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/contract-8kb.clar (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/.claude/settings.local.json (in excluded directory) ]---
+
+
+---[ START content of: /home/simone/Desktop/node-naka3.sh/tests/idee.txt ]---
+# Test Stacks Multi-Miner - Note Rapide
+
+- nft, contract, transaction --> diventano mattoncini in libreria
+- ora creare ricette:
+    - ricetta nft grossi e chiamate
+    - anche contract grosso
+    - 
+
+- capire da dove arriva toomuchchaining (a cosa è dovuto?)
+
+---
+
+Perfect! Now let me suggest additional edge case testing scenarios based on your ideas and blockchain stress testing best practices:
+
+  ✅ HUGE CONTRACTS CREATED + ADDITIONAL EDGE CASES TO IMPLEMENT
+
+  What We've Built:
+
+  1. huge-nft-mega.clar (~50KB) - Massive NFT with complex marketplace, gaming, breeding, staking
+  2. huge-contract-mega.clar (~60KB) - Algorithmic beast with math, crypto, simulations, game mechanics
+  3. huge-nft-stress-test.py - Tests NFT deployment limits, gas limits, function complexity
+  4. huge-contract-stress-test.py - Tests computation limits, recursive algorithms, data processing
+
+  🔥 CRITICAL EDGE CASES TO IMPLEMENT NEXT:
+
+  1. Resource Exhaustion & Memory Limits
+
+  # Recipe: memory-bomb-stress-test.py
+  - Deploy contract with MASSIVE maps (100k+ entries)
+  - Test stack overflow with deep recursion (fibonacci(1000))
+  - Create contracts with enormous string/buffer data
+  - Test gas limit exhaustion scenarios
+  - Memory leak simulation with repeated operations
+
+  2. Transaction Timing & Race Conditions
+
+  # Recipe: timing-attack-stress-test.py  
+  - Submit identical nonce transactions to different miners simultaneously
+  - Test transaction during miner leader changes
+  - Submit transactions during Bitcoin block anchoring
+  - Double-spend attempts across multiple miners
+  - Conflicting transactions (same nonce, different fees)
+
+  3. Network Chaos & Byzantine Behavior
+
+  # Recipe: network-chaos-stress-test.py
+  - Kill random miners during critical operations
+  - Simulate network partitions between miners
+  - Test fork resolution after miner reconnection
+  - Bitcoin reorg simulation during STX operations
+  - Miner desync recovery testing
+
+  4. Transaction Malformation & Edge Cases
+
+  # Recipe: malformed-transaction-test.py
+  - Zero gas limit transactions
+  - Invalid signatures with valid format
+  - Transfer exact total balance (edge case)
+  - Fee exceeding available balance
+  - Malformed but parseable transaction data
+  - Extreme memo sizes and special characters
+
+  5. Contract Interaction Chaos
+
+  # Recipe: cross-contract-chaos-test.py  
+  - A→B→C→D chain calls (deep contract calling)
+  - Recursive contract calls (A calls A)
+  - Parallel contract calls from multiple miners
+  - Contract upgrade during active function calls
+  - Inter-contract transfer loops and deadlocks
+
+  6. Economic Attack Vectors
+
+  # Recipe: economic-attack-test.py
+  - Massive batch minting to drain STX supply
+  - Fee manipulation attacks
+  - Front-running simulation
+  - STX transfer during epoch boundaries
+  - Reward cycle manipulation attempts
+
+  7. Database Corruption & Recovery
+
+  # Recipe: corruption-recovery-test.py
+  - Kill miner during write operations
+  - Simulate disk full scenarios
+  - Database file corruption simulation
+  - Recovery from partial state corruption
+  - Cleanup verification after crashes
+
+  🎯 RECOMMENDED IMPLEMENTATION ORDER:
+
+  High Priority (Immediate):
+  1. Memory/Resource exhaustion - Tests fundamental limits
+  2. Transaction timing attacks - Real-world attack vectors
+  3. Malformed transactions - Security edge cases
+
+  Medium Priority:
+  4. Network chaos - Infrastructure resilience
+  5. Cross-contract chaos - Complex interaction patterns
+
+  Advanced:
+  6. Economic attacks - Economic security
+  7. Corruption recovery - Disaster recovery
+
+  🔧 TECHNICAL IMPLEMENTATION SUGGESTIONS:
+
+  Memory Bomb Contract Example:
+
+  ;; Contract designed to exhaust memory/gas
+  (define-map giant-storage uint (buff 64000))  ; Max buffer size
+  (define-public (memory-bomb (iterations uint))
+    (fold store-giant-data (list u1 u2 u3 ... u1000) u0))
+
+  Race Condition Test:
+
+  # Submit same transaction to multiple miners simultaneously
+  def race_condition_test():
+      with ThreadPoolExecutor(max_workers=3) as executor:
+          futures = [
+              executor.submit(submit_tx, "miner1", same_tx),
+              executor.submit(submit_tx, "miner2", same_tx),
+              executor.submit(submit_tx, "miner3", same_tx)
+          ]
+
+  Network Chaos Simulation:
+
+  # Kill miner during operation
+  subprocess.run(["docker", "kill", "miner2"])
+  time.sleep(5)
+  subprocess.run(["docker", "start", "miner2"])
+
+  💡 ADVANCED EDGE CASES FROM YOUR IDEAS:
+
+  - Precision overflow with uint max values
+  - Storage exhaustion with contract maps
+  - Byzantine miner behavior simulation
+  - Timing attacks on block predictability
+  - Multi-sig edge cases with compromised keys
+  - PoX reward cycle during network splits
+  - Anchoring conflicts during Bitcoin instability
+
+  Would you like me to implement any of these specific edge case recipes? The memory exhaustion and timing attack tests would be particularly valuable for finding real system limits!
+---[  END  content of: /home/simone/Desktop/node-naka3.sh/tests/idee.txt ]---
+
+
+---[ START content of: /home/simone/Desktop/node-naka3.sh/tests/__init__.py ]---
+
+---[  END  content of: /home/simone/Desktop/node-naka3.sh/tests/__init__.py ]---
+
+
+---[ START content of: /home/simone/Desktop/node-naka3.sh/tests/generate-contracts.py ]---
+#!/usr/bin/env python3
+"""
+Script to generate graduated contract sizes to find exact Stacks deployment limits
+"""
+
+def generate_contract_template(function_count, size_kb, filename):
+    """Generate a contract with specified number of functions"""
+    
+    contract_content = f""";; CONTRACT {size_kb}KB - Testing size limits
+;; Generated with {function_count} functions
+
+;; Error constants
+(define-constant ERR-UNAUTHORIZED u5001)
+(define-constant ERR-INVALID-INPUT u5002)
+
+;; Contract administration
+(define-constant CONTRACT-DEPLOYER tx-sender)
+(define-data-var contract-admin principal tx-sender)
+(define-data-var contract-paused bool false)
+
+;; Read-only functions
+(define-read-only (get-contract-admin)
+    (var-get contract-admin))
+
+(define-read-only (is-contract-paused)
+    (var-get contract-paused))
+
+;; Admin functions
+(define-public (emergency-shutdown)
+    (begin
+        (asserts! (is-eq tx-sender (var-get contract-admin)) (err ERR-UNAUTHORIZED))
+        (var-set contract-paused true)
+        (ok true)))
+
+;; Generated functions for size testing
+"""
+
+    # Generate the specified number of functions
+    for i in range(1, function_count + 1):
+        contract_content += f"""(define-public (calc-function-{i:04d} (x uint))
+    (ok (+ (* x u{12000 + i}) u{50000 + i})))
+"""
+
+    # Add test function
+    contract_content += f"""
+;; Test function to verify contract works
+(define-public (test-contract-functions (sample-input uint))
+    (let ((test1 (unwrap-panic (calc-function-0001 sample-input))))
+        (ok test1)))
+"""
+
+    return contract_content
+
+def main():
+    print("🎯 Generating graduated contracts to find exact Stacks size limits...")
+    
+    # Generate contracts of many different sizes to find the exact limit
+    # We know: 117KB works, 2.2MB fails
+    # So let's test the range in between systematically
+    
+    contracts = [
+        # Small sizes (known to work)
+        (100, 8, "contract-8kb.clar"),
+        (200, 16, "contract-16kb.clar"),  
+        (300, 24, "contract-24kb.clar"),
+        (500, 40, "contract-40kb.clar"),
+        (750, 60, "contract-60kb.clar"),
+        (1000, 80, "contract-80kb.clar"),
+        (1250, 100, "contract-100kb.clar"),
+        (1500, 120, "contract-120kb.clar"),
+        
+        # Medium sizes (testing where it might break)
+        (2000, 160, "contract-160kb.clar"),
+        (2500, 200, "contract-200kb.clar"),
+        (3000, 240, "contract-240kb.clar"),
+        (3750, 300, "contract-300kb.clar"),
+        (5000, 400, "contract-400kb.clar"),
+        (6250, 500, "contract-500kb.clar"),
+        (7500, 600, "contract-600kb.clar"),
+        (8750, 700, "contract-700kb.clar"),
+        (10000, 800, "contract-800kb.clar"),
+        (11250, 900, "contract-900kb.clar"),
+        (12500, 1000, "contract-1000kb.clar"),
+        
+        # Large sizes (likely to start failing somewhere here)
+        (15000, 1200, "contract-1200kb.clar"),
+        (18750, 1500, "contract-1500kb.clar"),
+        (25000, 2000, "contract-2000kb.clar"),
+        (28125, 2250, "contract-2250kb.clar"),  # This one might be close to the limit
+        
+        # Massive size (known to fail, rename from 5mb to actual size)
+        (56250, 4500, "contract-2200kb.clar"),  # This is actually ~2.2MB
+    ]
+    
+    print(f"📊 Generating {len(contracts)} contracts from 8KB to 2200KB...")
+    
+    for function_count, size_kb, filename in contracts:
+        print(f"📄 Generating {size_kb}KB contract with {function_count} functions...")
+        contract_content = generate_contract_template(function_count, size_kb, filename)
+        
+        filepath = f'/home/simone/Desktop/node-naka3.sh/tests/contracts/{filename}'
+        with open(filepath, 'w') as f:
+            f.write(contract_content)
+        
+        contract_size = len(contract_content.encode('utf-8'))
+        actual_kb = contract_size / 1024
+        print(f"✅ {filename}: {contract_size:,} bytes ({actual_kb:.1f} KB)")
+    
+    print(f"\n🔬 Generated {len(contracts)} contracts for binary search of Stacks size limits!")
+    print("🎯 Range: 8KB (should work) → 2200KB (should fail)")
+    print("📈 This will help us find the exact deployment size limit!")
+
+if __name__ == "__main__":
+    main()
+---[  END  content of: /home/simone/Desktop/node-naka3.sh/tests/generate-contracts.py ]---
+
+
+---[ START content of: /home/simone/Desktop/node-naka3.sh/tests/test-mempool.py ]---
+#!/usr/bin/env python3
+
+import subprocess
+import time
+import signal
+import sys
+import json
+import requests
+from pathlib import Path
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from utils import NodeManager
+
+class MempoolStressTester:
+    def __init__(self):
+        self.miners = {
+            "miner1": {"port": 20443, "addr": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6", "key": "cb3df38053d132895220b9ce471f6b676db5b9bf0b4adefb55f2118ece2478df01"},
+            "miner2": {"port": 30443, "addr": "ST11NJTTKGVT6D1HY4NJRVQWMQM7TVAR091EJ8P2Y", "key": "21d43d2ae0da1d9d04cfcaac7d397a33733881081f0b2cd038062cf0ccbb752601"},
+            "miner3": {"port": 40443, "addr": "ST3AM1A56AK2C1XAFJ4115ZSV26EB49BVQ10MGCS0", "key": "7036b29cb5e235e5fd9b09ae3e8eec4404e44906814d5d01cbca968a60ed4bfb01"}
+        }
+        
+        # Use miner1 as recipient for all transfers
+        self.recipient_addr = "ST3KCNDSWZSFZCC6BE4VA9AXWXC9KEB16FBTRK36T"
+        
+        # Counters
+        self.total_transactions = 0
+        self.successful_transactions = 0
+        self.failed_transactions = 0
+        self.submitted_txids = []
+        
+        # Create directories
+        Path("./tmp").mkdir(exist_ok=True)
+        Path("./logs").mkdir(exist_ok=True)
+    
+    def cleanup_tmp_files(self):
+        """Clean up temporary files created during testing"""
+        try:
+            tmp_dir = Path("./tmp")
+            if tmp_dir.exists():
+                # Remove all .bin and .clar files
+                for file_pattern in ["*.bin", "*.clar"]:
+                    for file_path in tmp_dir.glob(file_pattern):
+                        file_path.unlink()
+                        
+                # Count remaining files for verification
+                remaining_files = list(tmp_dir.iterdir())
+                if remaining_files:
+                    print(f"✓ Cleaned tmp folder, {len(remaining_files)} files remain")
+                else:
+                    print("✓ Cleaned tmp folder completely")
+            else:
+                print("✓ No tmp folder to clean")
+        except Exception as e:
+            print(f"⚠ Error cleaning tmp files: {e}")
+    
+    def get_account_info(self, miner_name, address):
+        """Get account nonce and balance for a specific miner"""
+        try:
+            api_url = f"http://localhost:{self.miners[miner_name]['port']}"
+            response = requests.get(f"{api_url}/v2/accounts/{address}")
+            return response.json()
+        except Exception as e:
+            print(f"✗ Failed to get account info from {miner_name}: {e}")
+            return None
+    
+    def get_mempool_info(self, miner_name):
+        """Get mempool information"""
+        try:
+            api_url = f"http://localhost:{self.miners[miner_name]['port']}"
+            response = requests.get(f"{api_url}/v2/info/mempool", timeout=5)
+            if response.status_code == 200:
+                return response.json()
+            else:
+                # Mempool endpoint might not exist, try alternative
+                return {"count": 0, "txids": []}
+        except Exception as e:
+            # Don't print error during final check when nodes are down
+            return None
+    
+    def wait_for_nodes_ready(self):
+        """Wait for all miners to be ready"""
+        print("Waiting for all miners to be ready...")
+        for miner_name, miner_info in self.miners.items():
+            api_url = f"http://localhost:{miner_info['port']}"
+            timeout = 60
+            start_time = time.time()
+            
+            while time.time() - start_time < timeout:
+                try:
+                    response = requests.get(f"{api_url}/v2/info", timeout=5)
+                    if response.status_code == 200:
+                        print(f"✓ {miner_name} is ready")
+                        break
+                except:
+                    pass
+                print(".", end="", flush=True)
+                time.sleep(2)
+            else:
+                print(f"\n✗ {miner_name} not ready after {timeout}s")
+                return False
+        return True
+    
+    def create_transaction(self, miner_name, nonce, amount=100):
+        """Create a single transaction"""
+        try:
+            miner_info = self.miners[miner_name]
+            memo = f"Stress{nonce}_{miner_name}"
+            
+            cli_cmd = [
+                "blockstack-cli", "--testnet", "token-transfer",
+                miner_info["key"], "180", str(nonce), self.recipient_addr, str(amount), memo
+            ]
+            
+            # Create transaction binary
+            tx_file = f"./tmp/tx_{miner_name}_{nonce}.bin"
+            with open(tx_file, "wb") as f:
+                cli_process = subprocess.Popen(cli_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                xxd_process = subprocess.Popen(
+                    ["xxd", "-r", "-p"], 
+                    stdin=cli_process.stdout, 
+                    stdout=f,
+                    stderr=subprocess.PIPE
+                )
+                cli_process.stdout.close()
+                cli_process.wait()
+                xxd_process.wait()
+                
+                if cli_process.returncode != 0:
+                    return None
+                    
+                if xxd_process.returncode != 0:
+                    return None
+            
+            return tx_file
+            
+        except Exception as e:
+            print(f"✗ Error creating transaction for {miner_name}: {e}")
+            return None
+    
+    def submit_transaction(self, miner_name, tx_file):
+        """Submit a transaction to a specific miner with detailed error reporting"""
+        try:
+            api_url = f"http://localhost:{self.miners[miner_name]['port']}"
+            
+            with open(tx_file, "rb") as f:
+                response = requests.post(
+                    f"{api_url}/v2/transactions",
+                    headers={"Content-Type": "application/octet-stream"},
+                    data=f.read(),
+                    timeout=15
+                )
+            
+            if response.status_code == 200:
+                txid = response.json()
+                txid = txid.strip('"') if isinstance(txid, str) else str(txid)
+                self.submitted_txids.append(txid)
+                self.successful_transactions += 1
+                return txid
+            else:
+                # Parse error details for better handling
+                try:
+                    error_data = response.json()
+                    error_reason = error_data.get("reason", "Unknown")
+                    if error_reason == "TooMuchChaining":
+                        # Don't count as failure - this is expected under stress
+                        print(f"[{miner_name}] TooMuchChaining - will retry")
+                        return "RETRY"  # Special return value to indicate retry needed
+                    elif error_reason == "FeeTooLow":
+                        print(f"[{miner_name}] Fee too low: expected {error_data.get('reason_data', {}).get('expected', 'unknown')}")
+                    elif error_reason == "BadNonce":
+                        print(f"[{miner_name}] Bad nonce: {error_data.get('reason_data', {})}")
+                    elif error_reason == "NotEnoughFunds":
+                        print(f"[{miner_name}] Insufficient funds")
+                    else:
+                        print(f"[{miner_name}] Error: {error_reason}")
+                except:
+                    print(f"[{miner_name}] HTTP {response.status_code}: {response.text[:100]}")
+                
+                self.failed_transactions += 1
+                return None
+                
+        except Exception as e:
+            self.failed_transactions += 1
+            print(f"[{miner_name}] Exception submitting tx: {e}")
+            return None
+    
+    def create_contract_deployment(self, miner_name, nonce):
+        """Create a contract deployment transaction"""
+        try:
+            miner_info = self.miners[miner_name]
+            contract_name = f"contract{miner_name}{nonce}"
+            
+            # Copy contract from file
+            import shutil
+            contract_file = f"./tmp/contract_{miner_name}_{nonce}.clar"
+            shutil.copy("./contracts/contract-counter.clar", contract_file)
+            
+            cli_cmd = [
+                "blockstack-cli", "--testnet", "publish",
+                miner_info["key"], "1000", str(nonce), contract_name, contract_file
+            ]
+            
+            # Create contract deployment binary
+            tx_file = f"./tmp/contract_{miner_name}_{nonce}.bin"
+            with open(tx_file, "wb") as f:
+                cli_process = subprocess.Popen(cli_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                xxd_process = subprocess.Popen(
+                    ["xxd", "-r", "-p"], 
+                    stdin=cli_process.stdout, 
+                    stdout=f,
+                    stderr=subprocess.PIPE
+                )
+                cli_process.stdout.close()
+                cli_process.wait()
+                xxd_process.wait()
+                
+                if cli_process.returncode != 0:
+                    return None
+                    
+                if xxd_process.returncode != 0:
+                    return None
+            
+            return tx_file
+            
+        except Exception as e:
+            print(f"✗ Error creating contract for {miner_name}: {e}")
+            return None
+    
+    def worker_thread(self, worker_id, start_nonce, tx_count, include_contracts=False):
+        """Worker thread for a specific miner with proper nonce management"""
+        miner_results = {"transactions": 0, "contracts": 0, "failed": 0, "errors": []}
+        current_nonce = start_nonce  # Local nonce counter - WE manage this, not the network
+        
+        # Extract actual miner name from worker ID
+        miner_name = worker_id.split('_')[0] if '_' in worker_id else worker_id
+        
+        print(f"[{worker_id}] Starting with nonce {current_nonce}")
+        
+        for i in range(tx_count):
+            # Create and submit transaction
+            tx_success = False
+            tx_nonce = current_nonce  # Use current nonce for this transaction
+            
+            # Keep trying until success or max attempts (including TooMuchChaining retries)
+            max_attempts = 10  # Allow more attempts for chaining retries
+            for attempt in range(max_attempts):
+                try:
+                    tx_file = self.create_transaction(miner_name, tx_nonce)
+                    if tx_file:
+                        txid = self.submit_transaction(miner_name, tx_file)
+                        if txid == "RETRY":
+                            # TooMuchChaining - wait and retry with same nonce
+                            time.sleep(0.2)
+                            continue
+                        elif txid:
+                            miner_results["transactions"] += 1
+                            tx_success = True
+                            print(f"[{worker_id}] ✓ TX nonce {tx_nonce}: {txid[:8]}...")
+                            break
+                        else:
+                            if attempt < max_attempts - 1:
+                                time.sleep(0.1)
+                    else:
+                        break  # CLI creation failed, don't retry
+                        
+                except Exception as e:
+                    miner_results["errors"].append(f"TX nonce {tx_nonce} attempt {attempt}: {str(e)}")
+                    if attempt < max_attempts - 1:
+                        time.sleep(0.1)
+            
+            # ALWAYS increment nonce after attempting transaction, success or failure
+            current_nonce += 1
+            
+            if not tx_success:
+                miner_results["failed"] += 1
+                print(f"[{worker_id}] ✗ TX nonce {tx_nonce} failed after 3 attempts")
+            
+            # Create contracts frequently for aggressive stress
+            if include_contracts and i % 5 == 0:  # Contract every 5 transactions
+                contract_success = False
+                contract_nonce = current_nonce  # Use next available nonce
+                
+                # Allow more attempts for contracts with chaining retries
+                max_contract_attempts = 8
+                for attempt in range(max_contract_attempts):
+                    try:
+                        contract_file = self.create_contract_deployment(miner_name, contract_nonce)
+                        if contract_file:
+                            txid = self.submit_transaction(miner_name, contract_file)
+                            if txid == "RETRY":
+                                # TooMuchChaining - wait and retry with same nonce
+                                time.sleep(0.2)
+                                continue
+                            elif txid:
+                                miner_results["contracts"] += 1
+                                contract_success = True
+                                print(f"[{worker_id}] ✓ CONTRACT nonce {contract_nonce}: {txid[:8]}...")
+                                break
+                            else:
+                                if attempt < max_contract_attempts - 1:
+                                    time.sleep(0.1)
+                        else:
+                            break
+                            
+                    except Exception as e:
+                        miner_results["errors"].append(f"Contract nonce {contract_nonce} attempt {attempt}: {str(e)}")
+                        if attempt < max_contract_attempts - 1:
+                            time.sleep(0.1)
+                
+                # ALWAYS increment nonce after contract attempt
+                current_nonce += 1
+                
+                if not contract_success:
+                    miner_results["failed"] += 1
+                    print(f"[{worker_id}] ✗ CONTRACT nonce {contract_nonce} failed")
+            
+            # Aggressive mode - minimal delay
+            time.sleep(0.05)  # Small delay to avoid overwhelming
+        
+        print(f"[{worker_id}] Completed: {miner_results['transactions']} txs, {miner_results['contracts']} contracts, {miner_results['failed']} failed")
+        print(f"[{worker_id}] Final nonce: {current_nonce} (used {current_nonce - start_nonce} nonces)")
+        
+        # Show any critical errors
+        if len(miner_results["errors"]) > 5:
+            print(f"[{worker_id}] Sample errors: {miner_results['errors'][:3]}")
+        
+        return worker_id, miner_results
+    
+    def stress_test_mempool(self, transactions_per_miner=50, include_contracts=True):
+        """Fill the mempool with as many transactions as possible"""
+        print(f"\n=== Mempool Stress Test ===")
+        print(f"Target: {transactions_per_miner} transactions per miner")
+        print(f"Include contracts: {include_contracts}")
+        
+        if not self.wait_for_nodes_ready():
+            return False
+        
+        # Get initial nonces for all miners
+        initial_nonces = {}
+        for miner_name, miner_info in self.miners.items():
+            account_info = self.get_account_info(miner_name, miner_info["addr"])
+            if account_info:
+                initial_nonces[miner_name] = account_info["nonce"]
+                print(f"{miner_name} starting nonce: {initial_nonces[miner_name]}")
+            else:
+                print(f"✗ Could not get initial nonce for {miner_name}")
+                return False
+        
+        # Show initial mempool state (skip if no endpoint)
+        print("\nInitial mempool state:")
+        initial_mempool_total = 0
+        for miner_name in self.miners.keys():
+            mempool_info = self.get_mempool_info(miner_name)
+            if mempool_info:
+                count = mempool_info.get('count', 0)
+                initial_mempool_total += count
+                print(f"{miner_name}: {count} transactions")
+            else:
+                print(f"{miner_name}: mempool info unavailable")
+        
+        print(f"\nStarting parallel transaction creation...")
+        start_time = time.time()
+        
+        # Run parallel workers  
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            futures = []
+            # Single worker per miner for controlled stress
+            for miner_name in self.miners.keys():
+                future = executor.submit(
+                    self.worker_thread, 
+                    miner_name, 
+                    initial_nonces[miner_name], 
+                    transactions_per_miner,
+                    include_contracts
+                )
+                futures.append(future)
+            
+            # Collect results
+            for future in as_completed(futures):
+                miner_name, results = future.result()
+                print(f"✓ {miner_name}: {results['transactions']} txs, {results['contracts']} contracts, {results['failed']} failed")
+        
+        duration = time.time() - start_time
+        print(f"\nCompleted in {duration:.2f} seconds")
+        
+        # Wait a moment for propagation and check if transactions are being processed
+        print("\nWaiting for mempool and block processing...")
+        time.sleep(5)
+        
+        # Check if transactions are being confirmed
+        confirmed_transactions = 0
+        for miner_name in self.miners.keys():
+            account_info = self.get_account_info(miner_name, self.miners[miner_name]["addr"])
+            if account_info:
+                final_nonce = account_info["nonce"]
+                initial_nonce = initial_nonces[miner_name]
+                confirmed = final_nonce - initial_nonce
+                confirmed_transactions += confirmed
+                print(f"{miner_name}: {confirmed} transactions confirmed (nonce {initial_nonce} → {final_nonce})")
+        
+        # Show final mempool state (before stopping)
+        print("\nFinal mempool state:")
+        total_mempool = 0
+        for miner_name in self.miners.keys():
+            mempool_info = self.get_mempool_info(miner_name)
+            if mempool_info:
+                count = mempool_info.get('count', 0)
+                total_mempool += count
+                print(f"{miner_name}: {count} transactions in mempool")
+                if count > 0:
+                    print(f"  Sample txids: {mempool_info.get('txids', [])[:3]}")
+            else:
+                print(f"{miner_name}: mempool info unavailable")
+        
+        print(f"\nSUMMARY:")
+        print(f"Total transactions submitted: {self.successful_transactions}")
+        print(f"Total failed: {self.failed_transactions}")
+        print(f"Total confirmed: {confirmed_transactions}")
+        print(f"Total in mempool: {total_mempool}")
+        print(f"Success rate: {(self.successful_transactions/(self.successful_transactions+self.failed_transactions)*100):.1f}%")
+        
+        # Store results for assertion
+        self.total_confirmed = confirmed_transactions
+        self.total_mempool = total_mempool
+        
+        return True
+    
+    def verify_chain_progression(self):
+        """Verify that the blockchain is still progressing after our stress test"""
+        print("\n=== Chain Progression Verification ===")
+        
+        try:
+            # Get initial heights from miner1
+            api_url = f"http://localhost:{self.miners['miner1']['port']}"
+            initial_info = requests.get(f"{api_url}/v2/info", timeout=10).json()
+            initial_stacks_height = initial_info.get('stacks_tip_height', 0)
+            initial_burn_height = initial_info.get('burn_block_height', 0)
+            
+            print(f"Initial heights - Stacks: {initial_stacks_height}, Burn: {initial_burn_height}")
+            
+            max_retries = 5
+            wait_time = 9  # 9 seconds per retry = 45 seconds total
+            
+            for retry in range(max_retries):
+                print(f"Waiting {wait_time} seconds to check chain progression (attempt {retry + 1}/{max_retries})...")
+                time.sleep(wait_time)
+                
+                # Get current heights
+                current_info = requests.get(f"{api_url}/v2/info", timeout=10).json()
+                current_stacks_height = current_info.get('stacks_tip_height', 0)
+                current_burn_height = current_info.get('burn_block_height', 0)
+                
+                print(f"Current heights - Stacks: {current_stacks_height}, Burn: {current_burn_height}")
+                
+                # Check progression
+                stacks_progressed = current_stacks_height > initial_stacks_height
+                burn_progressed = current_burn_height >= initial_burn_height
+                
+                if stacks_progressed and burn_progressed:
+                    print(f"✓ Stacks chain progressed: {initial_stacks_height} → {current_stacks_height}")
+                    print(f"✓ Burn chain stable/progressed: {initial_burn_height} → {current_burn_height}")
+                    print("✓ CHAIN PROGRESSION VERIFIED - Network is healthy")
+                    return True
+                elif stacks_progressed:
+                    print(f"✓ Stacks chain progressed: {initial_stacks_height} → {current_stacks_height}")
+                    print(f"⚠ Burn chain did not progress: {initial_burn_height} → {current_burn_height}")
+                    print("✓ CHAIN PROGRESSION VERIFIED - Stacks network is healthy")
+                    return True
+                else:
+                    print(f"⚠ Stacks chain did not progress yet: {initial_stacks_height} → {current_stacks_height}")
+                    if retry < max_retries - 1:
+                        print("Retrying...")
+            
+            # If we get here, all retries failed
+            print("✗ CHAIN PROGRESSION FAILED - Network may be stalled after 5 retries")
+            return False
+                
+        except Exception as e:
+            print(f"✗ Error verifying chain progression: {e}")
+            return False
+    
+    def verify_stress_test_success(self):
+        """Verify that stress test was successful"""
+        print("\n=== Stress Test Verification ===")
+        print("Checking transaction processing and mempool stress...")
+        
+        # Check transaction submission success 
+        if self.successful_transactions < 200:
+            print(f"✗ ASSERTION FAILED: Only {self.successful_transactions} transactions submitted successfully")
+            return False
+        
+        # Check that transactions were processed (confirmed or in mempool)
+        total_processed = getattr(self, 'total_confirmed', 0) + getattr(self, 'total_mempool', 0)
+        
+        if total_processed >= 200:
+            print(f"✓ ASSERTION PASSED: {total_processed} transactions processed")
+            print(f"  - {getattr(self, 'total_confirmed', 0)} confirmed")
+            print(f"  - {getattr(self, 'total_mempool', 0)} in mempool")
+            print(f"  - Success rate: {(self.successful_transactions/(self.successful_transactions+self.failed_transactions)*100):.1f}%")
+            return True
+        else:
+            print(f"✗ ASSERTION FAILED: Only {total_processed} transactions processed")
+            print(f"  - Expected at least 200 transactions to stress the mempool")
+            return False
+
+def signal_handler(*_):
+    """Handle cleanup on exit"""
+    print("\nShutting down...")
+    sys.exit(0)
+
+def main():
+    signal.signal(signal.SIGINT, signal_handler)
+    
+    node_manager = NodeManager()
+    
+    try:
+        # Start the node
+        if not node_manager.start_node():
+            return
+        
+        # Run aggressive mempool stress test
+        tester = MempoolStressTester()
+        success = tester.stress_test_mempool(transactions_per_miner=100, include_contracts=True)
+        
+        if success:
+            print("\n✓ Stress test completed!")
+        else:
+            print("\n✗ Stress test failed!")
+        
+        # Verify chain progression BEFORE stopping the node
+        chain_healthy = False
+        if success:
+            chain_healthy = tester.verify_chain_progression()
+        
+        # Terminal 3: Stop the node to return to initial quiet state
+        node_manager.stop_node()
+        
+        # Run assertion test to verify stress test success
+        if success:
+            assertion_passed = tester.verify_stress_test_success()
+            
+            print(f"\n=== FINAL RESULT ===")
+            if assertion_passed and chain_healthy:
+                print("✓ ALL TESTS PASSED - Mempool stress test successful and chain healthy")
+            elif assertion_passed:
+                print("⚠ PARTIAL SUCCESS - Stress test passed but chain progression uncertain")
+            else:
+                print("✗ ASSERTION FAILED - Stress test did not meet success criteria")
+        else:
+            print("\n=== FINAL RESULT ===")
+            print("✗ PRIMARY TEST FAILED - Skipping assertion test")
+            
+    except Exception as e:
+        print(f"Error: {e}")
+    finally:
+        node_manager.cleanup()
+        
+        # Clean up tmp files after test completion
+        if 'tester' in locals():
+            tester.cleanup_tmp_files()
+
+if __name__ == "__main__":
+    main()
+---[  END  content of: /home/simone/Desktop/node-naka3.sh/tests/test-mempool.py ]---

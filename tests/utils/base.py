@@ -88,7 +88,7 @@ class StacksTestBase:
     
     def __init__(self):
         self.temp_dir = tempfile.mkdtemp(prefix="stacks_test_")
-        self.logs_dir = "tests/logs"
+        self.logs_dir = "logs"
         os.makedirs(self.logs_dir, exist_ok=True)
     
     def get_account(self, miner: str) -> Account:
@@ -112,10 +112,8 @@ class StacksTestBase:
                 else:
                     raise ValueError(f"Unsupported method: {method}")
                 
-                if response.status_code != 200:
-                    if attempt < 2:
-                        time.sleep(2 ** attempt)
-                        continue
+                # We no longer check status code here; the handler will do it.
+                # Just return the response object directly.
                 return response
                     
             except requests.RequestException as e:
@@ -124,14 +122,55 @@ class StacksTestBase:
                     continue
                 raise e
         
+        # This part is now less likely to be reached, but is a safe fallback.
         return response
-    
+
+    def handle_api_response(self, response: requests.Response) -> Any:
+        """
+        Centralized handler for all API responses.
+
+        This function checks the response status. On success (200), it intelligently
+        parses and returns the body content (JSON or text). On failure, it
+        parses the detailed JSON error from the API and raises a descriptive
+        RuntimeError.
+
+        Args:
+            response: The requests.Response object from an API call.
+
+        Raises:
+            RuntimeError: If the response status code is not 200.
+
+        Returns:
+            The parsed JSON content as a dictionary or the plain text response.
+        """
+        if response.status_code != 200:
+            try:
+                # Attempt to parse the detailed error JSON from the Stacks API
+                error_details = response.json()
+                reason = error_details.get('reason', 'Unknown API error')
+                reason_data = error_details.get('reason_data', {})
+                error_message = f"API Error ({response.status_code}): {reason} - Details: {reason_data}"
+            except json.JSONDecodeError:
+                # Fallback for non-JSON errors (e.g., server proxy errors)
+                error_message = f"API Error ({response.status_code}): {response.text}"
+            
+            # Log the detailed error before raising
+            print(f"{Colors.format_error('✗ API call failed')}: {Colors.format_error(error_message)}")
+            raise RuntimeError(error_message)
+
+        # Handle successful responses
+        content_type = response.headers.get('Content-Type', '')
+        if 'application/json' in content_type:
+            return response.json()
+        else:
+            # This handles plain text responses, like txids, and strips the surrounding quotes
+            return response.text.strip('"')
+
     def get_account_info(self, miner: str) -> Dict[str, Any]:
         """Get account info (balance, nonce)"""
         account = self.get_account(miner)
         response = self.api_call(account, f"/v2/accounts/{account.address}")
-        response.raise_for_status()
-        return response.json()
+        return self.handle_api_response(response)
     
     def get_nonce(self, miner: str) -> int:
         """Get current nonce for account"""
@@ -139,24 +178,21 @@ class StacksTestBase:
     
     def get_balance(self, miner: str, address: Optional[str] = None) -> int:
         """Get STX balance for account or any address"""
-        if address is None:
-            # Get balance for the miner's own account
-            return int(self.get_account_info(miner)["balance"], 16)
-        else:
-            # Get balance for any address using the miner's API
-            account = self.get_account(miner)
-            response = self.api_call(account, f"/v2/accounts/{address}")
-            response.raise_for_status()
-            account_info = response.json()
-            balance_hex = account_info.get('balance', '0x0')
-            return int(balance_hex, 16) if balance_hex.startswith('0x') else int(balance_hex)
+        target_address = address or self.get_account(miner).address
+        account_to_query_from = self.get_account(miner)
+        
+        response = self.api_call(account_to_query_from, f"/v2/accounts/{target_address}")
+        account_info = self.handle_api_response(response)
+        
+        balance_hex = account_info.get('balance', '0x0')
+        return int(balance_hex, 16) if balance_hex.startswith('0x') else int(balance_hex)
     
     def get_block_height(self, miner: str) -> int:
         """Get current block height"""
         account = self.get_account(miner)
         response = self.api_call(account, "/v2/info")
-        response.raise_for_status()
-        return response.json()["stacks_tip_height"]
+        info_data = self.handle_api_response(response)
+        return info_data["stacks_tip_height"]
     
     def run_cli_command(self, command: List[str], binary_output: bool = False) -> bytes:
         """Run blockstack-cli command and return output"""
@@ -186,7 +222,6 @@ class StacksTestBase:
             except Exception:
                 pass  # Ignore temporary API errors
             
-            # Brief pause to avoid hammering the API (necessary for polling)
             time.sleep(1)
         
         return False
@@ -265,33 +300,22 @@ class StacksTestBase:
         account = self.get_account(miner)
         
         try:
-            # ALWAYS fetch transaction details from /v3/transaction endpoint
             print(f"\n{Colors.format_subheader('=== FETCHING TRANSACTION DETAILS ===')}")
             print(f"Calling: {Colors.format_dim(f'/v3/transaction/{txid}')}")
             
             tx_response = self.api_call(account, f"/v3/transaction/{txid}")
-            print(f"Response status: {Colors.format_info(str(tx_response.status_code))}")
+            tx_data = self.handle_api_response(tx_response)
             
-            if tx_response.status_code == 200:
-                tx_data = tx_response.json()
-                print(f"{Colors.format_success('✓ Transaction details fetched successfully!')}")
-                print(f"{Colors.format_subheader('=== FULL TRANSACTION DETAILS ===')}")
-                print(f"{Colors.format_dim(json.dumps(tx_data, indent=2))}")
-                print(f"{Colors.format_subheader('=== END TRANSACTION DETAILS ===')}")
-                
-                return {
-                    'success': True,
-                    'txid': txid,
-                    'transaction_data': tx_data
-                }
-            else:
-                print(f"{Colors.format_warning(f'⚠ Transaction endpoint returned {tx_response.status_code}')}")
-                print(f"Response: {Colors.format_error(tx_response.text)}")
-                return {
-                    'success': False,
-                    'error': f'Transaction endpoint returned {tx_response.status_code}: {tx_response.text}',
-                    'txid': txid
-                }
+            print(f"{Colors.format_success('✓ Transaction details fetched successfully!')}")
+            print(f"{Colors.format_subheader('=== FULL TRANSACTION DETAILS ===')}")
+            print(f"{Colors.format_dim(json.dumps(tx_data, indent=2))}")
+            print(f"{Colors.format_subheader('=== END TRANSACTION DETAILS ===')}")
+            
+            return {
+                'success': True,
+                'txid': txid,
+                'transaction_data': tx_data
+            }
                 
         except Exception as e:
             print(f"{Colors.format_error(f'✗ ERROR fetching transaction details')}: {Colors.format_error(str(e))}")

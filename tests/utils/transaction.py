@@ -1,5 +1,6 @@
 import time
 import json
+import os
 from typing import Optional, Dict, Any
 from .base import StacksTestBase, Colors
 
@@ -9,7 +10,6 @@ class Transaction(StacksTestBase):
                 memo: Optional[str] = None, nonce: Optional[int] = None, silent: bool = False) -> str:
         account = self.get_account(from_miner)
         
-        # Get initial state for verification (like test-transaction.py does)
         initial_nonce = self.get_nonce(from_miner) if nonce is None else nonce
         initial_sender_balance = self.get_balance(from_miner)
         initial_recipient_balance = self.get_balance(from_miner, to_address)
@@ -37,13 +37,11 @@ class Transaction(StacksTestBase):
         if not silent:
             print(f"{Colors.format_dim('Submitting transaction...')}")
         response = self.api_call(account, "/v2/transactions", "POST", tx_binary)
-        response.raise_for_status()
+        txid = self.handle_api_response(response)
         
-        txid = response.text.strip('"')
         if not silent:
             print(f"{Colors.format_success(f'✓ Transaction ID: {txid}')}")
         
-        # Use consolidated verification with recipient tracking
         verification = self.verify_transaction(from_miner, txid, initial_nonce, initial_sender_balance, initial_height, to_address)
         if not verification['success']:
             raise RuntimeError(f"Transfer verification failed: {verification['error']}")
@@ -103,9 +101,8 @@ class Transaction(StacksTestBase):
                 
             try:
                 response = self.api_call(account, "/v2/transactions", "POST", tx_data['binary'])
-                response.raise_for_status()
+                txid = self.handle_api_response(response)
                 
-                txid = response.text.strip('"')
                 submitted_txs.append(txid)
                 results.append({'success': True, 'txid': txid, 'transfer': tx_data['transfer'], 'nonce': tx_data['nonce']})
                 submitted_index = tx_data['index'] + 1
@@ -121,7 +118,6 @@ class Transaction(StacksTestBase):
         
         print(f"{Colors.format_success(f'✓ Batch submission complete')}: {Colors.format_info(f'{successful_submissions}/{len(transfers)}')} transactions submitted in {Colors.format_dim(f'{submission_time:.2f}s')}")
         
-        # Phase 3: Wait for confirmation and verify all batch transactions
         if successful_submissions > 0:
             print(f"{Colors.format_subheader('Waiting for batch transactions to be confirmed...')}")
             
@@ -186,10 +182,50 @@ class Transaction(StacksTestBase):
                 print(f"{Colors.format_warning(f'⚠ Expected nonce {initial_nonce + successful_submissions}, got {final_nonce}')}")
                 print(f"{Colors.format_warning('⚠ Some batch transactions may have failed')}")
         
+        failed_submissions = len([r for r in results if not r.get('success', False)])
+        if failed_submissions > 0:
+            raise RuntimeError(f"Batch failed: {failed_submissions}/{len(transfers)} transactions could not be submitted.")
+            
+        final_nonce_after_wait = self.get_nonce(from_miner)
+        if final_nonce_after_wait < initial_nonce + successful_submissions:
+            raise RuntimeError(f"Batch confirmation failed: Expected nonce {initial_nonce + successful_submissions}, but only reached {final_nonce_after_wait}. Transactions were dropped.")
+
         return results
     
+    def sponsored_transfer(self, origin_miner: str, sponsor_miner: str, to_address: str, 
+                           amount: int, sponsor_nonce: int) -> str:
+        """Creates and submits a sponsored transaction, allowing us to test sponsor nonce limits."""
+        
+        origin_account = self.get_account(origin_miner)
+        sponsor_account = self.get_account(sponsor_miner)
+        
+        print(f"\n{Colors.format_header('=== SPONSORED STX TRANSFER ===')}")
+        print(f"Origin: {Colors.format_info(origin_account.address)}")
+        print(f"Sponsor: {Colors.format_info(sponsor_account.address)}")
+        print(f"Sponsor Nonce: {Colors.format_dim(str(sponsor_nonce))}")
+        
+        cmd_create = [
+            "blockstack-cli", "--testnet", "make-token-transfer",
+            origin_account.private_key, to_address, str(amount), "sponsored-tx"
+        ]
+        unsigned_hex = self.run_cli_command(cmd_create).decode().strip()
+
+        cmd_sponsor = [
+            "blockstack-cli", "--testnet", "sponsor-tx",
+            sponsor_account.private_key, "2000", str(sponsor_nonce), unsigned_hex
+        ]
+        
+        print(f"{Colors.format_dim('Creating sponsored transaction binary...')}")
+        tx_binary = self.run_cli_command(cmd_sponsor, binary_output=True)
+        
+        print(f"{Colors.format_dim('Submitting sponsored transaction...')}")
+        response = self.api_call(sponsor_account, "/v2/transactions", "POST", tx_binary)
+        txid = self.handle_api_response(response)
+        
+        print(f"{Colors.format_success('✓ Sponsored transaction submitted (this should not happen in this test)')}")
+        return txid
+
     def status(self, miner: str, tx_id: str) -> Dict[str, Any]:
         account = self.get_account(miner)
         response = self.api_call(account, f"/extended/v1/tx/{tx_id}")
-        response.raise_for_status()
-        return response.json()
+        return self.handle_api_response(response)
