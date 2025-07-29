@@ -88,11 +88,12 @@ def main():
         (25000, 2000, "contract-2000kb.clar"),
         (28125, 2250, "contract-2250kb.clar"),  # This one might be close to the limit
         
-        # Massive size (known to fail, rename from 5mb to actual size)
-        (56250, 4500, "contract-2200kb.clar"),  # This is actually ~2.2MB
+        # Massive sizes (known to fail or pushing limits)
+        (75000, 6000, "contract-3000kb.clar"),  # ~3MB contract  
+        (100000, 8000, "contract-4000kb.clar"),  # ~4MB contract
     ]
     
-    print(f"📊 Generating {len(contracts)} contracts from 8KB to 2200KB...")
+    print(f"📊 Generating {len(contracts)} contracts from 8KB to 4000KB...")
     
     for function_count, size_kb, filename in contracts:
         print(f"📄 Generating {size_kb}KB contract with {function_count} functions...")
@@ -107,7 +108,7 @@ def main():
         print(f"✅ {filename}: {contract_size:,} bytes ({actual_kb:.1f} KB)")
     
     print(f"\n🔬 Generated {len(contracts)} contracts for binary search of Stacks size limits!")
-    print("🎯 Range: 8KB (should work) → 2200KB (should fail)")
+    print("🎯 Range: 8KB (should work) → 4000KB (should definitely fail)")
     print("📈 This will help us find the exact deployment size limit!")
 
 if __name__ == "__main__":
