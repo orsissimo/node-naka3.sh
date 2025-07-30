@@ -94,7 +94,98 @@ class Transaction(StacksTestBase):
                 if "TooMuchChaining" in error_str or "Nonce would exceed chaining limit" in error_str:
                     print(f"\n{Colors.format_success('✓ LIMIT FOUND')}: Node correctly rejected transaction with nonce {nonce}.")
                     print(f"  Reason: {Colors.format_warning(error_str)}")
+                    
+                    # Parse expected nonce from error message for immediate retry
+                    expected_nonce = self._extract_expected_nonce(error_str)
+                    current_block_height = self.get_block_height(from_miner)
+                    
+                    print(f"  Failed nonce: {nonce}, Expected nonce in error: {expected_nonce}")
+                    print(f"  Last successful nonce: {successful_submissions[-1]['nonce'] if successful_submissions else 'none'}")
+                    
+                    # IMMEDIATE RETRY in same block
+                    if expected_nonce is not None:
+                        print(f"\n{Colors.format_header('=== IMMEDIATE RETRY IN SAME BLOCK ===')}")
+                        
+                        # Check block height hasn't proceeded
+                        retry_block_height = self.get_block_height(from_miner)
+                        if retry_block_height != current_block_height:
+                            print(f"{Colors.format_error('✗ BLOCK PROCEEDED DURING RETRY SETUP!')}")
+                            raise RuntimeError("Block proceeded during mempool testing - test must be restarted")
+                        
+                        # Find the transaction to retry with expected nonce
+                        retry_tx = None
+                        for tx_data in prepared_txs:
+                            if tx_data['nonce'] == expected_nonce:
+                                retry_tx = tx_data
+                                break
+                        
+                        if retry_tx:
+                            print(f"Retrying with nonce {expected_nonce} immediately...")
+                            try:
+                                # Double-check block height before submission
+                                final_check_height = self.get_block_height(from_miner)
+                                if final_check_height != current_block_height:
+                                    print(f"{Colors.format_error('✗ BLOCK PROCEEDED DURING RETRY!')}")
+                                    raise RuntimeError("Block proceeded during mempool testing - test must be restarted")
+                                
+                                response = self.api_call(account, "/v2/transactions", "POST", retry_tx['binary'])
+                                retry_txid = self.handle_api_response(response)
+                                print(f"{Colors.format_success(f'✓ IMMEDIATE RETRY SUCCESS (nonce {expected_nonce})')}: {Colors.format_dim(retry_txid)}")
+                                
+                                # Add to successful submissions
+                                successful_submissions.append({'txid': retry_txid, 'transfer': retry_tx['transfer'], 'nonce': expected_nonce})
+                                
+                                # IMMEDIATELY try nonce +1 after successful retry
+                                next_nonce = expected_nonce + 1
+                                print(f"Now trying nonce {next_nonce} immediately...")
+                                
+                                # Check block height again
+                                next_check_height = self.get_block_height(from_miner)
+                                if next_check_height != current_block_height:
+                                    print(f"{Colors.format_error('✗ BLOCK PROCEEDED DURING NEXT RETRY!')}")
+                                    raise RuntimeError("Block proceeded during mempool testing - test must be restarted")
+                                
+                                # Find or create transaction for next nonce
+                                next_tx = None
+                                for tx_data in prepared_txs:
+                                    if tx_data['nonce'] == next_nonce:
+                                        next_tx = tx_data
+                                        break
+                                
+                                if next_tx:
+                                    try:
+                                        response = self.api_call(account, "/v2/transactions", "POST", next_tx['binary'])
+                                        next_txid = self.handle_api_response(response)
+                                        print(f"{Colors.format_success(f'✓ NEXT NONCE SUCCESS (nonce {next_nonce})')}: {Colors.format_dim(next_txid)}")
+                                        successful_submissions.append({'txid': next_txid, 'transfer': next_tx['transfer'], 'nonce': next_nonce})
+                                        
+                                        # Continue the loop to try even more nonces
+                                        print(f"Continuing to test higher nonces...")
+                                        
+                                    except Exception as next_e:
+                                        next_error = str(next_e)
+                                        print(f"{Colors.format_warning(f'✗ NEXT NONCE FAILED (nonce {next_nonce})')}: {next_error}")
+                                        if "TooMuchChaining" in next_error:
+                                            print(f"  Confirmed: Limit is now at nonce {next_nonce}")
+                                        # Don't break - let the outer logic handle this
+                                else:
+                                    print(f"{Colors.format_warning(f'⚠ No prepared tx found for next nonce {next_nonce}')}")
+                                
+                            except Exception as retry_e:
+                                retry_error = str(retry_e)
+                                print(f"{Colors.format_error(f'✗ IMMEDIATE RETRY FAILED')}: {retry_error}")
+                                # Continue with original logic - store retry info for later analysis
+                        else:
+                            print(f"{Colors.format_warning(f'⚠ Could not find prepared tx for nonce {expected_nonce}')}")
+                    
                     limit_found_at_nonce = nonce
+                    context['retry_info'] = {
+                        'expected_nonce': expected_nonce,
+                        'failed_nonce': nonce,
+                        'retry_nonce': expected_nonce,
+                        'block_height_when_failed': current_block_height,
+                        'immediate_retry_attempted': expected_nonce is not None
+                    }
                     break
                 else:
                     print(f"{Colors.format_error(f'✗ UNEXPECTED ERROR at nonce {nonce}')}")

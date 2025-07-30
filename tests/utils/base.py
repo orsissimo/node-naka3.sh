@@ -300,7 +300,7 @@ class StacksTestBase:
         except Exception as final_e:
             raise RuntimeError(f"Failed to get final nonce after timeout. Last known error: {last_error or str(final_e)}")
     
-    def verify_transaction_direct(self, miner: str, txid: str, recipient_address: Optional[str] = None) -> Dict[str, Any]:
+    def verify_transaction_no_wait(self, miner: str, txid: str, recipient_address: Optional[str] = None) -> Dict[str, Any]:
         """
         Verifies a transaction by fetching its details directly without waiting.
         This is a non-blocking status check designed for forensic analysis.

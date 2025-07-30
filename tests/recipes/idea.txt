@@ -1,0 +1,3 @@
+Try to re submit the failing one in stress test.
+We must also check the block height to ensure block hasnt proceeded.
+In mempool testing we work on a single height always. Then ensure we can submit again in the next block.
