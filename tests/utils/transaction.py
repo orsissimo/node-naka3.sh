@@ -246,3 +246,12 @@ class Transaction(StacksTestBase):
         account = self.get_account(miner)
         response = self.api_call(account, f"/extended/v1/tx/{tx_id}")
         return self.handle_api_response(response)
+    
+    def _extract_expected_nonce(self, error_str: str) -> Optional[int]:
+        """Extract expected nonce from TooMuchChaining error message."""
+        import re
+        # Look for pattern like "expected': 26" in the error
+        match = re.search(r"'expected':\s*(\d+)", error_str)
+        if match:
+            return int(match.group(1))
+        return None

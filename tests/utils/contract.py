@@ -171,3 +171,209 @@ class Contract(StacksTestBase):
             raise RuntimeError(f"Contract call verification failed: {verification['error']}")
         
         return txid
+    
+    def _extract_expected_nonce(self, error_str: str) -> Optional[int]:
+        """Extract expected nonce from TooMuchChaining error message."""
+        import re
+        # Look for pattern like "expected': 26" in the error
+        match = re.search(r"'expected':\s*(\d+)", error_str)
+        if match:
+            return int(match.group(1))
+        return None
+
+    def batch_deploy(self, from_miner: str, contracts: list, context: Optional[dict] = None) -> bool:
+        """
+        Submits contract deployments until the 'TooMuchChaining' limit is reached.
+        This method is designed to be the first step in a multi-step recipe.
+        It stores its findings in the provided 'context' dictionary for the
+        next step to analyze.
+        """
+        if context is None:
+            raise ValueError("A 'context' dictionary must be provided to the batch_deploy method.")
+
+        account = self.get_account(from_miner)
+        initial_nonce = self.get_nonce(from_miner)
+        
+        print(f"\n{Colors.format_header(f'=== BATCH CONTRACT DEPLOYMENT (until limit found) ===')}")
+        print(f"Starting nonce: {Colors.format_dim(str(initial_nonce))}")
+
+        # Phase 1: Preparation
+        prepared_deployments = []
+        for i, contract_file in enumerate(contracts):
+            try:
+                nonce = initial_nonce + i
+                contract_name = f"stress-contract-{nonce}"
+                
+                # Calculate dynamic fee based on contract size
+                if not os.path.isabs(contract_file):
+                    test_path = os.path.join(os.path.dirname(__file__), '..', contract_file)
+                    if os.path.exists(test_path):
+                        contract_file = test_path
+                
+                with open(contract_file, 'r') as f:
+                    contract_code = f.read().strip()
+                
+                contract_size = len(contract_code)
+                base_fee = max(contract_size, 10000)
+                fee = str(int(base_fee * 1.1))
+                
+                cmd = ["blockstack-cli", "--testnet", "publish", account.private_key, fee, str(nonce), contract_name, contract_file]
+                deployment_binary = self.run_cli_command(cmd, binary_output=True)
+                prepared_deployments.append({
+                    'binary': deployment_binary, 
+                    'contract_file': contract_file, 
+                    'nonce': nonce,
+                    'name': contract_name,
+                    'fee': fee
+                })
+                
+            except Exception as e:
+                raise RuntimeError(f"Failed to prepare contract deployment for nonce {initial_nonce + i}: {e}")
+        
+        # Phase 2: Intelligent Submission
+        successful_submissions = []
+        limit_found_at_nonce = -1
+        
+        print(f"\n{Colors.format_subheader(f'Submitting contract deployments until mempool chaining limit is reached...')}")
+        
+        for deployment_data in prepared_deployments:
+            nonce = deployment_data['nonce']
+            contract_name = deployment_data['name']
+            try:
+                response = self.api_call(account, "/v2/transactions", "POST", deployment_data['binary'])
+                txid = self.handle_api_response(response)
+                successful_submissions.append({
+                    'txid': txid, 
+                    'contract_file': deployment_data['contract_file'], 
+                    'nonce': nonce,
+                    'name': contract_name
+                })
+                print(f"{Colors.format_success(f'✓ Deployed contract (nonce {nonce})')}: {Colors.format_dim(contract_name)} - {Colors.format_dim(txid)}")
+                
+            except Exception as e:
+                error_str = str(e)
+                if "TooMuchChaining" in error_str or "Nonce would exceed chaining limit" in error_str:
+                    print(f"\n{Colors.format_success('✓ LIMIT FOUND')}: Node correctly rejected deployment with nonce {nonce}.")
+                    print(f"  Reason: {Colors.format_warning(error_str)}")
+                    
+                    # Parse expected nonce from error message for immediate retry
+                    expected_nonce = self._extract_expected_nonce(error_str)
+                    current_block_height = self.get_block_height(from_miner)
+                    
+                    print(f"  Failed nonce: {nonce}, Expected nonce in error: {expected_nonce}")
+                    print(f"  Last successful nonce: {successful_submissions[-1]['nonce'] if successful_submissions else 'none'}")
+                    
+                    # IMMEDIATE RETRY in same block
+                    if expected_nonce is not None:
+                        print(f"\n{Colors.format_header('=== IMMEDIATE RETRY IN SAME BLOCK ===')}")
+                        
+                        # Check block height hasn't proceeded
+                        retry_block_height = self.get_block_height(from_miner)
+                        if retry_block_height != current_block_height:
+                            print(f"{Colors.format_error('✗ BLOCK PROCEEDED DURING RETRY SETUP!')}")
+                            raise RuntimeError("Block proceeded during mempool testing - test must be restarted")
+                        
+                        # Find the deployment to retry with expected nonce
+                        retry_deployment = None
+                        for deploy_data in prepared_deployments:
+                            if deploy_data['nonce'] == expected_nonce:
+                                retry_deployment = deploy_data
+                                break
+                        
+                        if retry_deployment:
+                            print(f"Retrying contract deployment with nonce {expected_nonce} immediately...")
+                            try:
+                                # Double-check block height before submission
+                                final_check_height = self.get_block_height(from_miner)
+                                if final_check_height != current_block_height:
+                                    print(f"{Colors.format_error('✗ BLOCK PROCEEDED DURING RETRY!')}")
+                                    raise RuntimeError("Block proceeded during mempool testing - test must be restarted")
+                                
+                                response = self.api_call(account, "/v2/transactions", "POST", retry_deployment['binary'])
+                                retry_txid = self.handle_api_response(response)
+                                print(f"{Colors.format_success(f'✓ IMMEDIATE RETRY SUCCESS (nonce {expected_nonce})')}: {Colors.format_dim(retry_deployment['name'])} - {Colors.format_dim(retry_txid)}")
+                                
+                                # Add to successful submissions
+                                successful_submissions.append({
+                                    'txid': retry_txid, 
+                                    'contract_file': retry_deployment['contract_file'], 
+                                    'nonce': expected_nonce,
+                                    'name': retry_deployment['name']
+                                })
+                                
+                                # IMMEDIATELY try nonce +1 after successful retry
+                                next_nonce = expected_nonce + 1
+                                print(f"Now trying contract deployment nonce {next_nonce} immediately...")
+                                
+                                # Check block height again
+                                next_check_height = self.get_block_height(from_miner)
+                                if next_check_height != current_block_height:
+                                    print(f"{Colors.format_error('✗ BLOCK PROCEEDED DURING NEXT RETRY!')}")
+                                    raise RuntimeError("Block proceeded during mempool testing - test must be restarted")
+                                
+                                # Find deployment for next nonce
+                                next_deployment = None
+                                for deploy_data in prepared_deployments:
+                                    if deploy_data['nonce'] == next_nonce:
+                                        next_deployment = deploy_data
+                                        break
+                                
+                                if next_deployment:
+                                    try:
+                                        response = self.api_call(account, "/v2/transactions", "POST", next_deployment['binary'])
+                                        next_txid = self.handle_api_response(response)
+                                        print(f"{Colors.format_success(f'✓ NEXT NONCE SUCCESS (nonce {next_nonce})')}: {Colors.format_dim(next_deployment['name'])} - {Colors.format_dim(next_txid)}")
+                                        successful_submissions.append({
+                                            'txid': next_txid, 
+                                            'contract_file': next_deployment['contract_file'], 
+                                            'nonce': next_nonce,
+                                            'name': next_deployment['name']
+                                        })
+                                        
+                                        # Continue the loop to try even more nonces
+                                        print(f"Continuing to test higher nonces...")
+                                        
+                                    except Exception as next_e:
+                                        next_error = str(next_e)
+                                        print(f"{Colors.format_warning(f'✗ NEXT NONCE FAILED (nonce {next_nonce})')}: {next_error}")
+                                        if "TooMuchChaining" in next_error:
+                                            print(f"  Confirmed: Limit is now at nonce {next_nonce}")
+                                else:
+                                    print(f"{Colors.format_warning(f'⚠ No prepared deployment found for next nonce {next_nonce}')}")
+                                
+                            except Exception as retry_e:
+                                retry_error = str(retry_e)
+                                print(f"{Colors.format_error(f'✗ IMMEDIATE RETRY FAILED')}: {retry_error}")
+                        else:
+                            print(f"{Colors.format_warning(f'⚠ Could not find prepared deployment for nonce {expected_nonce}')}")
+                    
+                    limit_found_at_nonce = nonce
+                    context['retry_info'] = {
+                        'expected_nonce': expected_nonce,
+                        'failed_nonce': nonce,
+                        'retry_nonce': expected_nonce,
+                        'block_height_when_failed': current_block_height,
+                        'immediate_retry_attempted': expected_nonce is not None
+                    }
+                    break
+                else:
+                    print(f"{Colors.format_error(f'✗ UNEXPECTED ERROR at nonce {nonce}')}")
+                    raise e
+        
+        # Phase 3: Wait for submitted deployments to confirm
+        if successful_submissions:
+            print(f"\n{Colors.format_subheader('Waiting for submitted contract deployments to confirm...')}")
+            last_submitted_nonce = successful_submissions[-1]['nonce']
+            self.wait_for_nonce_increase(from_miner, last_submitted_nonce, 1, timeout=60)
+            print("Confirmation wait complete.")
+
+        # Phase 4: Store the results in the shared context
+        context['batch_report'] = {
+            "status": "LimitFound" if limit_found_at_nonce != -1 else "CompletedWithoutLimit",
+            "successful_submissions": successful_submissions,
+            "limit_nonce": limit_found_at_nonce,
+            "from_miner": from_miner
+        }
+        
+        # This step is successful if it completes without an unexpected error.
+        return True

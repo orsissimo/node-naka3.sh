@@ -1,41 +1,64 @@
 #!/usr/bin/env python3
 import sys
 import os
-from typing import Optional
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils.recipes import Runner, Recipe, Step
 from utils.base import Colors
 from utils.forensics import Forensics
-from utils.transaction import Transaction
+from utils.contract import Contract
 
-def generate_transfers(count: int) -> list:
-    """Helper to generate a list of transfers for the recipe."""
-    transfers = []
-    addresses = ["ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM"]
+def generate_contract_files(count: int) -> list:
+    """Helper to generate a list of contract files from existing contracts for the recipe."""
+    # Use existing contract files from the contracts directory (up to 1000kb max)
+    base_contract_files = [
+        "contracts/contract-8kb.clar",
+        "contracts/contract-16kb.clar", 
+        "contracts/contract-24kb.clar",
+        "contracts/contract-40kb.clar",
+        "contracts/contract-60kb.clar",
+        "contracts/contract-80kb.clar",
+        "contracts/contract-100kb.clar",
+        "contracts/contract-120kb.clar",
+        "contracts/contract-160kb.clar",
+        "contracts/contract-200kb.clar",
+        "contracts/contract-240kb.clar",
+        "contracts/contract-300kb.clar",
+        "contracts/contract-400kb.clar",
+        "contracts/contract-500kb.clar",
+        "contracts/contract-600kb.clar",
+        "contracts/contract-700kb.clar",
+        "contracts/contract-800kb.clar",
+        "contracts/contract-900kb.clar",
+        "contracts/contract-1000kb.clar"
+    ]
+    
+    # Cycle through contracts if count > available files
+    contract_files = []
     for i in range(count):
-        transfers.append({"to": addresses[0], "amount": 100 + i, "memo": f"StressTx{i+1}"})
-    return transfers
+        contract_files.append(base_contract_files[i % len(base_contract_files)])
+    
+    return contract_files
 
 def create_stress_recipe(context: dict):
     """
     Creates a two-step recipe implementing idea.txt suggestions:
-    1. Run the batch until the limit is found, storing the result in the context.
+    1. Run the batch contract deployment until the limit is found, storing the result in the context.
     2. Verify the result from the context using the forensics module.
     """
     return Recipe(
-        name="Find Mempool Chaining Limit and Verify",
-        description="Enhanced two-step recipe with block height awareness and immediate re-submission of failed txs.",
+        name="Find Mempool Chaining Limit for Contract Deployments and Verify",
+        description="Enhanced two-step recipe with block height awareness and immediate re-submission of failed contract deployments.",
         setup=True,
         cleanup=True,
         steps=[
             Step(
-                name="Submit until limit is found",
-                module="transaction",
-                method="batch",
+                name="Deploy contracts until limit is found",
+                module="contract",
+                method="batch_deploy",
                 params={
                     "from_miner": "miner1",
-                    "transfers": generate_transfers(50),
+                    "contracts": generate_contract_files(100),
                     "context": context  # Pass the shared context dictionary
                 },
                 wait=False, # Let the method handle its own waiting
@@ -60,7 +83,7 @@ def main():
 
     runner = Runner()
     # IMPORTANT: Register all modules that will be called by steps.
-    runner.modules['transaction'] = Transaction()
+    runner.modules['contract'] = Contract()
     runner.modules['forensics'] = Forensics()
     
     recipe = create_stress_recipe(test_context)
@@ -73,7 +96,7 @@ def main():
     print("="*60)
     
     if result['success']:
-        print(f"{Colors.format_success('✓ RECIPE PASSED')}: The system behaved as expected under stress.")
+        print(f"{Colors.format_success('✓ RECIPE PASSED')}: The system behaved as expected under contract deployment stress.")
         sys.exit(0)
     else:
         print(f"{Colors.format_error('✗ RECIPE FAILED')}: The system did not behave as expected.")
