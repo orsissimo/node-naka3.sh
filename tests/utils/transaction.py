@@ -7,6 +7,10 @@ from .exceptions import BatchProcessingError
 
 class Transaction(StacksTestBase):
     
+    def __init__(self):
+        super().__init__()
+        self.submitted_transactions = []  # Store submitted transaction IDs for later verification
+    
     def transfer(self, from_miner: str, to_address: str, amount: int, 
                 memo: Optional[str] = None, nonce: Optional[int] = None, silent: bool = False) -> str:
         account = self.get_account(from_miner)
@@ -255,3 +259,140 @@ class Transaction(StacksTestBase):
         if match:
             return int(match.group(1))
         return None
+
+    def submit_no_wait(self, target_miner: str, from_miner: str, to_address: str, 
+                          amount: int, memo: Optional[str] = None, nonce: Optional[int] = None) -> str:
+        """Submit transaction to specific miner's endpoint without waiting for confirmation"""
+        from_account = self.get_account(from_miner)
+        target_account = self.get_account(target_miner)
+        
+        # Use provided nonce or get current nonce
+        if nonce is not None:
+            use_nonce = nonce
+        else:
+            use_nonce = self.get_nonce(from_miner)
+            
+        initial_height = self.get_block_height(target_miner)
+        
+        print(f"\n{Colors.format_header('=== SUBMITTING UNPROCESSED TX ===')}")
+        print(f"Target Miner: {Colors.format_info(target_miner)} (endpoint: {target_account.api_url})")
+        print(f"From Account: {Colors.format_info(from_account.address)}")
+        print(f"To Address: {Colors.format_info(to_address)}")
+        print(f"Amount: {Colors.format_success(f'{amount} µSTX')}")
+        print(f"Current Block Height: {Colors.format_dim(str(initial_height))}")
+        print(f"Using nonce: {Colors.format_dim(str(use_nonce))}")
+        
+        # Create transaction
+        cmd = ["blockstack-cli", "--testnet", "token-transfer", from_account.private_key, 
+               "180", str(use_nonce), to_address, str(amount)]
+        if memo:
+            cmd.append(memo)
+        
+        print(f"{Colors.format_dim('Creating transaction binary...')}")
+        tx_binary = self.run_cli_command(cmd, binary_output=True)
+        
+        # Submit to specific miner's endpoint
+        print(f"{Colors.format_dim(f'Submitting to {target_miner} endpoint...')}")
+        response = self.api_call(target_account, "/v2/transactions", "POST", tx_binary)
+        txid = self.handle_api_response(response)
+        
+        print(f"{Colors.format_success(f'✓ Transaction submitted to {target_miner}: {txid}')}")
+        print(f"{Colors.format_warning('⚠ NOT waiting for confirmation - keeping in mempool')}")
+        
+        # Store transaction info for later verification
+        self.submitted_transactions.append({
+            'txid': txid,
+            'from_miner': from_miner,
+            'target_miner': target_miner,
+            'to_address': to_address,
+            'amount': amount,
+            'nonce': use_nonce,
+            'memo': memo
+        })
+        
+        return txid
+
+    def verify_previous_transactions(self, query_miner: str, check_stopped_miner: bool = False, 
+                                   check_resumed_miner: bool = False) -> Dict[str, Any]:
+        """Verify previously submitted transactions using verify_transaction_no_wait from base.py"""
+        
+        if check_stopped_miner:
+            print(f"\n{Colors.format_header('=== VERIFYING TXS WHILE MINER2 IS STOPPED ===')}")
+            print(f"Query Miner: {Colors.format_info(query_miner)} (checking from active miner)")
+        elif check_resumed_miner:
+            print(f"\n{Colors.format_header('=== VERIFYING TXS AFTER MINER2 RESUMED ===')}")
+            print(f"Query Miner: {Colors.format_info(query_miner)} (checking from resumed miner)")
+        else:
+            print(f"\n{Colors.format_header('=== VERIFYING PREVIOUS TRANSACTIONS ===')}")
+            print(f"Query Miner: {Colors.format_info(query_miner)}")
+        
+        if not self.submitted_transactions:
+            print(f"{Colors.format_warning('⚠ No previous transactions to verify')}")
+            return {"success": False, "error": "No transactions submitted"}
+        
+        print(f"Transactions to verify: {Colors.format_info(str(len(self.submitted_transactions)))}")
+        
+        verification_results = []
+        for i, tx_info in enumerate(self.submitted_transactions, 1):
+            txid = tx_info['txid']
+            print(f"\n{Colors.format_subheader(f'Verifying Transaction {i}/{len(self.submitted_transactions)}')}")
+            print(f"  TX ID: {Colors.format_dim(txid)}")
+            print(f"  From: {Colors.format_dim(tx_info['from_miner'])}")
+            print(f"  To: {Colors.format_dim(tx_info['to_address'])}")
+            print(f"  Amount: {Colors.format_dim(str(tx_info['amount']))} µSTX")
+            print(f"  Nonce: {Colors.format_dim(str(tx_info['nonce']))}")
+            
+            # Use verify_transaction_no_wait from base.py
+            try:
+                verification = self.verify_transaction_no_wait(query_miner, txid, tx_info['to_address'])
+                verification_results.append({
+                    'txid': txid,
+                    'verification': verification
+                })
+                
+                if verification['success']:
+                    print(f"  Status: {Colors.format_success('✓ TRANSACTION FOUND')}")
+                    if 'transaction_data' in verification:
+                        tx_data = verification['transaction_data']
+                        if isinstance(tx_data, dict) and 'tx_status' in tx_data:
+                            status = tx_data['tx_status']
+                            print(f"  Chain Status: {Colors.format_info(status)}")
+                else:
+                    print(f"  Status: {Colors.format_error('✗ TRANSACTION NOT FOUND OR ERROR')}")
+                    if 'error' in verification:
+                        print(f"  Error: {Colors.format_error(verification['error'])}")
+                        
+            except Exception as e:
+                print(f"  Status: {Colors.format_error('✗ VERIFICATION FAILED')}")
+                print(f"  Error: {Colors.format_error(str(e))}")
+                verification_results.append({
+                    'txid': txid,
+                    'verification': {'success': False, 'error': str(e)}
+                })
+        
+        # Summary
+        successful_verifications = sum(1 for result in verification_results 
+                                     if result['verification']['success'])
+        total_verifications = len(verification_results)
+        
+        print(f"\n{Colors.format_subheader('VERIFICATION SUMMARY')}")
+        print(f"Successful verifications: {Colors.format_info(f'{successful_verifications}/{total_verifications}')}")
+        
+        if check_stopped_miner:
+            if successful_verifications == 0:
+                print(f"{Colors.format_success('✓ Expected: No transactions found while miner2 stopped')}")
+                return {"success": True, "verified_count": successful_verifications, "expected_failure": True}
+            else:
+                print(f"{Colors.format_warning('⚠ Unexpected: Some transactions found from other miners')}")
+                return {"success": True, "verified_count": successful_verifications, "unexpected_success": True}
+        elif check_resumed_miner:
+            if successful_verifications > 0:
+                print(f"{Colors.format_success('✓ Expected: Transactions recovered after miner2 resumed')}")
+                return {"success": True, "verified_count": successful_verifications, "recovery_success": True}
+            else:
+                print(f"{Colors.format_warning('⚠ Transactions still not found after resume')}")
+                return {"success": True, "verified_count": successful_verifications, "recovery_partial": True}
+        else:
+            return {"success": True, "verified_count": successful_verifications}
+        
+        return {"success": True, "verified_count": successful_verifications}
