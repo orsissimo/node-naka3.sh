@@ -299,6 +299,11 @@ class Transaction(StacksTestBase):
         print(f"{Colors.format_success(f'✓ Transaction submitted to {target_miner}: {txid}')}")
         print(f"{Colors.format_warning('⚠ NOT waiting for confirmation - keeping in mempool')}")
         
+        # Capture initial state for later verification with verify_transaction
+        initial_nonce = self.get_nonce(from_miner)
+        initial_balance = self.get_balance(from_miner)
+        initial_height = self.get_block_height(target_miner)
+        
         # Store transaction info for later verification
         self.submitted_transactions.append({
             'txid': txid,
@@ -307,7 +312,10 @@ class Transaction(StacksTestBase):
             'to_address': to_address,
             'amount': amount,
             'nonce': use_nonce,
-            'memo': memo
+            'memo': memo,
+            'initial_nonce': initial_nonce,
+            'initial_balance': initial_balance,
+            'initial_height': initial_height
         })
         
         return txid
@@ -342,23 +350,28 @@ class Transaction(StacksTestBase):
             print(f"  Amount: {Colors.format_dim(str(tx_info['amount']))} µSTX")
             print(f"  Nonce: {Colors.format_dim(str(tx_info['nonce']))}")
             
-            # Use verify_transaction_no_wait from base.py
+            # Use verify_transaction from base.py (waits for confirmation)
             try:
-                verification = self.verify_transaction_no_wait(query_miner, txid, tx_info['to_address'])
+                verification = self.verify_transaction(
+                    query_miner, 
+                    txid, 
+                    tx_info['initial_nonce'], 
+                    tx_info['initial_balance'], 
+                    tx_info['initial_height'], 
+                    tx_info['to_address']
+                )
                 verification_results.append({
                     'txid': txid,
                     'verification': verification
                 })
                 
                 if verification['success']:
-                    print(f"  Status: {Colors.format_success('✓ TRANSACTION FOUND')}")
-                    if 'transaction_data' in verification:
-                        tx_data = verification['transaction_data']
-                        if isinstance(tx_data, dict) and 'tx_status' in tx_data:
-                            status = tx_data['tx_status']
-                            print(f"  Chain Status: {Colors.format_info(status)}")
+                    print(f"  Status: {Colors.format_success('✓ TRANSACTION CONFIRMED')}")
+                    print(f"  Nonce Change: {Colors.format_info(str(verification.get('nonce_change', 'N/A')))}")
+                    print(f"  Balance Change: {Colors.format_info(str(verification.get('balance_change', 'N/A')))} µSTX")
+                    print(f"  Height Change: {Colors.format_info(str(verification.get('height_change', 'N/A')))} blocks")
                 else:
-                    print(f"  Status: {Colors.format_error('✗ TRANSACTION NOT FOUND OR ERROR')}")
+                    print(f"  Status: {Colors.format_error('✗ TRANSACTION NOT CONFIRMED')}")
                     if 'error' in verification:
                         print(f"  Error: {Colors.format_error(verification['error'])}")
                         
@@ -380,17 +393,21 @@ class Transaction(StacksTestBase):
         
         if check_stopped_miner:
             if successful_verifications == 0:
-                print(f"{Colors.format_success('✓ Expected: No transactions found while miner2 stopped')}")
+                print(f"{Colors.format_success('✓ Expected: No transactions confirmed while miner2 stopped')}")
+                print(f"{Colors.format_dim('  This means transactions were lost when miner2 stopped')}")
                 return {"success": True, "verified_count": successful_verifications, "expected_failure": True}
             else:
-                print(f"{Colors.format_warning('⚠ Unexpected: Some transactions found from other miners')}")
+                print(f"{Colors.format_warning('⚠ Unexpected: Some transactions confirmed from other miners')}")
+                print(f"{Colors.format_dim('  This means transactions propagated to other miners')}")
                 return {"success": True, "verified_count": successful_verifications, "unexpected_success": True}
         elif check_resumed_miner:
             if successful_verifications > 0:
-                print(f"{Colors.format_success('✓ Expected: Transactions recovered after miner2 resumed')}")
+                print(f"{Colors.format_success('✓ Expected: Transactions confirmed after miner2 resumed')}")
+                print(f"{Colors.format_dim('  This means mempool transactions were recovered/processed')}")
                 return {"success": True, "verified_count": successful_verifications, "recovery_success": True}
             else:
-                print(f"{Colors.format_warning('⚠ Transactions still not found after resume')}")
+                print(f"{Colors.format_warning('⚠ Transactions still not confirmed after resume')}")
+                print(f"{Colors.format_dim('  This means mempool transactions were permanently lost')}")
                 return {"success": True, "verified_count": successful_verifications, "recovery_partial": True}
         else:
             return {"success": True, "verified_count": successful_verifications}
