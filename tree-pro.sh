@@ -10,7 +10,6 @@
 # 1. It runs 'tree' on the target directory to show its structure.
 # 2. It then iterates through every file and appends its content,
 #    skipping files inside directories defined in the EXCLUDE_FROM_CAT array.
-# 3. The final combined output is saved to 'folder-scan.txt'.
 # ==============================================================================
 
 # Exit immediately if a command exits with a non-zero status.
@@ -19,7 +18,7 @@ set -e
 # --- Configuration ---
 
 # The name of the output file. It will be created in the current directory.
-OUTPUT_FILE="folder-scan.txt"
+OUTPUT_FILE="tree-pro-output.txt"
 
 # An array of directory names to exclude from the 'cat' command.
 # Any file inside a directory with these names will be skipped.
