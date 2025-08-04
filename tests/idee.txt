@@ -8,6 +8,11 @@
 
 - capire da dove arriva toomuchchaining (a cosa è dovuto?)
 
+
+!!! PRINT ---> DEBUG
+Chi ha la tenure?
+
+
 ---
 
 Perfect! Now let me suggest additional edge case testing scenarios based on your ideas and blockchain stress testing best practices:

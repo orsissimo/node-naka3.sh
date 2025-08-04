@@ -1,11 +1,11 @@
 ==================================================
-      Folder Scan Report for: /home/simone/Desktop/node-naka3.sh/tests
-      Generated on: Wed Jul 30 12:43:13 AM CEST 2025
+      Folder Scan Report for: /home/simone/Desktop/node-naka3.sh/tests/
+      Generated on: Fri Aug  1 04:30:56 PM CEST 2025
 ==================================================
 
 ### DIRECTORY STRUCTURE ###
 
-/home/simone/Desktop/node-naka3.sh/tests
+/home/simone/Desktop/node-naka3.sh/tests/
 ├── contracts
 │   ├── bundler.clar
 │   ├── contract-1000kb.clar
@@ -21,7 +21,9 @@
 │   ├── contract-2250kb.clar
 │   ├── contract-240kb.clar
 │   ├── contract-24kb.clar
+│   ├── contract-3000kb.clar
 │   ├── contract-300kb.clar
+│   ├── contract-4000kb.clar
 │   ├── contract-400kb.clar
 │   ├── contract-40kb.clar
 │   ├── contract-500kb.clar
@@ -33,7 +35,8 @@
 │   ├── contract-8kb.clar
 │   ├── contract-900kb.clar
 │   ├── contract-counter.clar
-│   └── cyberpunk2140a.clar
+│   ├── cyberpunk2140a.clar
+│   └── memory-bomb.clar
 ├── generate-contracts.py
 ├── idee.txt
 ├── __init__.py
@@ -41,9 +44,11 @@
 ├── recipes
 │   ├── example-counter-deploy-rw.py
 │   ├── example-nft-deploy-rw.py
+│   ├── stress-test-contract-deployments.py
 │   ├── stress-test-transfer-txs.py
 │   ├── test-contract-deployment-size-limit.py
-│   └── test-too-much-chaining.py
+│   ├── test-memory-limits.py
+│   └── test-miner-stop-resume.py
 └── utils
     ├── base.py
     ├── contract.py
@@ -53,19 +58,28 @@
     ├── nft.py
     ├── node_manager.py
     ├── __pycache__
+    │   ├── api_client.cpython-311.pyc
+    │   ├── api.cpython-311.pyc
+    │   ├── atomic_ops.cpython-311.pyc
     │   ├── base.cpython-311.pyc
+    │   ├── blockstack_cli.cpython-311.pyc
+    │   ├── cli.cpython-311.pyc
+    │   ├── config.cpython-311.pyc
     │   ├── contract.cpython-311.pyc
     │   ├── exceptions.cpython-311.pyc
+    │   ├── fee_calculator.cpython-311.pyc
     │   ├── forensics.cpython-311.pyc
+    │   ├── forensics_ops.cpython-311.pyc
     │   ├── __init__.cpython-311.pyc
     │   ├── nft.cpython-311.pyc
     │   ├── node_manager.cpython-311.pyc
+    │   ├── operations.cpython-311.pyc
     │   ├── recipes.cpython-311.pyc
     │   └── transaction.cpython-311.pyc
     ├── recipes.py
     └── transaction.py
 
-6 directories, 53 files
+6 directories, 67 files
 
 
 ##################################################
@@ -73,7 +87,7 @@
 ##################################################
 
 
----[ START content of: /home/simone/Desktop/node-naka3.sh/tests/recipes/stress-test-transfer-txs.py ]---
+---[ START content of: /home/simone/Desktop/node-naka3.sh/tests/recipes/stress-test-contract-deployments.py ]---
 #!/usr/bin/env python3
 import sys
 import os
@@ -82,37 +96,62 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.recipes import Runner, Recipe, Step
 from utils.base import Colors
 from utils.forensics import Forensics
+from utils.contract import Contract
 
-def generate_transfers(count: int) -> list:
-    """Helper to generate a list of transfers for the recipe."""
-    transfers = []
-    addresses = ["ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM"]
+def generate_contract_files(count: int) -> list:
+    """Helper to generate a list of contract files from existing contracts for the recipe."""
+    # Use existing contract files from the contracts directory (up to 1000kb max)
+    base_contract_files = [
+        "contracts/contract-8kb.clar",
+        "contracts/contract-16kb.clar", 
+        "contracts/contract-24kb.clar",
+        "contracts/contract-40kb.clar",
+        "contracts/contract-60kb.clar",
+        "contracts/contract-80kb.clar",
+        "contracts/contract-100kb.clar",
+        "contracts/contract-120kb.clar",
+        "contracts/contract-160kb.clar",
+        "contracts/contract-200kb.clar",
+        "contracts/contract-240kb.clar",
+        "contracts/contract-300kb.clar",
+        "contracts/contract-400kb.clar",
+        "contracts/contract-500kb.clar",
+        "contracts/contract-600kb.clar",
+        "contracts/contract-700kb.clar",
+        "contracts/contract-800kb.clar",
+        "contracts/contract-900kb.clar",
+        "contracts/contract-1000kb.clar"
+    ]
+    
+    # Cycle through contracts if count > available files
+    contract_files = []
     for i in range(count):
-        transfers.append({"to": addresses[0], "amount": 100 + i, "memo": f"StressTx{i+1}"})
-    return transfers
+        contract_files.append(base_contract_files[i % len(base_contract_files)])
+    
+    return contract_files
 
 def create_stress_recipe(context: dict):
     """
-    Creates a two-step recipe:
-    1. Run the batch until the limit is found, storing the result in the context.
+    Creates a two-step recipe implementing idea.txt suggestions:
+    1. Run the batch contract deployment until the limit is found, storing the result in the context.
     2. Verify the result from the context using the forensics module.
     """
     return Recipe(
-        name="Find Mempool Chaining Limit and Verify",
-        description="A two-step recipe to find the mempool limit and then run diagnostics.",
+        name="Find Mempool Chaining Limit for Contract Deployments and Verify",
+        description="Enhanced two-step recipe with block height awareness and immediate re-submission of failed contract deployments.",
         setup=True,
         cleanup=True,
         steps=[
             Step(
-                name="Submit until limit is found",
-                module="transaction",
-                method="batch",
+                name="Deploy contracts until limit is found",
+                module="contract",
+                method="batch_deploy",
                 params={
                     "from_miner": "miner1",
-                    "transfers": generate_transfers(50),
+                    "contracts": generate_contract_files(100),
                     "context": context  # Pass the shared context dictionary
                 },
-                wait=False,
+                wait=False, # Let the method handle its own waiting
                 on_error="stop"
             ),
             Step(
@@ -133,14 +172,103 @@ def main():
     test_context = {}
 
     runner = Runner()
-    # IMPORTANT: Register the Forensics module so the runner can use it.
+    # IMPORTANT: Register all modules that will be called by steps.
+    runner.modules['contract'] = Contract()
     runner.modules['forensics'] = Forensics()
     
     recipe = create_stress_recipe(test_context)
     result = runner.run(recipe)
     
     # The pass/fail logic is now entirely handled by the recipe steps.
-    # We just need to report the final outcome from the runner.
+    # The main function just reports the final outcome from the runner.
+    print("\n" + "="*60)
+    print(f"{Colors.format_header('FINAL RECIPE RESULT')}")
+    print("="*60)
+    
+    if result['success']:
+        print(f"{Colors.format_success('✓ RECIPE PASSED')}: The system behaved as expected under contract deployment stress.")
+        sys.exit(0)
+    else:
+        print(f"{Colors.format_error('✗ RECIPE FAILED')}: The system did not behave as expected.")
+        # The detailed error will have already been printed by the failing step.
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
+---[  END  content of: /home/simone/Desktop/node-naka3.sh/tests/recipes/stress-test-contract-deployments.py ]---
+
+
+---[ START content of: /home/simone/Desktop/node-naka3.sh/tests/recipes/stress-test-transfer-txs.py ]---
+#!/usr/bin/env python3
+import sys
+import os
+from typing import Optional
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from utils.recipes import Runner, Recipe, Step
+from utils.base import Colors
+from utils.forensics import Forensics
+from utils.transaction import Transaction
+
+def generate_transfers(count: int) -> list:
+    """Helper to generate a list of transfers for the recipe."""
+    transfers = []
+    addresses = ["ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM"]
+    for i in range(count):
+        transfers.append({"to": addresses[0], "amount": 100 + i, "memo": f"StressTx{i+1}"})
+    return transfers
+
+def create_stress_recipe(context: dict):
+    """
+    Creates a two-step recipe implementing idea.txt suggestions:
+    1. Run the batch until the limit is found, storing the result in the context.
+    2. Verify the result from the context using the forensics module.
+    """
+    return Recipe(
+        name="Find Mempool Chaining Limit and Verify",
+        description="Enhanced two-step recipe with block height awareness and immediate re-submission of failed txs.",
+        setup=True,
+        cleanup=True,
+        steps=[
+            Step(
+                name="Submit until limit is found",
+                module="transaction",
+                method="batch",
+                params={
+                    "from_miner": "miner1",
+                    "transfers": generate_transfers(50),
+                    "context": context  # Pass the shared context dictionary
+                },
+                wait=False, # Let the method handle its own waiting
+                on_error="stop"
+            ),
+            Step(
+                name="Verify Batch and Diagnose Result",
+                module="forensics",
+                method="verify_batch_limit_test",
+                params={
+                    "context": context # Pass the same context dictionary
+                },
+                wait=False,
+                on_error="stop"
+            )
+        ]
+    )
+
+def main():
+    # A shared context dictionary to pass data between steps
+    test_context = {}
+
+    runner = Runner()
+    # IMPORTANT: Register all modules that will be called by steps.
+    runner.modules['transaction'] = Transaction()
+    runner.modules['forensics'] = Forensics()
+    
+    recipe = create_stress_recipe(test_context)
+    result = runner.run(recipe)
+    
+    # The pass/fail logic is now entirely handled by the recipe steps.
+    # The main function just reports the final outcome from the runner.
     print("\n" + "="*60)
     print(f"{Colors.format_header('FINAL RECIPE RESULT')}")
     print("="*60)
@@ -158,93 +286,227 @@ if __name__ == "__main__":
 ---[  END  content of: /home/simone/Desktop/node-naka3.sh/tests/recipes/stress-test-transfer-txs.py ]---
 
 
----[ START content of: /home/simone/Desktop/node-naka3.sh/tests/recipes/test-too-much-chaining.py ]---
+---[ START content of: /home/simone/Desktop/node-naka3.sh/tests/recipes/test-memory-limits.py ]---
 #!/usr/bin/env python3
+
 import sys
 import os
+import time
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils.recipes import Runner, Recipe, Step
-from utils.base import Colors, StacksTestBase
-from utils.transaction import Transaction
+from utils.base import Colors
+from utils.contract import Contract
 
-# The constant from the Stacks node source code
-MAXIMUM_MEMPOOL_TX_CHAINING = 25
+# Define constants for the new contract
+BOMB_CONTRACT_FILE = "contracts/memory-bomb.clar"
+BOMB_CONTRACT_NAME = "memory-bomb"
+# Address of miner1, who will be the default deployer
+DEPLOYER_ADDRESS = "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6"
 
-class ChainingTester:
-    """A custom test module to handle the dynamic logic of this recipe."""
-    def __init__(self):
-        self.base = StacksTestBase()
-        self.transaction = Transaction()
-
-    def trigger_origin_error(self) -> bool:
-        """Fetches current nonce, calculates a bad nonce, and expects failure."""
-        print(f"\n{Colors.format_subheader('--- Testing Origin TooMuchChaining ---')}")
-        try:
-            current_nonce = self.base.get_nonce("miner1")
-            bad_nonce = current_nonce + MAXIMUM_MEMPOOL_TX_CHAINING + 2
-            print(f"Current nonce is {current_nonce}, attempting to submit with nonce {bad_nonce}")
-            
-            self.transaction.transfer(
-                from_miner="miner1",
-                to_address="ST3KCNDSWZSFZCC6BE4VA9AXWXC9KEB16FBTRK36T",
-                amount=100,
-                nonce=bad_nonce
-            )
-            # If the above line does NOT raise an exception, the test has failed.
-            print(f"{Colors.format_error('✗ TEST FAILED')}: Transaction was unexpectedly accepted.")
-            return False
-        except Exception as e:
-            error_str = str(e)
-            if "TooMuchChaining" in error_str:
-                print(f"{Colors.format_success('✓ TEST PASSED')}: Correctly received TooMuchChaining error.")
-                return True
-            else:
-                print(f"{Colors.format_error('✗ TEST FAILED')}: Transaction failed, but for the wrong reason.")
-                print(f"  Error: {error_str}")
-                return False
-
-def create_chaining_limit_recipe():
-    """Defines the steps to run our custom ChainingTester module."""
+def create_memory_bomb_recipe():
+    """
+    Creates a recipe to test resource limits of the Stacks blockchain.
+    - Deploys a contract with functions designed to stress the system.
+    - Calls functions that test stack depth, gas limits, and memory allocation.
+    - Some steps are expected to fail, which is the success condition for those tests.
+    """
     return Recipe(
-        name="Mempool Chaining Limit Test",
-        description="Intentionally trigger 'TooMuchChaining' errors for origin and sponsor.",
-        setup=True,
-        cleanup=True,
+        name="Memory and Resource Exhaustion Test",
+        description="Tests fundamental limits of the Stacks chain like stack depth, gas, and memory allocation.",
+        setup=True, # We will handle setup/cleanup manually in main
+        cleanup=True, # We will handle setup/cleanup manually in main
         steps=[
+            # Step 1: Deploy the "memory bomb" contract. This must succeed.
             Step(
-                name="Trigger TooMuchChaining for Originator",
-                module="chaining_tester", # Our custom module
-                method="trigger_origin_error",
-                params={},
-                wait=False,
+                name="Deploy memory-bomb contract",
+                module="contract",
+                method="deploy",
+                params={"miner": "miner1", "contract_file": BOMB_CONTRACT_FILE, "contract_name": BOMB_CONTRACT_NAME},
+                wait=True,
                 on_error="stop"
+            ),
+            # Step 2: Baseline test for memory allocation. Should succeed.
+            Step(
+                name="Test memory allocation (baseline)",
+                module="contract",
+                method="call",
+                params={"miner": "miner1", "contract_address": DEPLOYER_ADDRESS, "contract_name": BOMB_CONTRACT_NAME, "function_name": "memory-alloc-stress", "args": ["u50"]},
+                wait=True,
+                on_error="continue"
+            ),
+            # Step 3: Deep recursion test. EXPECTED TO FAIL with a stack depth error.
+            Step(
+                name="Test deep recursion (Fibonacci, expect fail)",
+                module="contract",
+                method="call",
+                params={"miner": "miner1", "contract_address": DEPLOYER_ADDRESS, "contract_name": BOMB_CONTRACT_NAME, "function_name": "deep-recursion-fibonacci", "args": ["u35"]},
+                wait=True,
+                on_error="continue"
+            ),
+            # Step 4: Gas limit test. EXPECTED TO FAIL with a cost/runtime error.
+            Step(
+                name="Test gas hog (expect fail)",
+                module="contract",
+                method="call",
+                params={"miner": "miner1", "contract_address": DEPLOYER_ADDRESS, "contract_name": BOMB_CONTRACT_NAME, "function_name": "gas-hog", "args": ["u200000"]},
+                wait=True,
+                on_error="continue"
+            ),
+            # Step 5: Memory Leak Simulation: Call a memory-intensive function multiple times.
+            Step(
+                name="Repeated memory alloc #1",
+                module="contract",
+                method="call",
+                params={"miner": "miner2", "contract_address": DEPLOYER_ADDRESS, "contract_name": BOMB_CONTRACT_NAME, "function_name": "memory-alloc-stress", "args": ["u100"]},
+                wait=True,
+                on_error="continue"
+            ),
+            Step(
+                name="Repeated memory alloc #2",
+                module="contract",
+                method="call",
+                params={"miner": "miner2", "contract_address": DEPLOYER_ADDRESS, "contract_name": BOMB_CONTRACT_NAME, "function_name": "memory-alloc-stress", "args": ["u100"]},
+                wait=True,
+                on_error="continue"
             ),
         ]
     )
 
-def main():
-    """Main execution block."""
-    runner = Runner()
+def analyze_memory_bomb_results(steps):
+    """
+    Analyzes the results of the memory bomb test.
+    A test is successful if it passes when it should, or fails with the correct error.
+    """
+    expected_outcomes = {
+        "Deploy memory-bomb contract": {"expect_success": True, "error_contains": None},
+        "Test memory allocation (baseline)": {"expect_success": True, "error_contains": None},
+        "Test deep recursion (Fibonacci, expect fail)": {"expect_success": False, "error_contains": "stack"},
+        "Test gas hog (expect fail)": {"expect_success": False, "error_contains": "runtime"},
+        "Repeated memory alloc #1": {"expect_success": True, "error_contains": None},
+        "Repeated memory alloc #2": {"expect_success": True, "error_contains": None},
+    }
     
-    # IMPORTANT: Register our custom tester class as a module the runner can use.
-    runner.modules['chaining_tester'] = ChainingTester()
+    analysis = {}
+    overall_success = True
     
-    recipe = create_chaining_limit_recipe()
-    result = runner.run(recipe)
+    for step in steps:
+        step_name = step.get('name', 'Unknown')
+        if step_name in expected_outcomes:
+            expected = expected_outcomes[step_name]
+            actual_success = step.get('success', False)
+            error = step.get('error', '').lower()
+            
+            step_passed = False
+            if actual_success == expected['expect_success']:
+                if expected['expect_success']:
+                    step_passed = True  # Passed and was expected to pass.
+                else:  # Failed and was expected to fail, now check the error message.
+                    if expected['error_contains'] and expected['error_contains'] in error:
+                        step_passed = True
+            
+            analysis[step_name] = {"passed": step_passed, "details": step}
+            if not step_passed:
+                overall_success = False
+        elif not step.get('success', False): # Handle unexpected steps that fail
+            overall_success = False
+            analysis[step_name] = {"passed": False, "details": step}
 
-    # The logic inside ChainingTester now handles pass/fail, so we can use standard reporting.
-    print("\n" + "=" * 60)
-    print(f"{Colors.format_header('RECIPE EXECUTION RESULTS')}")
-    print("=" * 60)
-    print(f"Recipe: {Colors.format_info(result['name'])}")
-    print(f"Overall Success: {Colors.format_success('✓ PASSED') if result['success'] else Colors.format_error('✗ FAILED')}")
+    return overall_success, analysis
+
+def main():
+    """
+    Execute the memory bomb test with manual, explicit nonce management
+    to ensure it works without modifying the core Runner.
+    """
+    print("=" * 80)
+    print(f"{Colors.format_header('RECIPE: MEMORY AND RESOURCE EXHAUSTION TEST')}")
+    print("=" * 80)
     
-    sys.exit(0 if result['success'] else 1)
+    runner = Runner()
+    runner.modules['contract'] = Contract()
+    
+    recipe = create_memory_bomb_recipe()
+    all_step_results = []
+
+    try:
+        # --- MANUAL SETUP ---
+        if recipe.setup:
+            runner.node.start_node()
+            runner.verify_chain_progression("miner1")
+
+        # --- MANUAL NONCE MANAGEMENT ---
+        # Get initial nonces for all miners involved in the test.
+        nonces = {
+            'miner1': runner.get_nonce('miner1'),
+            'miner2': runner.get_nonce('miner2')
+        }
+        print(f"Initial nonces: {Colors.format_dim(str(nonces))}")
+
+        # --- MANUAL STEP EXECUTION LOOP ---
+        for step in recipe.steps:
+            # Check if this step involves a transaction and needs a nonce.
+            is_tx_step = step.module in ['contract', 'transaction'] and step.method in ['deploy', 'call', 'transfer']
+            
+            if is_tx_step:
+                miner_name = step.params.get('miner') or step.params.get('from_miner')
+                if miner_name in nonces:
+                    # Inject the currently tracked nonce into the step's parameters.
+                    step.params['nonce'] = nonces[miner_name]
+                    print(f"\n{Colors.format_info(f'Running step:')} {step.name} {Colors.format_info(f'with nonce {nonces[miner_name]} for {miner_name}')}")
+
+            # Execute the single step using the runner's internal method.
+            step_result = runner._run_step(step)
+            all_step_results.append(step_result)
+
+            if is_tx_step:
+                miner_name = step.params.get('miner') or step.params.get('from_miner')
+                error_str = step_result.get('error', '').lower()
+
+                # Increment the nonce if the transaction was accepted by the node's API.
+                # A "bad request" error means the nonce was wrong and not consumed.
+                # Any other error (like a runtime error) or success means the nonce was consumed.
+                if step_result['success'] or "bad request" not in error_str:
+                    nonces[miner_name] += 1
+                    print(f"{Colors.format_dim(f'Nonce for {miner_name} incremented to {nonces[miner_name]}')}")
+
+            # Respect the on_error behavior
+            if not step_result.get('success', False) and step.on_error == 'stop':
+                break
+
+    finally:
+        # --- MANUAL CLEANUP ---
+        if recipe.cleanup:
+            runner.node.stop_node()
+
+    # Custom analysis for this special test case
+    overall_test_success, analysis_details = analyze_memory_bomb_results(all_step_results)
+
+    print("\n" + "=" * 80)
+    print(f"{Colors.format_header('RECIPE EXECUTION ANALYSIS')}")
+    print("=" * 80)
+    
+    for step_name, data in analysis_details.items():
+        status = Colors.format_success('✓ PASSED') if data['passed'] else Colors.format_error('✗ FAILED')
+        print(f"  - {step_name}: {status}")
+        if not data['passed']:
+            error_msg = data['details'].get('error', 'No error message.')
+            print(f"    - {Colors.format_error('Reason')}: Expected behavior not met. Error: {error_msg[:200]}")
+
+    print("\n" + "=" * 80)
+    print(f"{Colors.format_header('FINAL RESULT')}")
+    print("=" * 80)
+    
+    if overall_test_success:
+        print(f"{Colors.format_success('✅ TEST PASSED')}: System correctly handled resource limits and exhaustion scenarios.")
+        sys.exit(0)
+    else:
+        print(f"{Colors.format_error('❌ TEST FAILED')}: System did not behave as expected under resource stress.")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
----[  END  content of: /home/simone/Desktop/node-naka3.sh/tests/recipes/test-too-much-chaining.py ]---
+---[  END  content of: /home/simone/Desktop/node-naka3.sh/tests/recipes/test-memory-limits.py ]---
 
 
 ---[ START content of: /home/simone/Desktop/node-naka3.sh/tests/recipes/test-contract-deployment-size-limit.py ]---
@@ -278,6 +540,30 @@ def create_size_limits_recipe():
                 on_error="continue"
             ),
             Step(
+                name="Deploy 16KB contract",
+                module="contract",
+                method="deploy",
+                params={
+                    "miner": "miner1",
+                    "contract_file": "contracts/contract-16kb.clar",
+                    "contract_name": "contract-16kb"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            Step(
+                name="Deploy 24KB contract",
+                module="contract",
+                method="deploy",
+                params={
+                    "miner": "miner1",
+                    "contract_file": "contracts/contract-24kb.clar",
+                    "contract_name": "contract-24kb"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            Step(
                 name="Deploy 40KB contract",
                 module="contract",
                 method="deploy",
@@ -285,6 +571,18 @@ def create_size_limits_recipe():
                     "miner": "miner1",
                     "contract_file": "contracts/contract-40kb.clar",
                     "contract_name": "contract-40kb"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            Step(
+                name="Deploy 60KB contract",
+                module="contract",
+                method="deploy",
+                params={
+                    "miner": "miner1",
+                    "contract_file": "contracts/contract-60kb.clar",
+                    "contract_name": "contract-60kb"
                 },
                 wait=True,
                 on_error="continue"
@@ -302,6 +600,18 @@ def create_size_limits_recipe():
                 on_error="continue"
             ),
             Step(
+                name="Deploy 100KB contract",
+                module="contract",
+                method="deploy",
+                params={
+                    "miner": "miner1",
+                    "contract_file": "contracts/contract-100kb.clar",
+                    "contract_name": "contract-100kb"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            Step(
                 name="Deploy 120KB contract",
                 module="contract",
                 method="deploy",
@@ -314,7 +624,19 @@ def create_size_limits_recipe():
                 on_error="continue"
             ),
             
-            # Test medium contracts (start looking for limits)
+            # Test medium contracts
+            Step(
+                name="Deploy 160KB contract",
+                module="contract",
+                method="deploy",
+                params={
+                    "miner": "miner2",
+                    "contract_file": "contracts/contract-160kb.clar",
+                    "contract_name": "contract-160kb"
+                },
+                wait=True,
+                on_error="continue"
+            ),
             Step(
                 name="Deploy 200KB contract",
                 module="contract",
@@ -323,6 +645,30 @@ def create_size_limits_recipe():
                     "miner": "miner2",
                     "contract_file": "contracts/contract-200kb.clar",
                     "contract_name": "contract-200kb"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            Step(
+                name="Deploy 240KB contract",
+                module="contract",
+                method="deploy",
+                params={
+                    "miner": "miner2",
+                    "contract_file": "contracts/contract-240kb.clar",
+                    "contract_name": "contract-240kb"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            Step(
+                name="Deploy 300KB contract",
+                module="contract",
+                method="deploy",
+                params={
+                    "miner": "miner2",
+                    "contract_file": "contracts/contract-300kb.clar",
+                    "contract_name": "contract-300kb"
                 },
                 wait=True,
                 on_error="continue"
@@ -340,6 +686,18 @@ def create_size_limits_recipe():
                 on_error="continue"
             ),
             Step(
+                name="Deploy 500KB contract",
+                module="contract",
+                method="deploy",
+                params={
+                    "miner": "miner2",
+                    "contract_file": "contracts/contract-500kb.clar",
+                    "contract_name": "contract-500kb"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            Step(
                 name="Deploy 600KB contract",
                 module="contract",
                 method="deploy",
@@ -352,6 +710,18 @@ def create_size_limits_recipe():
                 on_error="continue"
             ),
             Step(
+                name="Deploy 700KB contract",
+                module="contract",
+                method="deploy",
+                params={
+                    "miner": "miner2",
+                    "contract_file": "contracts/contract-700kb.clar",
+                    "contract_name": "contract-700kb"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            Step(
                 name="Deploy 800KB contract",
                 module="contract",
                 method="deploy",
@@ -359,6 +729,18 @@ def create_size_limits_recipe():
                     "miner": "miner2",
                     "contract_file": "contracts/contract-800kb.clar",
                     "contract_name": "contract-800kb"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            Step(
+                name="Deploy 900KB contract",
+                module="contract",
+                method="deploy",
+                params={
+                    "miner": "miner3",
+                    "contract_file": "contracts/contract-900kb.clar",
+                    "contract_name": "contract-900kb"
                 },
                 wait=True,
                 on_error="continue"
@@ -424,7 +806,32 @@ def create_size_limits_recipe():
                 },
                 wait=True,
                 on_error="continue"
-            ),            
+            ),
+            Step(
+                name="Deploy 3000KB contract",
+                module="contract",
+                method="deploy",
+                params={
+                    "miner": "miner1",
+                    "contract_file": "contracts/contract-3000kb.clar",
+                    "contract_name": "contract-3000kb"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            Step(
+                name="Deploy 4000KB contract",
+                module="contract",
+                method="deploy",
+                params={
+                    "miner": "miner1",
+                    "contract_file": "contracts/contract-4000kb.clar",
+                    "contract_name": "contract-4000kb"
+                },
+                wait=True,
+                on_error="continue"
+            ),
+            
             # Test working contracts
             Step(
                 name="Test 8KB contract function",
@@ -457,6 +864,52 @@ def create_size_limits_recipe():
         ]
     )
 
+def extract_size_from_step_name(step_name):
+    """Extract size in KB from step name like 'Deploy 2000KB contract'"""
+    if "Deploy" in step_name and "KB contract" in step_name:
+        try:
+            # Extract number between "Deploy " and "KB contract"
+            start = step_name.find("Deploy ") + 7
+            end = step_name.find("KB contract")
+            size_str = step_name[start:end]
+            return int(size_str)
+        except:
+            return None
+    return None
+
+def analyze_size_limits(steps):
+    """Analyze deployment results to find size limits"""
+    deployment_steps = []
+    
+    # Filter deployment steps and extract sizes
+    for step in steps:
+        step_name = step.get('name', '')
+        if "Deploy" in step_name and "KB contract" in step_name:
+            size = extract_size_from_step_name(step_name)
+            if size is not None:
+                deployment_steps.append({
+                    'name': step_name,
+                    'size_kb': size,
+                    'success': step.get('success', False),
+                    'error': step.get('error', '')
+                })
+    
+    # Sort by size
+    deployment_steps.sort(key=lambda x: x['size_kb'])
+    
+    # Find boundary
+    last_successful = None
+    first_failed = None
+    
+    for step in deployment_steps:
+        if step['success']:
+            last_successful = step
+        elif first_failed is None:
+            first_failed = step
+            break
+    
+    return deployment_steps, last_successful, first_failed
+
 def main():
     """Execute the size limits test recipe"""
     print("=" * 80)
@@ -467,8 +920,14 @@ def main():
     recipe = create_size_limits_recipe()
     result = runner.run(recipe)
     
+    # Analyze size limits from results
+    deployment_steps, last_successful, first_failed = analyze_size_limits(result.get('steps', []))
+    
+    # Determine if test was successful (finding a limit is success)
+    test_successful = last_successful is not None and first_failed is not None
+    
     print(f"\nRecipe: {Colors.format_info(result['name'])}")
-    print(f"Overall Success: {Colors.format_success('✓ PASSED') if result['success'] else Colors.format_error('✗ FAILED')}")
+    print(f"Overall Success: {Colors.format_success('✓ PASSED') if test_successful else Colors.format_error('✗ FAILED')}")
     duration_text = f"{result.get('duration', 0):.2f} seconds"
     print(f"Duration: {Colors.format_dim(duration_text)}")
     
@@ -481,6 +940,34 @@ def main():
         if not step.get('success', False) and 'error' in step:
             error_preview = step['error'][:100] + "..." if len(step['error']) > 100 else step['error']
             print(f"     {Colors.format_error(error_preview)}")
+    
+    # Add size limit findings at the end
+    if last_successful and first_failed:
+        print(f"\n{Colors.format_success('LIMIT FOUND!')}")
+        last_size = f"{last_successful['size_kb']}KB"
+        first_size = f"{first_failed['size_kb']}KB"
+        size_range = f"{last_successful['size_kb']}KB and {first_failed['size_kb']}KB"
+        print(f"   Last successful: {Colors.format_success(last_size)} ({last_successful['name']})")
+        print(f"   First failed: {Colors.format_error(first_size)} ({first_failed['name']})")
+        print(f"   Size limit is between {Colors.format_info(size_range)}")
+        
+        if first_failed.get('error'):
+            print(f"   Failure reason: {Colors.format_dim(first_failed['error'][:150])}")
+            
+    elif last_successful and not first_failed:
+        print(f"\n{Colors.format_warning('All contracts deployed successfully')}")
+        largest_size = f"{last_successful['size_kb']}KB"
+        print(f"   Largest successful: {Colors.format_success(largest_size)}")
+        print(f"   Need to test larger contracts to find the limit")
+        
+    elif not last_successful and first_failed:
+        print(f"\n{Colors.format_error('All contracts failed to deploy')}")
+        first_failure_size = f"{first_failed['size_kb']}KB"
+        print(f"   First failure: {Colors.format_error(first_failure_size)}")
+        print(f"   Need to test smaller contracts")
+        
+    else:
+        print(f"\n{Colors.format_warning('No deployment results found')}")
 
 if __name__ == "__main__":
     main()
@@ -997,6 +1484,226 @@ if __name__ == "__main__":
 ---[  END  content of: /home/simone/Desktop/node-naka3.sh/tests/recipes/example-nft-deploy-rw.py ]---
 
 
+---[ START content of: /home/simone/Desktop/node-naka3.sh/tests/recipes/test-miner-stop-resume.py ]---
+#!/usr/bin/env python3
+
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from utils.recipes import Runner, Recipe, Step
+from utils.base import Colors
+
+def create_miner_stop_resume_recipe():
+    return Recipe(
+        name="Miner Mempool Stop/Resume Test",
+        description="Submit unprocessed transactions to specific miner, stop it, test mempool behavior",
+        setup=True,  # Use recipe's built-in node management
+        cleanup=True,  # Use recipe's built-in node management
+        steps=[
+            # Step 1: Submit transaction to miner2's mempool WITHOUT waiting for confirmation
+            Step(
+                name="Submit unprocessed tx to miner2's mempool",
+                module="transaction", 
+                method="submit_no_wait",
+                params={
+                    "target_miner": "miner2",  # Submit to miner2's specific endpoint
+                    "from_miner": "miner2",    # Transaction from miner2 account
+                    "to_address": "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",  # miner1 address
+                    "amount": 500000,  # 0.5 STX in µSTX
+                    "memo": "Unprocessed tx in miner2 mempool"
+                },
+                wait=False,  # Don't wait for confirmation - keep in mempool
+                on_error="stop"
+            ),
+            # Step 2: Submit second transaction to miner2's mempool with nonce 1
+            Step(
+                name="Submit second unprocessed tx to miner2's mempool", 
+                module="transaction",
+                method="submit_no_wait",
+                params={
+                    "target_miner": "miner2",  # Submit to miner2's specific endpoint
+                    "from_miner": "miner2",    # Transaction from miner2 account
+                    "to_address": "ST3AM1A56AK2C1XAFJ4115ZSV26EB49BVQ10MGCS0",  # miner3 address
+                    "amount": 300000,  # 0.3 STX in µSTX
+                    "memo": "Second unprocessed tx in miner2 mempool",
+                    "nonce": 1  # Use nonce 1 for second transaction
+                },
+                wait=False,  # Don't wait for confirmation - keep in mempool
+                on_error="stop"
+            ),
+            # Step 3: Stop miner2 while transactions are in mempool
+            Step(
+                name="Stop miner2 with unprocessed transactions",
+                module="node",
+                method="stop_miner", 
+                params={
+                    "miner_id": 2
+                },
+                wait=True,
+                on_error="stop"
+            ),
+            # Step 4: Try to verify the previous txs (using verify_transaction_no_wait from base.py)
+            Step(
+                name="Verify transactions while miner2 is stopped",
+                module="transaction",
+                method="verify_previous_transactions",
+                params={
+                    "query_miner": "miner1",  # Query from active miner1
+                    "check_stopped_miner": True
+                },
+                wait=True,
+                on_error="continue"  # Continue even if verification fails
+            ),
+            # Step 5: Resume miner2
+            Step(
+                name="Resume miner2",
+                module="node",
+                method="resume_miner",
+                params={
+                    "miner_id": 2
+                },
+                wait=True,
+                on_error="stop"
+            ),
+            # Step 6: Try to verify the previous txs again (using verify_transaction_no_wait from base.py)
+            Step(
+                name="Verify transactions after miner2 resumed",
+                module="transaction",
+                method="verify_previous_transactions",
+                params={
+                    "query_miner": "miner2",  # Query from resumed miner2
+                    "check_resumed_miner": True
+                },
+                wait=True,
+                on_error="continue"  # Continue even if verification fails
+            )
+        ]
+    )
+
+def main():
+    """Execute the miner mempool stop/resume recipe test"""
+    print("=" * 80)
+    print(f"{Colors.format_header('RECIPE TO TEST MINER MEMPOOL BEHAVIOR ON STOP/RESUME')}")
+    print("=" * 80)
+    print(f"{Colors.format_dim('This test will:')}")
+    print(f"{Colors.format_dim('1. Submit two unprocessed transactions to miner2 mempool')}")
+    print(f"{Colors.format_dim('2. Stop miner2 with pending mempool transactions')}")
+    print(f"{Colors.format_dim('3. Try to verify transactions while miner2 is stopped')}")
+    print(f"{Colors.format_dim('4. Resume miner2')}")
+    print(f"{Colors.format_dim('5. Try to verify transactions after miner2 is resumed')}")
+    print("=" * 80)
+    
+    runner = Runner()
+    recipe = create_miner_stop_resume_recipe()
+    
+    # Run the recipe with built-in node management
+    result = runner.run(recipe)
+    
+    # Print results summary  
+    print("\n" + "=" * 80)
+    print(f"{Colors.format_header('RECIPE EXECUTION RESULTS')}")
+    print("=" * 80)
+    
+    print(f"Recipe: {Colors.format_info(result['name'])}")
+    print(f"Overall Success: {Colors.format_success('✓ PASSED') if result['success'] else Colors.format_error('✗ FAILED')}")
+    duration_text = f"{result.get('duration', 0):.2f} seconds"
+    print(f"Duration: {Colors.format_dim(duration_text)}")
+    print(f"Setup Success: {Colors.format_success('✓') if result.get('setup_success', False) else Colors.format_error('✗')}")
+    print(f"Cleanup Success: {Colors.format_success('✓') if result.get('cleanup_success', False) else Colors.format_error('✗')}")
+    
+    # Chain progression results
+    if result.get('chain_progression_verified', False):
+        print(f"Chain Progression: {Colors.format_success('✓ VERIFIED')}")
+    else:
+        print(f"Chain Progression: {Colors.format_error('✗ FAILED')}")
+        if 'chain_verification_error' in result:
+            print(f"  Error: {Colors.format_error(result['chain_verification_error'])}")
+    
+    steps_count = len(result.get('steps', []))
+    print(f"\n{Colors.format_subheader(f'Step Results ({steps_count} steps)')}")
+    
+    for i, step in enumerate(result.get('steps', []), 1):
+        step_name = step.get('name', 'Unknown')
+        step_success = step.get('success', False)
+        
+        # Normal step handling for all steps
+        status = Colors.format_success('✓ PASSED') if step_success else Colors.format_error('✗ FAILED')
+        duration = step.get('duration', 0)
+        retries = step.get('retries', 0)
+        duration_retries_text = f"{duration:.2f}s, {retries} retries"
+        print(f"  {Colors.format_info(f'{i}.')} {Colors.format_dim(step_name)}: {status} ({Colors.format_dim(duration_retries_text)})")
+        
+        if not step_success and 'error' in step:
+            print(f"     Error: {Colors.format_error(step['error'])}")
+        elif step_success and 'result' in step:
+            step_result = step['result']
+            if isinstance(step_result, str) and len(step_result) == 66:  # Likely a transaction ID
+                print(f"     TX ID: {Colors.format_dim(step_result)}")
+            elif isinstance(step_result, dict):
+                # Handle structured results
+                if 'txid' in step_result:
+                    print(f"     TX ID: {Colors.format_dim(step_result['txid'])}")
+                elif 'success' in step_result:
+                    print(f"     Operation: {Colors.format_success('✓') if step_result['success'] else Colors.format_error('✗')}")
+                elif 'verified_count' in step_result:
+                    verified = step_result['verified_count']
+                    if 'expected_failure' in step_result:
+                        print(f"     Result: {Colors.format_success(f'✓ Expected behavior - {verified} transactions confirmed')}")
+                    elif 'recovery_success' in step_result:
+                        print(f"     Result: {Colors.format_success(f'✓ Mempool recovery success - {verified} transactions confirmed')}")
+                    else:
+                        print(f"     Verified: {Colors.format_info(f'{verified} transactions')}")
+    
+    # Final summary
+    print("\n" + "=" * 80)
+    print(f"{Colors.format_header('FINAL RESULT')}")
+    print("=" * 80)
+    
+    # Check for mempool recovery success
+    mempool_recovery_successful = False
+    transactions_confirmed_after_resume = False
+    
+    for step in result.get('steps', []):
+        if step.get('name') == "Verify transactions after miner2 resumed":
+            step_result = step.get('result', {})
+            if isinstance(step_result, dict) and step_result.get('verified_count', 0) > 0:
+                transactions_confirmed_after_resume = True
+                if 'recovery_success' in step_result:
+                    mempool_recovery_successful = True
+    
+    if result['success'] and mempool_recovery_successful:
+        print(f"{Colors.format_success('✅ ALL TESTS PASSED')} - Mempool persistence across miner restart proven!")
+        print(f"{Colors.format_success('✓ Key findings:')}")
+        print(f"  {Colors.format_success('•')} Transactions submitted to miner2's mempool were preserved during stop")
+        print(f"  {Colors.format_success('•')} When miner2 resumed, it successfully processed the mempool transactions")
+        print(f"  {Colors.format_success('•')} Both transactions were confirmed with proper state changes")
+        print(f"\n{Colors.format_success('🎉 MEMPOOL RECOVERY WORKS!')} Transactions survive miner restarts.")
+        return True
+    elif result['success'] and transactions_confirmed_after_resume:
+        print(f"{Colors.format_success('✅ ALL TESTS PASSED')} - Mempool behavior verified!")
+        print(f"{Colors.format_success('✓ Transactions confirmed')} after miner2 resume")
+        return True
+    elif result['success']:
+        print(f"{Colors.format_warning('⚠ PARTIAL SUCCESS')} - All steps completed but mempool behavior unclear")
+        print(f"{Colors.format_warning('Note:')} Check individual step results for details")
+        return True
+    else:
+        print(f"{Colors.format_error('✗ TESTS FAILED')} - Miner mempool stop/resume test encountered errors")
+        failed_steps = [step for step in result.get('steps', []) if not step.get('success', False)]
+        if failed_steps:
+            print(f"{Colors.format_warning('Failed steps:')}")
+            for step in failed_steps:
+                print(f"  - {Colors.format_error(step.get('name', 'Unknown'))}: {Colors.format_error(step.get('error', 'No error details'))}")
+        return False
+
+if __name__ == "__main__":
+    import sys
+    success = main()
+    sys.exit(0 if success else 1)
+---[  END  content of: /home/simone/Desktop/node-naka3.sh/tests/recipes/test-miner-stop-resume.py ]---
+
+
 ---[ START content of: /home/simone/Desktop/node-naka3.sh/tests/utils/recipes.py ]---
 import json
 import time
@@ -1213,17 +1920,19 @@ class Recipes:
 import json
 from .base import StacksTestBase, Colors
 from .transaction import Transaction
+from .contract import Contract
 
 class Forensics(StacksTestBase):
     """Utilities for diagnostic analysis, designed to be used as recipe steps."""
 
-    def verify_batch_limit_test(self, context: dict):
+    def verify_batch_limit_test(self, context: dict) -> bool:
         """
         Verifies the results of a batch limit-finding run stored in the context.
-        This method implements the precise success criteria for the test.
+        This method implements the precise success criteria for the test and is
+        designed to be called as a recipe step.
         """
         print("\n" + "="*80)
-        print(f"{Colors.format_header('FINAL TEST VERIFICATION')}")
+        print(f"{Colors.format_header('VERIFICATION & DIAGNOSTICS')}")
         print("="*80)
         
         batch_report = context.get('batch_report')
@@ -1237,34 +1946,105 @@ class Forensics(StacksTestBase):
         print(f"{Colors.format_success('✓ Condition 1 Met')}: Successfully triggered the 'TooMuchChaining' limit at nonce {batch_report['limit_nonce']}.")
         
         # Condition 2: Verify each successfully submitted transaction one-by-one.
-        print(f"\n{Colors.format_subheader('Verifying all submitted transactions one-by-one...')}")
-        tx_utility = Transaction()
+        print(f"\n{Colors.format_subheader('Verifying all submitted transactions...')}")
+        
+        # Determine if this is a transfer or contract deployment test
+        is_contract_test = 'contract_file' in batch_report['successful_submissions'][0] if batch_report['successful_submissions'] else False
+        
+        if is_contract_test:
+            utility = Contract()
+            item_type = "contract deployment"
+        else:
+            utility = Transaction()
+            item_type = "transaction"
+        
         all_verified_successfully = True
         
-        for tx_info in batch_report['successful_submissions']:
-            nonce_str = f"  - Nonce {tx_info['nonce']:<3}"
-            verification_result = tx_utility.verify_transaction_no_wait(
+        for item_info in batch_report['successful_submissions']:
+            nonce_str = f"  - Nonce {item_info['nonce']:<3}"
+            # This call now prints the full JSON details you requested.
+            verification_result = utility.verify_transaction_no_wait(
                 miner=batch_report['from_miner'],
-                txid=tx_info['txid']
+                txid=item_info['txid']
             )
             
-            tx_data = verification_result.get('transaction_data', {})
-            tx_status = tx_data.get('tx_status', 'unknown')
+            # Enhanced verification logic to handle multiple success indicators
+            is_verified = self._is_transaction_verified(verification_result)
             
-            if verification_result['success'] and tx_status == 'success':
-                print(f"{nonce_str}: {Colors.format_success('✓ Verified')} (Confirmed in block {tx_data.get('block_height')})")
+            if is_verified:
+                print(f"{nonce_str}: {Colors.format_success('✓ Verification PASSED')}")
             else:
                 all_verified_successfully = False
-                error_info = verification_result.get('error', f'Final status was: {tx_status}')
-                print(f"{nonce_str}: {Colors.format_error('✗ FAILED VERIFICATION')} ({error_info})")
+                error_info = self._get_verification_error_info(verification_result)
+                print(f"{nonce_str}: {Colors.format_error('✗ Verification FAILED')} ({error_info})")
 
         if not all_verified_successfully:
-            raise RuntimeError("Test failed: Not all submitted transactions were successfully confirmed on-chain.")
+            raise RuntimeError(f"Test failed: Not all submitted {item_type}s were successfully confirmed on-chain.")
             
-        print(f"\n{Colors.format_success('✓ Condition 2 Met')}: All {len(batch_report['successful_submissions'])} submitted transactions were successfully verified on-chain.")
+        print(f"\n{Colors.format_success('✓ Condition 2 Met')}: All {len(batch_report['successful_submissions'])} submitted {item_type}s were successfully verified on-chain.")
         
         print(f"\n{Colors.format_success('✓ ALL CONDITIONS MET - TEST PASSED')}")
-        return True # Return True to the runner, indicating success
+        return True # Return True to the runner, indicating this step's success.
+
+    def _is_transaction_verified(self, verification_result: dict) -> bool:
+        """
+        Determines if a transaction is verified based on multiple success indicators.
+        
+        Args:
+            verification_result: The result dictionary from verify_transaction_no_wait
+            
+        Returns:
+            bool: True if the transaction is verified, False otherwise
+        """
+        # Check the primary success flag
+        if not verification_result.get('success', False):
+            return False
+        
+        # Get transaction data
+        tx_data = verification_result.get('transaction_data', {})
+        tx_status = tx_data.get('tx_status', 'unknown')
+        
+        # Check for standard success status
+        if tx_status == 'success':
+            return True
+        
+        # Check for "(ok true)" result pattern
+        result = tx_data.get('result', '')
+        if result == '(ok true)':
+            return True
+        
+        # Could add more success patterns here as needed
+        # For example: result.startswith('(ok ') for other ok patterns
+        
+        return False
+
+    def _get_verification_error_info(self, verification_result: dict) -> str:
+        """
+        Extracts error information from a failed verification result.
+        
+        Args:
+            verification_result: The result dictionary from verify_transaction_no_wait
+            
+        Returns:
+            str: A descriptive error message
+        """
+        # Check for explicit error in verification_result
+        if 'error' in verification_result:
+            return verification_result['error']
+        
+        # Check transaction status
+        tx_data = verification_result.get('transaction_data', {})
+        tx_status = tx_data.get('tx_status', 'unknown')
+        
+        if tx_status != 'success':
+            return f'Transaction status: {tx_status}'
+        
+        # Check result field for error patterns
+        result = tx_data.get('result', '')
+        if result and result != '(ok true)':
+            return f'Result: {result}'
+        
+        return 'Unknown verification failure'
 ---[  END  content of: /home/simone/Desktop/node-naka3.sh/tests/utils/forensics.py ]---
 
 
@@ -1277,6 +2057,10 @@ from .base import StacksTestBase, Colors
 from .exceptions import BatchProcessingError
 
 class Transaction(StacksTestBase):
+    
+    def __init__(self):
+        super().__init__()
+        self.submitted_transactions = []  # Store submitted transaction IDs for later verification
     
     def transfer(self, from_miner: str, to_address: str, amount: int, 
                 memo: Optional[str] = None, nonce: Optional[int] = None, silent: bool = False) -> str:
@@ -1320,16 +2104,20 @@ class Transaction(StacksTestBase):
         
         return txid
     
-    def batch(self, from_miner: str, transfers: list, context: Optional[dict] = None) -> Dict[str, Any]:
+    def batch(self, from_miner: str, transfers: list, context: Optional[dict] = None) -> bool:
         """
-        Submits transactions rapidly until the 'TooMuchChaining' limit is reached.
-        If a context dictionary is provided, it stores its detailed report there
-        for consumption by subsequent recipe steps.
+        Submits transactions until the 'TooMuchChaining' limit is reached.
+        This method is designed to be the first step in a multi-step recipe.
+        It stores its findings in the provided 'context' dictionary for the
+        next step to analyze.
         """
+        if context is None:
+            raise ValueError("A 'context' dictionary must be provided to the batch method.")
+
         account = self.get_account(from_miner)
         initial_nonce = self.get_nonce(from_miner)
         
-        print(f"\n{Colors.format_header(f'=== BATCH TRANSFER (until limit found) ===')}")
+        print(f"\n{Colors.format_header(f'=== BATCH SUBMISSION (until limit found) ===')}")
         print(f"Starting nonce: {Colors.format_dim(str(initial_nonce))}")
 
         # Phase 1: Preparation
@@ -1361,8 +2149,99 @@ class Transaction(StacksTestBase):
                 if "TooMuchChaining" in error_str or "Nonce would exceed chaining limit" in error_str:
                     print(f"\n{Colors.format_success('✓ LIMIT FOUND')}: Node correctly rejected transaction with nonce {nonce}.")
                     print(f"  Reason: {Colors.format_warning(error_str)}")
+                    
+                    # Parse expected nonce from error message for immediate retry
+                    expected_nonce = self._extract_expected_nonce(error_str)
+                    current_block_height = self.get_block_height(from_miner)
+                    
+                    print(f"  Failed nonce: {nonce}, Expected nonce in error: {expected_nonce}")
+                    print(f"  Last successful nonce: {successful_submissions[-1]['nonce'] if successful_submissions else 'none'}")
+                    
+                    # IMMEDIATE RETRY in same block
+                    if expected_nonce is not None:
+                        print(f"\n{Colors.format_header('=== IMMEDIATE RETRY IN SAME BLOCK ===')}")
+                        
+                        # Check block height hasn't proceeded
+                        retry_block_height = self.get_block_height(from_miner)
+                        if retry_block_height != current_block_height:
+                            print(f"{Colors.format_error('✗ BLOCK PROCEEDED DURING RETRY SETUP!')}")
+                            raise RuntimeError("Block proceeded during mempool testing - test must be restarted")
+                        
+                        # Find the transaction to retry with expected nonce
+                        retry_tx = None
+                        for tx_data in prepared_txs:
+                            if tx_data['nonce'] == expected_nonce:
+                                retry_tx = tx_data
+                                break
+                        
+                        if retry_tx:
+                            print(f"Retrying with nonce {expected_nonce} immediately...")
+                            try:
+                                # Double-check block height before submission
+                                final_check_height = self.get_block_height(from_miner)
+                                if final_check_height != current_block_height:
+                                    print(f"{Colors.format_error('✗ BLOCK PROCEEDED DURING RETRY!')}")
+                                    raise RuntimeError("Block proceeded during mempool testing - test must be restarted")
+                                
+                                response = self.api_call(account, "/v2/transactions", "POST", retry_tx['binary'])
+                                retry_txid = self.handle_api_response(response)
+                                print(f"{Colors.format_success(f'✓ IMMEDIATE RETRY SUCCESS (nonce {expected_nonce})')}: {Colors.format_dim(retry_txid)}")
+                                
+                                # Add to successful submissions
+                                successful_submissions.append({'txid': retry_txid, 'transfer': retry_tx['transfer'], 'nonce': expected_nonce})
+                                
+                                # IMMEDIATELY try nonce +1 after successful retry
+                                next_nonce = expected_nonce + 1
+                                print(f"Now trying nonce {next_nonce} immediately...")
+                                
+                                # Check block height again
+                                next_check_height = self.get_block_height(from_miner)
+                                if next_check_height != current_block_height:
+                                    print(f"{Colors.format_error('✗ BLOCK PROCEEDED DURING NEXT RETRY!')}")
+                                    raise RuntimeError("Block proceeded during mempool testing - test must be restarted")
+                                
+                                # Find or create transaction for next nonce
+                                next_tx = None
+                                for tx_data in prepared_txs:
+                                    if tx_data['nonce'] == next_nonce:
+                                        next_tx = tx_data
+                                        break
+                                
+                                if next_tx:
+                                    try:
+                                        response = self.api_call(account, "/v2/transactions", "POST", next_tx['binary'])
+                                        next_txid = self.handle_api_response(response)
+                                        print(f"{Colors.format_success(f'✓ NEXT NONCE SUCCESS (nonce {next_nonce})')}: {Colors.format_dim(next_txid)}")
+                                        successful_submissions.append({'txid': next_txid, 'transfer': next_tx['transfer'], 'nonce': next_nonce})
+                                        
+                                        # Continue the loop to try even more nonces
+                                        print(f"Continuing to test higher nonces...")
+                                        
+                                    except Exception as next_e:
+                                        next_error = str(next_e)
+                                        print(f"{Colors.format_warning(f'✗ NEXT NONCE FAILED (nonce {next_nonce})')}: {next_error}")
+                                        if "TooMuchChaining" in next_error:
+                                            print(f"  Confirmed: Limit is now at nonce {next_nonce}")
+                                        # Don't break - let the outer logic handle this
+                                else:
+                                    print(f"{Colors.format_warning(f'⚠ No prepared tx found for next nonce {next_nonce}')}")
+                                
+                            except Exception as retry_e:
+                                retry_error = str(retry_e)
+                                print(f"{Colors.format_error(f'✗ IMMEDIATE RETRY FAILED')}: {retry_error}")
+                                # Continue with original logic - store retry info for later analysis
+                        else:
+                            print(f"{Colors.format_warning(f'⚠ Could not find prepared tx for nonce {expected_nonce}')}")
+                    
                     limit_found_at_nonce = nonce
-                    break # Stop submitting immediately
+                    context['retry_info'] = {
+                        'expected_nonce': expected_nonce,
+                        'failed_nonce': nonce,
+                        'retry_nonce': expected_nonce,
+                        'block_height_when_failed': current_block_height,
+                        'immediate_retry_attempted': expected_nonce is not None
+                    }
+                    break
                 else:
                     print(f"{Colors.format_error(f'✗ UNEXPECTED ERROR at nonce {nonce}')}")
                     raise e
@@ -1371,23 +2250,19 @@ class Transaction(StacksTestBase):
         if successful_submissions:
             print(f"\n{Colors.format_subheader('Waiting for submitted transactions to confirm...')}")
             last_submitted_nonce = successful_submissions[-1]['nonce']
-            self.wait_for_nonce_increase(from_miner, last_submitted_nonce, 1, timeout=60) # Wait for nonce to be >= last_submitted_nonce + 1
+            self.wait_for_nonce_increase(from_miner, last_submitted_nonce, 1, timeout=60)
             print("Confirmation wait complete.")
 
-        # Phase 4: Package the results
-        report = {
+        # Phase 4: Store the results in the shared context
+        context['batch_report'] = {
             "status": "LimitFound" if limit_found_at_nonce != -1 else "CompletedWithoutLimit",
-            "message": f"Found limit at nonce {limit_found_at_nonce}." if limit_found_at_nonce != -1 else "No limit found.",
             "successful_submissions": successful_submissions,
             "limit_nonce": limit_found_at_nonce,
             "from_miner": from_miner
         }
-
-        # Store the report in the shared context for the next step
-        if context is not None:
-            context['batch_report'] = report
         
-        return report
+        # This step is successful if it completes without an unexpected error.
+        return True
     
     def sponsored_transfer(self, origin_miner: str, sponsor_miner: str, to_address: str, 
                            amount: int, sponsor_nonce: int) -> str:
@@ -1426,6 +2301,169 @@ class Transaction(StacksTestBase):
         account = self.get_account(miner)
         response = self.api_call(account, f"/extended/v1/tx/{tx_id}")
         return self.handle_api_response(response)
+    
+    def _extract_expected_nonce(self, error_str: str) -> Optional[int]:
+        """Extract expected nonce from TooMuchChaining error message."""
+        import re
+        # Look for pattern like "expected': 26" in the error
+        match = re.search(r"'expected':\s*(\d+)", error_str)
+        if match:
+            return int(match.group(1))
+        return None
+
+    def submit_no_wait(self, target_miner: str, from_miner: str, to_address: str, 
+                          amount: int, memo: Optional[str] = None, nonce: Optional[int] = None) -> str:
+        """Submit transaction to specific miner's endpoint without waiting for confirmation"""
+        from_account = self.get_account(from_miner)
+        target_account = self.get_account(target_miner)
+        
+        # Use provided nonce or get current nonce
+        if nonce is not None:
+            use_nonce = nonce
+        else:
+            use_nonce = self.get_nonce(from_miner)
+            
+        initial_height = self.get_block_height(target_miner)
+        
+        print(f"\n{Colors.format_header('=== SUBMITTING UNPROCESSED TX ===')}")
+        print(f"Target Miner: {Colors.format_info(target_miner)} (endpoint: {target_account.api_url})")
+        print(f"From Account: {Colors.format_info(from_account.address)}")
+        print(f"To Address: {Colors.format_info(to_address)}")
+        print(f"Amount: {Colors.format_success(f'{amount} µSTX')}")
+        print(f"Current Block Height: {Colors.format_dim(str(initial_height))}")
+        print(f"Using nonce: {Colors.format_dim(str(use_nonce))}")
+        
+        # Create transaction
+        cmd = ["blockstack-cli", "--testnet", "token-transfer", from_account.private_key, 
+               "180", str(use_nonce), to_address, str(amount)]
+        if memo:
+            cmd.append(memo)
+        
+        print(f"{Colors.format_dim('Creating transaction binary...')}")
+        tx_binary = self.run_cli_command(cmd, binary_output=True)
+        
+        # Submit to specific miner's endpoint
+        print(f"{Colors.format_dim(f'Submitting to {target_miner} endpoint...')}")
+        response = self.api_call(target_account, "/v2/transactions", "POST", tx_binary)
+        txid = self.handle_api_response(response)
+        
+        print(f"{Colors.format_success(f'✓ Transaction submitted to {target_miner}: {txid}')}")
+        print(f"{Colors.format_warning('⚠ NOT waiting for confirmation - keeping in mempool')}")
+        
+        # Capture initial state for later verification with verify_transaction
+        initial_nonce = self.get_nonce(from_miner)
+        initial_balance = self.get_balance(from_miner)
+        initial_height = self.get_block_height(target_miner)
+        
+        # Store transaction info for later verification
+        self.submitted_transactions.append({
+            'txid': txid,
+            'from_miner': from_miner,
+            'target_miner': target_miner,
+            'to_address': to_address,
+            'amount': amount,
+            'nonce': use_nonce,
+            'memo': memo,
+            'initial_nonce': initial_nonce,
+            'initial_balance': initial_balance,
+            'initial_height': initial_height
+        })
+        
+        return txid
+
+    def verify_previous_transactions(self, query_miner: str, check_stopped_miner: bool = False, 
+                                   check_resumed_miner: bool = False) -> Dict[str, Any]:
+        """Verify previously submitted transactions using verify_transaction_no_wait from base.py"""
+        
+        if check_stopped_miner:
+            print(f"\n{Colors.format_header('=== VERIFYING TXS WHILE MINER2 IS STOPPED ===')}")
+            print(f"Query Miner: {Colors.format_info(query_miner)} (checking from active miner)")
+        elif check_resumed_miner:
+            print(f"\n{Colors.format_header('=== VERIFYING TXS AFTER MINER2 RESUMED ===')}")
+            print(f"Query Miner: {Colors.format_info(query_miner)} (checking from resumed miner)")
+        else:
+            print(f"\n{Colors.format_header('=== VERIFYING PREVIOUS TRANSACTIONS ===')}")
+            print(f"Query Miner: {Colors.format_info(query_miner)}")
+        
+        if not self.submitted_transactions:
+            print(f"{Colors.format_warning('⚠ No previous transactions to verify')}")
+            return {"success": False, "error": "No transactions submitted"}
+        
+        print(f"Transactions to verify: {Colors.format_info(str(len(self.submitted_transactions)))}")
+        
+        verification_results = []
+        for i, tx_info in enumerate(self.submitted_transactions, 1):
+            txid = tx_info['txid']
+            print(f"\n{Colors.format_subheader(f'Verifying Transaction {i}/{len(self.submitted_transactions)}')}")
+            print(f"  TX ID: {Colors.format_dim(txid)}")
+            print(f"  From: {Colors.format_dim(tx_info['from_miner'])}")
+            print(f"  To: {Colors.format_dim(tx_info['to_address'])}")
+            print(f"  Amount: {Colors.format_dim(str(tx_info['amount']))} µSTX")
+            print(f"  Nonce: {Colors.format_dim(str(tx_info['nonce']))}")
+            
+            # Use verify_transaction from base.py (waits for confirmation)
+            try:
+                verification = self.verify_transaction(
+                    query_miner, 
+                    txid, 
+                    tx_info['initial_nonce'], 
+                    tx_info['initial_balance'], 
+                    tx_info['initial_height'], 
+                    tx_info['to_address']
+                )
+                verification_results.append({
+                    'txid': txid,
+                    'verification': verification
+                })
+                
+                if verification['success']:
+                    print(f"  Status: {Colors.format_success('✓ TRANSACTION CONFIRMED')}")
+                    print(f"  Nonce Change: {Colors.format_info(str(verification.get('nonce_change', 'N/A')))}")
+                    print(f"  Balance Change: {Colors.format_info(str(verification.get('balance_change', 'N/A')))} µSTX")
+                    print(f"  Height Change: {Colors.format_info(str(verification.get('height_change', 'N/A')))} blocks")
+                else:
+                    print(f"  Status: {Colors.format_error('✗ TRANSACTION NOT CONFIRMED')}")
+                    if 'error' in verification:
+                        print(f"  Error: {Colors.format_error(verification['error'])}")
+                        
+            except Exception as e:
+                print(f"  Status: {Colors.format_error('✗ VERIFICATION FAILED')}")
+                print(f"  Error: {Colors.format_error(str(e))}")
+                verification_results.append({
+                    'txid': txid,
+                    'verification': {'success': False, 'error': str(e)}
+                })
+        
+        # Summary
+        successful_verifications = sum(1 for result in verification_results 
+                                     if result['verification']['success'])
+        total_verifications = len(verification_results)
+        
+        print(f"\n{Colors.format_subheader('VERIFICATION SUMMARY')}")
+        print(f"Successful verifications: {Colors.format_info(f'{successful_verifications}/{total_verifications}')}")
+        
+        if check_stopped_miner:
+            if successful_verifications == 0:
+                print(f"{Colors.format_success('✓ Expected: No transactions confirmed while miner2 stopped')}")
+                print(f"{Colors.format_dim('  This means transactions were lost when miner2 stopped')}")
+                return {"success": True, "verified_count": successful_verifications, "expected_failure": True}
+            else:
+                print(f"{Colors.format_warning('⚠ Unexpected: Some transactions confirmed from other miners')}")
+                print(f"{Colors.format_dim('  This means transactions propagated to other miners')}")
+                return {"success": True, "verified_count": successful_verifications, "unexpected_success": True}
+        elif check_resumed_miner:
+            if successful_verifications > 0:
+                print(f"{Colors.format_success('✓ Expected: Transactions confirmed after miner2 resumed')}")
+                print(f"{Colors.format_dim('  This means mempool transactions were recovered/processed')}")
+                return {"success": True, "verified_count": successful_verifications, "recovery_success": True}
+            else:
+                print(f"{Colors.format_warning('⚠ Transactions still not confirmed after resume')}")
+                print(f"{Colors.format_dim('  This means mempool transactions were permanently lost')}")
+                return {"success": True, "verified_count": successful_verifications, "recovery_partial": True}
+        else:
+            return {"success": True, "verified_count": successful_verifications}
+        
+        return {"success": True, "verified_count": successful_verifications}
 ---[  END  content of: /home/simone/Desktop/node-naka3.sh/tests/utils/transaction.py ]---
 
 
@@ -1549,10 +2587,25 @@ class NodeManager:
 ---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/utils/__pycache__/exceptions.cpython-311.pyc (in excluded directory) ]---
 
 
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/utils/__pycache__/api_client.cpython-311.pyc (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/utils/__pycache__/api.cpython-311.pyc (in excluded directory) ]---
+
+
 ---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/utils/__pycache__/node_manager.cpython-311.pyc (in excluded directory) ]---
 
 
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/utils/__pycache__/atomic_ops.cpython-311.pyc (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/utils/__pycache__/blockstack_cli.cpython-311.pyc (in excluded directory) ]---
+
+
 ---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/utils/__pycache__/transaction.cpython-311.pyc (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/utils/__pycache__/config.cpython-311.pyc (in excluded directory) ]---
 
 
 ---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/utils/__pycache__/__init__.cpython-311.pyc (in excluded directory) ]---
@@ -1564,7 +2617,19 @@ class NodeManager:
 ---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/utils/__pycache__/forensics.cpython-311.pyc (in excluded directory) ]---
 
 
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/utils/__pycache__/forensics_ops.cpython-311.pyc (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/utils/__pycache__/fee_calculator.cpython-311.pyc (in excluded directory) ]---
+
+
 ---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/utils/__pycache__/nft.cpython-311.pyc (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/utils/__pycache__/operations.cpython-311.pyc (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/utils/__pycache__/cli.cpython-311.pyc (in excluded directory) ]---
 
 
 ---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/utils/__pycache__/recipes.cpython-311.pyc (in excluded directory) ]---
@@ -1803,6 +2868,212 @@ class Contract(StacksTestBase):
             raise RuntimeError(f"Contract call verification failed: {verification['error']}")
         
         return txid
+    
+    def _extract_expected_nonce(self, error_str: str) -> Optional[int]:
+        """Extract expected nonce from TooMuchChaining error message."""
+        import re
+        # Look for pattern like "expected': 26" in the error
+        match = re.search(r"'expected':\s*(\d+)", error_str)
+        if match:
+            return int(match.group(1))
+        return None
+
+    def batch_deploy(self, from_miner: str, contracts: list, context: Optional[dict] = None) -> bool:
+        """
+        Submits contract deployments until the 'TooMuchChaining' limit is reached.
+        This method is designed to be the first step in a multi-step recipe.
+        It stores its findings in the provided 'context' dictionary for the
+        next step to analyze.
+        """
+        if context is None:
+            raise ValueError("A 'context' dictionary must be provided to the batch_deploy method.")
+
+        account = self.get_account(from_miner)
+        initial_nonce = self.get_nonce(from_miner)
+        
+        print(f"\n{Colors.format_header(f'=== BATCH CONTRACT DEPLOYMENT (until limit found) ===')}")
+        print(f"Starting nonce: {Colors.format_dim(str(initial_nonce))}")
+
+        # Phase 1: Preparation
+        prepared_deployments = []
+        for i, contract_file in enumerate(contracts):
+            try:
+                nonce = initial_nonce + i
+                contract_name = f"stress-contract-{nonce}"
+                
+                # Calculate dynamic fee based on contract size
+                if not os.path.isabs(contract_file):
+                    test_path = os.path.join(os.path.dirname(__file__), '..', contract_file)
+                    if os.path.exists(test_path):
+                        contract_file = test_path
+                
+                with open(contract_file, 'r') as f:
+                    contract_code = f.read().strip()
+                
+                contract_size = len(contract_code)
+                base_fee = max(contract_size, 10000)
+                fee = str(int(base_fee * 1.1))
+                
+                cmd = ["blockstack-cli", "--testnet", "publish", account.private_key, fee, str(nonce), contract_name, contract_file]
+                deployment_binary = self.run_cli_command(cmd, binary_output=True)
+                prepared_deployments.append({
+                    'binary': deployment_binary, 
+                    'contract_file': contract_file, 
+                    'nonce': nonce,
+                    'name': contract_name,
+                    'fee': fee
+                })
+                
+            except Exception as e:
+                raise RuntimeError(f"Failed to prepare contract deployment for nonce {initial_nonce + i}: {e}")
+        
+        # Phase 2: Intelligent Submission
+        successful_submissions = []
+        limit_found_at_nonce = -1
+        
+        print(f"\n{Colors.format_subheader(f'Submitting contract deployments until mempool chaining limit is reached...')}")
+        
+        for deployment_data in prepared_deployments:
+            nonce = deployment_data['nonce']
+            contract_name = deployment_data['name']
+            try:
+                response = self.api_call(account, "/v2/transactions", "POST", deployment_data['binary'])
+                txid = self.handle_api_response(response)
+                successful_submissions.append({
+                    'txid': txid, 
+                    'contract_file': deployment_data['contract_file'], 
+                    'nonce': nonce,
+                    'name': contract_name
+                })
+                print(f"{Colors.format_success(f'✓ Deployed contract (nonce {nonce})')}: {Colors.format_dim(contract_name)} - {Colors.format_dim(txid)}")
+                
+            except Exception as e:
+                error_str = str(e)
+                if "TooMuchChaining" in error_str or "Nonce would exceed chaining limit" in error_str:
+                    print(f"\n{Colors.format_success('✓ LIMIT FOUND')}: Node correctly rejected deployment with nonce {nonce}.")
+                    print(f"  Reason: {Colors.format_warning(error_str)}")
+                    
+                    # Parse expected nonce from error message for immediate retry
+                    expected_nonce = self._extract_expected_nonce(error_str)
+                    current_block_height = self.get_block_height(from_miner)
+                    
+                    print(f"  Failed nonce: {nonce}, Expected nonce in error: {expected_nonce}")
+                    print(f"  Last successful nonce: {successful_submissions[-1]['nonce'] if successful_submissions else 'none'}")
+                    
+                    # IMMEDIATE RETRY in same block
+                    if expected_nonce is not None:
+                        print(f"\n{Colors.format_header('=== IMMEDIATE RETRY IN SAME BLOCK ===')}")
+                        
+                        # Check block height hasn't proceeded
+                        retry_block_height = self.get_block_height(from_miner)
+                        if retry_block_height != current_block_height:
+                            print(f"{Colors.format_error('✗ BLOCK PROCEEDED DURING RETRY SETUP!')}")
+                            raise RuntimeError("Block proceeded during mempool testing - test must be restarted")
+                        
+                        # Find the deployment to retry with expected nonce
+                        retry_deployment = None
+                        for deploy_data in prepared_deployments:
+                            if deploy_data['nonce'] == expected_nonce:
+                                retry_deployment = deploy_data
+                                break
+                        
+                        if retry_deployment:
+                            print(f"Retrying contract deployment with nonce {expected_nonce} immediately...")
+                            try:
+                                # Double-check block height before submission
+                                final_check_height = self.get_block_height(from_miner)
+                                if final_check_height != current_block_height:
+                                    print(f"{Colors.format_error('✗ BLOCK PROCEEDED DURING RETRY!')}")
+                                    raise RuntimeError("Block proceeded during mempool testing - test must be restarted")
+                                
+                                response = self.api_call(account, "/v2/transactions", "POST", retry_deployment['binary'])
+                                retry_txid = self.handle_api_response(response)
+                                print(f"{Colors.format_success(f'✓ IMMEDIATE RETRY SUCCESS (nonce {expected_nonce})')}: {Colors.format_dim(retry_deployment['name'])} - {Colors.format_dim(retry_txid)}")
+                                
+                                # Add to successful submissions
+                                successful_submissions.append({
+                                    'txid': retry_txid, 
+                                    'contract_file': retry_deployment['contract_file'], 
+                                    'nonce': expected_nonce,
+                                    'name': retry_deployment['name']
+                                })
+                                
+                                # IMMEDIATELY try nonce +1 after successful retry
+                                next_nonce = expected_nonce + 1
+                                print(f"Now trying contract deployment nonce {next_nonce} immediately...")
+                                
+                                # Check block height again
+                                next_check_height = self.get_block_height(from_miner)
+                                if next_check_height != current_block_height:
+                                    print(f"{Colors.format_error('✗ BLOCK PROCEEDED DURING NEXT RETRY!')}")
+                                    raise RuntimeError("Block proceeded during mempool testing - test must be restarted")
+                                
+                                # Find deployment for next nonce
+                                next_deployment = None
+                                for deploy_data in prepared_deployments:
+                                    if deploy_data['nonce'] == next_nonce:
+                                        next_deployment = deploy_data
+                                        break
+                                
+                                if next_deployment:
+                                    try:
+                                        response = self.api_call(account, "/v2/transactions", "POST", next_deployment['binary'])
+                                        next_txid = self.handle_api_response(response)
+                                        print(f"{Colors.format_success(f'✓ NEXT NONCE SUCCESS (nonce {next_nonce})')}: {Colors.format_dim(next_deployment['name'])} - {Colors.format_dim(next_txid)}")
+                                        successful_submissions.append({
+                                            'txid': next_txid, 
+                                            'contract_file': next_deployment['contract_file'], 
+                                            'nonce': next_nonce,
+                                            'name': next_deployment['name']
+                                        })
+                                        
+                                        # Continue the loop to try even more nonces
+                                        print(f"Continuing to test higher nonces...")
+                                        
+                                    except Exception as next_e:
+                                        next_error = str(next_e)
+                                        print(f"{Colors.format_warning(f'✗ NEXT NONCE FAILED (nonce {next_nonce})')}: {next_error}")
+                                        if "TooMuchChaining" in next_error:
+                                            print(f"  Confirmed: Limit is now at nonce {next_nonce}")
+                                else:
+                                    print(f"{Colors.format_warning(f'⚠ No prepared deployment found for next nonce {next_nonce}')}")
+                                
+                            except Exception as retry_e:
+                                retry_error = str(retry_e)
+                                print(f"{Colors.format_error(f'✗ IMMEDIATE RETRY FAILED')}: {retry_error}")
+                        else:
+                            print(f"{Colors.format_warning(f'⚠ Could not find prepared deployment for nonce {expected_nonce}')}")
+                    
+                    limit_found_at_nonce = nonce
+                    context['retry_info'] = {
+                        'expected_nonce': expected_nonce,
+                        'failed_nonce': nonce,
+                        'retry_nonce': expected_nonce,
+                        'block_height_when_failed': current_block_height,
+                        'immediate_retry_attempted': expected_nonce is not None
+                    }
+                    break
+                else:
+                    print(f"{Colors.format_error(f'✗ UNEXPECTED ERROR at nonce {nonce}')}")
+                    raise e
+        
+        # Phase 3: Wait for submitted deployments to confirm
+        if successful_submissions:
+            print(f"\n{Colors.format_subheader('Waiting for submitted contract deployments to confirm...')}")
+            last_submitted_nonce = successful_submissions[-1]['nonce']
+            self.wait_for_nonce_increase(from_miner, last_submitted_nonce, 1, timeout=60)
+            print("Confirmation wait complete.")
+
+        # Phase 4: Store the results in the shared context
+        context['batch_report'] = {
+            "status": "LimitFound" if limit_found_at_nonce != -1 else "CompletedWithoutLimit",
+            "successful_submissions": successful_submissions,
+            "limit_nonce": limit_found_at_nonce,
+            "from_miner": from_miner
+        }
+        
+        # This step is successful if it completes without an unexpected error.
+        return True
 
 ---[  END  content of: /home/simone/Desktop/node-naka3.sh/tests/utils/contract.py ]---
 
@@ -2110,7 +3381,7 @@ class StacksTestBase:
         except Exception as final_e:
             raise RuntimeError(f"Failed to get final nonce after timeout. Last known error: {last_error or str(final_e)}")
     
-    def verify_transaction_direct(self, miner: str, txid: str, recipient_address: Optional[str] = None) -> Dict[str, Any]:
+    def verify_transaction_no_wait(self, miner: str, txid: str, recipient_address: Optional[str] = None) -> Dict[str, Any]:
         """
         Verifies a transaction by fetching its details directly without waiting.
         This is a non-blocking status check designed for forensic analysis.
@@ -2338,6 +3609,9 @@ class StacksTestBase:
 ---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/contract-400kb.clar (in excluded directory) ]---
 
 
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/contract-3000kb.clar (in excluded directory) ]---
+
+
 ---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/contract-200kb.clar (in excluded directory) ]---
 
 
@@ -2377,7 +3651,13 @@ class StacksTestBase:
 ---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/bundler.clar (in excluded directory) ]---
 
 
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/memory-bomb.clar (in excluded directory) ]---
+
+
 ---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/contract-120kb.clar (in excluded directory) ]---
+
+
+---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/contract-4000kb.clar (in excluded directory) ]---
 
 
 ---[ SKIPPING content of: /home/simone/Desktop/node-naka3.sh/tests/contracts/contract-2000kb.clar (in excluded directory) ]---
@@ -2643,11 +3923,12 @@ def main():
         (25000, 2000, "contract-2000kb.clar"),
         (28125, 2250, "contract-2250kb.clar"),  # This one might be close to the limit
         
-        # Massive size (known to fail, rename from 5mb to actual size)
-        (56250, 4500, "contract-2200kb.clar"),  # This is actually ~2.2MB
+        # Massive sizes (known to fail or pushing limits)
+        (75000, 6000, "contract-3000kb.clar"),  # ~3MB contract  
+        (100000, 8000, "contract-4000kb.clar"),  # ~4MB contract
     ]
     
-    print(f"📊 Generating {len(contracts)} contracts from 8KB to 2200KB...")
+    print(f"📊 Generating {len(contracts)} contracts from 8KB to 4000KB...")
     
     for function_count, size_kb, filename in contracts:
         print(f"📄 Generating {size_kb}KB contract with {function_count} functions...")
@@ -2662,7 +3943,7 @@ def main():
         print(f"✅ {filename}: {contract_size:,} bytes ({actual_kb:.1f} KB)")
     
     print(f"\n🔬 Generated {len(contracts)} contracts for binary search of Stacks size limits!")
-    print("🎯 Range: 8KB (should work) → 2200KB (should fail)")
+    print("🎯 Range: 8KB (should work) → 4000KB (should definitely fail)")
     print("📈 This will help us find the exact deployment size limit!")
 
 if __name__ == "__main__":
