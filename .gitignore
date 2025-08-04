@@ -1,12 +1,12 @@
 *.sw*
-.vscode/
-logs
-tmp
-node_modules
+*/.vscode
+*/logs
+*/tmp
+*/node_modules
+*/__pycache__
+*/.DS_Store
+*/.claude
 
-tests/__pycache__
-tests/recipes/__pycache__
-tests/utils/__pycache__
-
-.DS_Store
-.claude
+idee.txt
+ignore-this
+folder-scan.txt
