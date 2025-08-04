@@ -24,7 +24,7 @@ OUTPUT_FILE="tree-pro-output.txt"
 # Any file inside a directory with these names will be skipped.
 # The check is for "/dirname/" so it won't match "my_contract_file.txt".
 # Add or remove names as needed.
-EXCLUDE_FROM_CAT=("contracts" "__pycache__" ".claude" "node_modules" ".git" "venv")
+EXCLUDE_FROM_CAT=("contracts" "__pycache__" ".claude" "node_modules" ".git" "venv" "ignore-this")
 
 
 # --- Pre-run Checks ---

@@ -1,14 +1,15 @@
-# stacks-core-api.py
+#!/usr/bin/env python3
 
 import requests
 import json
 from typing import List, Optional, Dict, Any
-from colors import Colors, logger
+from .colors import Colors, logger
 
 class StacksCoreAPIWrapper:
     """
     A comprehensive Python wrapper for the Stacks 3.0+ RPC API, covering all
-    endpoints from the provided OpenAPI specification.
+    endpoints from the provided OpenAPI specification and correcting for
+    discrepancies between the spec and actual server behavior.
     """
     def __init__(self, base_url: str = "http://localhost:20443", auth_token: Optional[str] = None):
         self.base_url = base_url
@@ -24,20 +25,20 @@ class StacksCoreAPIWrapper:
         try:
             response = self.session.request(method, url, **kwargs, timeout=20)
             
-            status_color = Colors.format_success if 200 <= response.status_code < 300 else Colors.format_warn if response.status_code < 500 else Colors.format_fail
-            logger.debug(f"<- Status: {status_color(str(response.status_code))}")
+            status_color_fn = Colors.format_success if 200 <= response.status_code < 300 else Colors.format_warn if response.status_code < 500 else Colors.format_fail
+            logger.debug(f"<- Status: {status_color_fn(str(response.status_code))}")
             
-            content_type = response.headers.get('Content-Type', '')
             if not response.ok:
                 logger.error(f"API Error ({response.status_code}): {response.text}")
                 return None
 
+            content_type = response.headers.get('Content-Type', '')
             if 'application/json' in content_type:
                 return response.json()
             elif 'application/octet-stream' in content_type:
                 return response.content
             else:
-                return response.text
+                return response.text.strip('"')
         except requests.exceptions.RequestException as e:
             logger.critical(f"An HTTP request error occurred: {Colors.format_fail(str(e))}")
             return None
@@ -76,13 +77,13 @@ class StacksCoreAPIWrapper:
         return self._make_request('GET', f'/v2/contracts/interface/{contract_address}/{contract_name}', params={'tip': tip} if tip else {})
 
     def get_map_entry(self, contract_address: str, contract_name: str, map_name: str, key_hex_json_string: str, *, proof: Optional[int] = None, tip: Optional[str] = None) -> Optional[Dict]:
-        """POST /v2/map_entry/{...} - Get a data-map entry. Key must be a JSON string atom."""
+        """POST /v2/map_entry/{...} - Get a data-map entry."""
         endpoint = f'/v2/map_entry/{contract_address}/{contract_name}/{map_name}'
         params = {k: v for k, v in {'proof': proof, 'tip': tip}.items() if v is not None}
         return self._make_request('POST', endpoint, json=key_hex_json_string, params=params)
     
     def get_constant_value(self, contract_address: str, contract_name: str, constant_name: str, *, tip: Optional[str] = None) -> Optional[Dict]:
-        """POST /v2/constant_val/{...} - Get the value of a constant. Implemented as POST per spec."""
+        """POST /v2/constant_val/{...} - Get the value of a constant."""
         endpoint = f'/v2/constant_val/{contract_address}/{contract_name}/{constant_name}'
         return self._make_request('POST', endpoint, params={'tip': tip} if tip else {})
 
@@ -92,12 +93,12 @@ class StacksCoreAPIWrapper:
         return self._make_request('GET', endpoint, params={'tip': tip} if tip else {})
         
     def get_clarity_marf_value(self, marf_key: str, *, proof: Optional[int] = None, tip: Optional[str] = None) -> Optional[Dict]:
-        """POST /v2/clarity/marf/{...} - Get the MARF value for a key. Implemented as POST per spec."""
+        """POST /v2/clarity/marf/{...} - Get the MARF value for a key."""
         params = {k: v for k, v in {'proof': proof, 'tip': tip}.items() if v is not None}
         return self._make_request('POST', f'/v2/clarity/marf/{marf_key}', params=params)
         
     def get_clarity_metadata(self, contract_address: str, contract_name: str, metadata_key: str, *, tip: Optional[str] = None) -> Optional[Dict]:
-        """POST /v2/clarity/metadata/{...} - Get contract metadata. Implemented as POST per spec."""
+        """POST /v2/clarity/metadata/{...} - Get contract metadata."""
         endpoint = f'/v2/clarity/metadata/{contract_address}/{contract_name}/{metadata_key}'
         return self._make_request('POST', endpoint, params={'tip': tip} if tip else {})
 
@@ -122,8 +123,11 @@ class StacksCoreAPIWrapper:
         return self._make_request('GET', f'/v3/blocks/height/{block_height}', params={'tip': tip} if tip else {})
         
     def get_transaction_by_id(self, txid: str) -> Optional[Dict]:
-        """POST /v3/transaction/{txid} - Retrieve transaction details. Implemented as POST per spec."""
-        return self._make_request('POST', f'/v3/transaction/{txid}')
+        """GET /v3/transaction/{txid} - Retrieve transaction details.
+        NOTE: The OpenAPI spec incorrectly lists this as a POST endpoint. Real-world
+        testing shows it is a GET endpoint. This implementation uses GET.
+        """
+        return self._make_request('GET', f'/v3/transaction/{txid}')
         
     def get_tenure_info(self) -> Optional[Dict]:
         """GET /v3/tenures/info - Fetch metadata about the ongoing Nakamoto tenure."""
@@ -136,8 +140,10 @@ class StacksCoreAPIWrapper:
     def get_sortitions(self, *, lookup_kind: Optional[str] = None, lookup: Optional[str] = None) -> Optional[Dict]:
         """GET /v3/sortitions/{lookup_kind}/{lookup} - Fetch information about evaluated burnchain blocks."""
         endpoint = '/v3/sortitions'
-        if lookup_kind and lookup: endpoint += f'/{lookup_kind}/{lookup}'
-        elif lookup_kind: endpoint += f'/{lookup_kind}' # For cases like 'latest_and_last'
+        if lookup_kind and lookup:
+            endpoint += f'/{lookup_kind}/{lookup}'
+        elif lookup_kind:
+            endpoint += f'/{lookup_kind}'
         return self._make_request('GET', endpoint)
 
     # --- V3 Mining and Stacking ---
