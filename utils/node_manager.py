@@ -14,6 +14,8 @@ class NodeManager:
     def __init__(self):
         self.node_process = None
         self.running = False
+        self.node_log_handle = None
+        self.node_log_path = os.path.join(PROJECT_ROOT, "logs", "three-miners-test.log")
         self.apis = {
             name: StacksCoreAPIWrapper(base_url=account.api_url)
             for name, account in ACCOUNTS.items()
@@ -49,6 +51,8 @@ class NodeManager:
         logger.info(Colors.format_header("Starting three miners..."))
         try:
             cmd = ["./three-miners.sh", "snapshot", "restore"]
+            # Ensure logs directory exists
+            os.makedirs(os.path.dirname(self.node_log_path), exist_ok=True)
             logger.info(f"Redirecting three-miners.sh output to: {self.node_log_path}")
             self.node_log_handle = open(self.node_log_path, 'w')
             

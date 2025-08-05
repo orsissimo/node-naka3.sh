@@ -8,13 +8,15 @@ class Colors:
     GREEN = '\033[92m'
     RED = '\033[91m'
     YELLOW = '\033[93m'
+    BLUE = '\033[94m'
+    CYAN = '\033[96m'
     RESET = '\033[0m'
     BOLD = '\033[1m'
     DIM = '\033[2m'
 
     @staticmethod
     def format_header(text: str) -> str:
-        return f"{Colors.ORANGE}{text}{Colors.RESET}"
+        return f"{Colors.BLUE}{text}{Colors.RESET}"
 
     @staticmethod
     def format_grey(text: str) -> str:
@@ -32,6 +34,22 @@ class Colors:
     @staticmethod
     def format_warn(text: str) -> str:
         return f"{Colors.YELLOW}⚠ {text}{Colors.RESET}"
+    
+    @staticmethod
+    def format_info(text: str) -> str:
+        return f"{Colors.WHITE}{text}{Colors.RESET}"
+    
+    @staticmethod
+    def format_error(text: str) -> str:
+        return f"{Colors.RED}✗ {text}{Colors.RESET}"
+    
+    @staticmethod
+    def format_dim(text: str) -> str:
+        return f"{Colors.DIM}{text}{Colors.RESET}"
+    
+    @staticmethod
+    def format_subheader(text: str) -> str:
+        return f"{Colors.CYAN}{text}{Colors.RESET}"
 
 class ColorizingFormatter(logging.Formatter):
     """A logging formatter that adds color based on the log level."""
