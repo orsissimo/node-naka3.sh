@@ -255,9 +255,9 @@ def main():
             for tx_name, txid, sender, receiver, api_host, combo_code in found_while_stopped:
                 print(f"{Colors.format_dim(f'  - {tx_name} ({combo_code}): {sender} → {receiver} via {api_host}')}")
         
-        # Step 5: Resume miner2
-        print(f"\n{Colors.format_header('Step 5: Resume miner2')}")
-        tester.node_manager.resume_miner(2)
+        # Step 5: Resume target miner (same one we stopped)
+        print(f"\n{Colors.format_header(f'Step 5: Resume {target_miner_name}')}")
+        tester.node_manager.resume_miner(target_miner_num)
         
         # Step 6: Wait for confirmation after miner2 is resumed
         print(f"\n{Colors.format_header('Step 6: Wait for confirmation after miner2 resumed')}")
@@ -320,27 +320,13 @@ def main():
         print(f"\n{Colors.format_dim('=' * 80)}")
         print(f"{Colors.format_header('FINAL RESULT')}")
         print(f"{Colors.format_dim('=' * 80)}")
-
-        # Determine overall test result
-        if confirmation_result and transactions_found_after_resume:
-            print(f"{Colors.format_success('ALL TESTS PASSED')} - Perfect mempool recovery!")
-            print(f"{Colors.format_success('Key findings:')}")
-            print(f"  {Colors.format_success('•')} Nonce/height changes detected - transactions were processed")
-            print(f"  {Colors.format_success('•')} Transaction details found - transactions are in blockchain")
-            print(f"  {Colors.format_success('•')} Mempool transactions survived miner restart")
-        elif confirmation_result:
-            print(f"{Colors.format_success('ALL TESTS PASSED')} - Transaction processing detected!")
-            print(f"{Colors.format_success('Nonce/height changes detected')} - transactions were processed")
-        elif transactions_found_after_resume:
-            print(f"{Colors.format_success('ALL TESTS PASSED')} - Transactions found in blockchain!")
-            print(f"{Colors.format_success('Transaction details found')} - transactions are in blockchain")
-        else:
-            print(f"{Colors.format_warn('PARTIAL SUCCESS')} - Transactions appear to be permanently lost")
-            print(f"{Colors.format_warn('Note:')} This shows mempool does not persist across miner restarts")
         
         print(f"\n{Colors.format_info('Transaction Details')}:")
         for tx_name, txid, sender, receiver, api_host, combo_code in submitted_txs:
-            print(f"{Colors.format_info(f'{tx_name.upper()} ({combo_code})')}: {Colors.format_dim(txid)} - {Colors.format_dim(f'{sender} → {receiver} via {api_host} API')}")
+            # Check if this transaction was found after resume
+            is_verified = any(found_tx[1] == txid for found_tx in found_after_resume)
+            status_icon = f"{Colors.GREEN}✓{Colors.RESET}" if is_verified else f"{Colors.RED}✗{Colors.RESET}"
+            print(f"{status_icon} {Colors.format_info(f'{tx_name.upper()} ({combo_code})')}: {Colors.format_dim(txid)} - {Colors.format_dim(f'{sender} → {receiver} via {api_host} API')}")
         return True
         
     except Exception as e:
