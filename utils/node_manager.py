@@ -14,8 +14,6 @@ class NodeManager:
     def __init__(self):
         self.node_process = None
         self.running = False
-        self.node_log_handle = None
-        self.node_log_path = os.path.join(PROJECT_ROOT, "logs", "three-miners-test.log")
         self.apis = {
             name: StacksCoreAPIWrapper(base_url=account.api_url)
             for name, account in ACCOUNTS.items()
@@ -37,7 +35,7 @@ class NodeManager:
                     pass 
             
             if len(ready_miners) == len(miners_to_check):
-                logger.info(Colors.format_success(f"All {len(miners_to_check)} miners are ready."))
+                logger.info(Colors.format_stacks(f"All {len(miners_to_check)} miners are ready."))
                 return True
             
             logger.debug(f"Miners ready: {len(ready_miners)}/{len(miners_to_check)}. Waiting...")
@@ -48,19 +46,15 @@ class NodeManager:
 
     def start_node(self) -> bool:
         """Start the three miners node with colorized logging."""
-        logger.info(Colors.format_header("Starting three miners..."))
+        logger.info(Colors.format_stacks("Starting three miners..."))
         try:
             cmd = ["./three-miners.sh", "snapshot", "restore"]
-            # Ensure logs directory exists
-            os.makedirs(os.path.dirname(self.node_log_path), exist_ok=True)
-            logger.info(f"Redirecting three-miners.sh output to: {self.node_log_path}")
-            self.node_log_handle = open(self.node_log_path, 'w')
             
             self.node_process = subprocess.Popen(
                 cmd,
                 cwd=PLAYBOOK_DIR,
-                stdout=self.node_log_handle,
-                stderr=subprocess.STDOUT,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
                 text=True
             )
             self.running = True
@@ -71,7 +65,7 @@ class NodeManager:
                 logger.error(Colors.format_fail("Node process exited early."))
                 return False
                 
-            logger.info(Colors.format_success("Node process started"))
+            logger.info(Colors.format_stacks("Node process started"))
             
             if not self.wait_for_miners_ready():
                 raise RuntimeError("Not all miners became ready within the timeout period.")
@@ -80,17 +74,12 @@ class NodeManager:
             logger.critical(Colors.format_fail("Failed to start node", str(e)))
             if self.node_process and self.node_process.poll() is None:
                 self.node_process.terminate()
-            if self.node_log_handle:
-                self.node_log_handle.close()
             return False
         return True
     
     def stop_node(self):
         """Stop the three miners node."""
-        logger.info(Colors.format_header("Stopping three miners..."))
-        if self.node_log_handle:
-            self.node_log_handle.close()
-            self.node_log_handle = None
+        logger.info(Colors.format_stacks("Stopping three miners..."))
         try:
             subprocess.run(
                 ["./three-miners.sh", "stop"],
@@ -98,13 +87,13 @@ class NodeManager:
                 check=True,
                 capture_output=True
             )
-            logger.info(Colors.format_success("Node stopped"))
+            logger.info(Colors.format_stacks("Node stopped"))
         except Exception as e:
             logger.error(Colors.format_fail("Failed to stop node", str(e)))
     
     def resume_node(self):
         """Resume the three miners node."""
-        logger.info(Colors.format_header("Resuming three miners..."))
+        logger.info(Colors.format_stacks("Resuming three miners..."))
         try:
             subprocess.run(
                 ["./three-miners.sh", "resume"],
@@ -112,7 +101,7 @@ class NodeManager:
                 check=True,
                 capture_output=True
             )
-            logger.info(Colors.format_success("Node resumed"))
+            logger.info(Colors.format_stacks("Node resumed"))
         except Exception as e:
             logger.error(Colors.format_fail("Failed to resume node", str(e)))
     
@@ -121,7 +110,7 @@ class NodeManager:
         action_gerund = "Stopping" if action == "stop" else "Resuming"
         action_past = "stopped" if action == "stop" else "resumed"
 
-        logger.info(Colors.format_header(f"{action_gerund} miner{miner_id}..."))
+        logger.info(Colors.format_stacks(f"{action_gerund} miner{miner_id}..."))
         try:
             cmd = ["../../naka3.sh", "-c", f"./config-miner-{miner_id}.sh", "node", str(miner_id), action]
             subprocess.run(cmd, 
@@ -129,7 +118,7 @@ class NodeManager:
                 check=True, 
                 capture_output=True
             )
-            logger.info(Colors.format_success(f"Miner{miner_id} {action_past}"))
+            logger.info(Colors.format_stacks(f"Miner{miner_id} {action_past}"))
         except Exception as e:
             logger.error(Colors.format_fail(f"Failed to {action} miner{miner_id}", str(e)))
 
@@ -153,4 +142,4 @@ class NodeManager:
                 self.node_process.kill()
                 self.node_process.wait()
             self.running = False
-            logger.info(Colors.format_success("Cleanup complete"))
+            logger.info(Colors.format_stacks("Cleanup complete"))

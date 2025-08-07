@@ -98,11 +98,11 @@ class ContractTester:
         initial_height = self.get_block_height(miner)
         
         print(f"\n{Colors.format_header('=== CONTRACT DEPLOYMENT ===')}")
-        print(f"Contract: {Colors.format_info(contract_name)}")
-        print(f"File: {Colors.format_dim(contract_path)}")
-        print(f"Account: {Colors.format_info(account.address)}")
-        print(f"Initial balance: {Colors.format_dim(str(initial_balance))}")
-        print(f"Using nonce: {Colors.format_dim(str(initial_nonce))}")
+        print(f"{Colors.format_info('Contract')}: {Colors.format_dim(contract_name)}")
+        print(f"{Colors.format_info('File')}: {Colors.format_dim(contract_path)}")
+        print(f"{Colors.format_info('Account')}: {Colors.format_dim(account.address)}")
+        print(f"{Colors.format_info('Initial balance')}: {Colors.format_dim(str(initial_balance))}")
+        print(f"{Colors.format_info('Using nonce')}: {Colors.format_dim(str(initial_nonce))}")
         
         # Calculate fee based on contract size
         with open(contract_path, 'r') as f:
@@ -111,15 +111,15 @@ class ContractTester:
         contract_size = len(contract_code)
         base_fee = max(contract_size, 10000)
         fee = str(int(base_fee * 1.1))
-        print(f"Using fee: {Colors.format_success(f'{fee} µSTX')}")
+        print(f"{Colors.format_info('Using fee')}: {Colors.format_dim(f'{fee} µSTX')}")
         
         # Build and run CLI command
         cmd = self.cli.publish_contract(account.private_key, int(fee), initial_nonce, contract_name, contract_path)
         
-        print(f"{Colors.format_dim('Creating contract deployment transaction...')}")
+        print(f"{Colors.format_info('Creating contract deployment transaction...')}")
         tx_binary = self.run_cli_command(cmd, binary_output=True)
         
-        print(f"{Colors.format_dim('Submitting transaction...')}")
+        print(f"{Colors.format_info('Submitting transaction...')}")
         txid = api.post_raw_transaction(tx_binary)
         
         print(f"{Colors.format_success(f'Contract deployment submitted')}: {Colors.format_info(txid)}")
@@ -137,13 +137,13 @@ class ContractTester:
         api = StacksCoreAPIWrapper(base_url=account.api_url)
         
         print(f"\n{Colors.format_subheader('--- CONTRACT READ CALL ---')}")
-        print(f"Contract: {Colors.format_info(f'{contract_address}.{contract_name}')}")
-        print(f"Function: {Colors.format_success(function_name)}")
+        print(f"{Colors.format_info('Contract')}: {Colors.format_dim(f'{contract_address}.{contract_name}')}")
+        print(f"{Colors.format_info('Function')}: {Colors.format_dim(function_name)}")
         
         result = api.call_read_only_function(contract_address, contract_name, function_name, account.address, [])
         
         print(f"{Colors.format_success('Read-only call successful')}")
-        print(f"Response: {Colors.format_dim(json.dumps(result, indent=2))}")
+        print(f"{Colors.format_info('Response')}: {Colors.format_dim(json.dumps(result, indent=2))}")
         
         return result
     
@@ -158,21 +158,21 @@ class ContractTester:
         initial_height = self.get_block_height(miner)
         
         print(f"\n{Colors.format_header('=== CONTRACT CALL ===')}")
-        print(f"Contract: {Colors.format_info(f'{contract_address}.{contract_name}')}")
-        print(f"Function: {Colors.format_success(function_name)}")
-        print(f"Initial balance: {Colors.format_dim(str(initial_balance))}")
-        print(f"Using nonce: {Colors.format_dim(str(initial_nonce))}")
+        print(f"{Colors.format_info('Contract')}: {Colors.format_dim(f'{contract_address}.{contract_name}')}")
+        print(f"{Colors.format_info('Function')}: {Colors.format_dim(function_name)}")
+        print(f"{Colors.format_info('Initial balance')}: {Colors.format_dim(str(initial_balance))}")
+        print(f"{Colors.format_info('Using nonce')}: {Colors.format_dim(str(initial_nonce))}")
         
         fee = "5000"
-        print(f"Using fee: {Colors.format_success(f'{fee} µSTX')}")
+        print(f"{Colors.format_info('Using fee')}: {Colors.format_dim(f'{fee} µSTX')}")
         
         # Build and run CLI command
         cmd = self.cli.call_contract(account.private_key, int(fee), initial_nonce, contract_address, contract_name, function_name)
         
-        print(f"{Colors.format_dim('Creating transaction binary...')}")
+        print(f"{Colors.format_info('Creating transaction binary...')}")
         tx_binary = self.run_cli_command(cmd, binary_output=True)
         
-        print(f"{Colors.format_dim('Submitting contract call...')}")
+        print(f"{Colors.format_info('Submitting contract call...')}")
         txid = api.post_raw_transaction(tx_binary)
         
         print(f"{Colors.format_success('Contract call submitted')}: {Colors.format_info(txid)}")
@@ -186,15 +186,15 @@ class ContractTester:
 
 def main():
     """Execute the contract deployment and interaction test"""
-    print("=" * 60)
+    print(f"{Colors.format_dim('=' * 60)}")
     print(f"{Colors.format_header('CONTRACT COUNTER DEPLOYMENT AND INTERACTIONS TEST')}")
-    print("=" * 60)
+    print(f"{Colors.format_dim('=' * 60)}")
     
     tester = ContractTester()
     
     try:
         # Start the node
-        print(f"\n{Colors.format_header('Starting miners...')}")
+        print(f"\n{Colors.format_stacks('Starting miners...')}")
         if not tester.node_manager.start_node():
             raise RuntimeError("Failed to start miners")
         
@@ -235,14 +235,13 @@ def main():
         after_reset_caller = tester.read_contract("miner1", tester.miner1.address, "mycontract", "get-last-caller")
         
         # Final summary
-        print("\n" + "=" * 60)
+        print(f"\n{Colors.format_dim('=' * 60)}")
         print(f"{Colors.format_header('FINAL RESULT')}")
-        print("=" * 60)
+        print(f"{Colors.format_dim('=' * 60)}")
         
-        print(f"{Colors.format_success('ALL TESTS PASSED')} - Contract successfully deployed, tested, and chain healthy")
-        print(f"Deploy TXID: {Colors.format_dim(deploy_txid)}")
-        print(f"Increment TXID: {Colors.format_dim(increment_txid)}")
-        print(f"Reset TXID: {Colors.format_dim(reset_txid)}")
+        print(f"{Colors.format_info('Deploy TXID')}: {Colors.format_dim(deploy_txid)}")
+        print(f"{Colors.format_info('Increment TXID')}: {Colors.format_dim(increment_txid)}")
+        print(f"{Colors.format_info('Reset TXID')}: {Colors.format_dim(reset_txid)}")
         
         return True
         

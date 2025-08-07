@@ -51,6 +51,10 @@ class Colors:
     def format_subheader(text: str) -> str:
         return f"{Colors.CYAN}{text}{Colors.RESET}"
 
+    @staticmethod
+    def format_stacks(text: str) -> str:
+        return f"{Colors.ORANGE}{text}{Colors.RESET}"
+
 class ColorizingFormatter(logging.Formatter):
     """A logging formatter that adds color based on the log level."""
     LEVEL_COLORS = {
