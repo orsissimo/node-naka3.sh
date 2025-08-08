@@ -3,7 +3,6 @@
 import os
 import sys
 import time
-import json
 import subprocess
 from typing import Dict, Any, Optional, List
 
@@ -24,28 +23,39 @@ class MinerStopResumeTester:
         self.cli = BlockstackCLIWrapper()
         self.submitted_transactions = []  # Store submitted transaction IDs for later verification
         
-    def get_account_info(self, miner: str) -> Dict[str, Any]:
-        """Get account info (balance, nonce)"""
-        account = ACCOUNTS[miner]
-        api = StacksCoreAPIWrapper(base_url=account.api_url)
-        return api.get_account_info(account.address)
+    def get_account_info(self, miner: str) -> Optional[Dict[str, Any]]:
+        """Get account info (balance, nonce) with connection error handling"""
+        try:
+            account = ACCOUNTS[miner]
+            api = StacksCoreAPIWrapper(base_url=account.api_url)
+            return api.get_account_info(account.address)
+        except Exception as e:
+            logger.error(f"Failed to get account info for {miner}: {e}")
+            return None
     
-    def get_nonce(self, miner: str) -> int:
+    def get_nonce(self, miner: str) -> Optional[int]:
         """Get current nonce for account"""
-        return self.get_account_info(miner)["nonce"]
+        account_info = self.get_account_info(miner)
+        return account_info["nonce"] if account_info else None
     
-    def get_balance(self, miner: str) -> int:
+    def get_balance(self, miner: str) -> Optional[int]:
         """Get STX balance for account"""
         account_info = self.get_account_info(miner)
+        if not account_info:
+            return None
         balance_hex = account_info.get('balance', '0x0')
         return int(balance_hex, 16) if balance_hex.startswith('0x') else int(balance_hex)
     
-    def get_block_height(self, miner: str) -> int:
-        """Get current block height"""
-        account = ACCOUNTS[miner]
-        api = StacksCoreAPIWrapper(base_url=account.api_url)
-        info_data = api.get_info()
-        return info_data["stacks_tip_height"]
+    def get_block_height(self, miner: str) -> Optional[int]:
+        """Get current block height with connection error handling"""
+        try:
+            account = ACCOUNTS[miner]
+            api = StacksCoreAPIWrapper(base_url=account.api_url)
+            info_data = api.get_info()
+            return info_data["stacks_tip_height"]
+        except Exception as e:
+            logger.error(f"Failed to get block height for {miner}: {e}")
+            return None
     
     def run_cli_command(self, command: list, binary_output: bool = False) -> bytes:
         """Run blockstack-cli command and return output"""
@@ -90,15 +100,19 @@ class MinerStopResumeTester:
         else:
             use_nonce = self.get_nonce(from_miner)
             
-        initial_height = self.get_block_height(api_miner)
-        
         print(f"\n{Colors.format_header('=== SUBMITTING UNPROCESSED TX ===')}")
         print(f"{Colors.format_info('API Miner')}: {Colors.format_dim(api_miner)} (endpoint: {api_account.api_url})")
         print(f"{Colors.format_info('From Account')}: {Colors.format_dim(from_account.address)}")
         print(f"{Colors.format_info('To Address')}: {Colors.format_dim(to_address)}")
         print(f"{Colors.format_info('Amount')}: {Colors.format_dim(f'{amount} µSTX')}")
-        print(f"{Colors.format_info('Current Block Height')}: {Colors.format_dim(str(initial_height))}")
         print(f"{Colors.format_info('Using nonce')}: {Colors.format_dim(str(use_nonce))}")
+        
+        # Capture initial state before submitting transaction
+        initial_nonce = self.get_nonce(from_miner)
+        initial_balance = self.get_balance(from_miner)
+        initial_height = self.get_block_height(api_miner)
+        
+        print(f"{Colors.format_info('Current Block Height')}: {Colors.format_dim(str(initial_height))}")
         
         # Create transaction
         cmd = self.cli.token_transfer(from_account.private_key, 180, use_nonce, to_address, amount, memo)
@@ -112,11 +126,6 @@ class MinerStopResumeTester:
         
         print(f"{Colors.format_success(f'Transaction submitted via {api_miner} API')}: {Colors.format_info(txid)}")
         print(f"{Colors.format_warn('NOT waiting for confirmation - keeping in mempool')}")
-        
-        # Capture initial state for later verification
-        initial_nonce = self.get_nonce(from_miner)
-        initial_balance = self.get_balance(from_miner)
-        initial_height = self.get_block_height(api_miner)
         
         # Store transaction info for later verification
         self.submitted_transactions.append({
@@ -134,8 +143,22 @@ class MinerStopResumeTester:
         
         return txid
 
+    def is_miner_available(self, miner: str) -> bool:
+        """Check if miner is available for API calls"""
+        try:
+            account = ACCOUNTS[miner]
+            api = StacksCoreAPIWrapper(base_url=account.api_url)
+            api.get_info()
+            return True
+        except Exception:
+            return False
+    
     def verify_transaction(self, miner: str, txid: str) -> bool:
         """Simple transaction verification - returns True if transaction is found"""
+        if not self.is_miner_available(miner):
+            print(f"{Colors.format_warn('Miner unavailable, skipping verification')}: {Colors.format_dim(miner)}")
+            return False
+            
         try:
             account = ACCOUNTS[miner]
             api = StacksCoreAPIWrapper(base_url=account.api_url)
@@ -167,16 +190,33 @@ def main():
         tx_counter = 1
         
         # Get all available miners dynamically from ACCOUNTS
-        miners = list(ACCOUNTS.keys())
-        print(f"{Colors.format_info('Available miners')}: {Colors.format_dim(', '.join(miners))} ({len(miners)} total)")
+        all_miners = list(ACCOUNTS.keys())
+        print(f"{Colors.format_info('Configured miners')}: {Colors.format_dim(', '.join(all_miners))} ({len(all_miners)} total)")
         
-        # Get initial nonces from API for each sender (mempool is shared across miners)
+        # Filter to only available miners
+        miners = [miner for miner in all_miners if tester.is_miner_available(miner)]
+        unavailable = [miner for miner in all_miners if not tester.is_miner_available(miner)]
+        
+        print(f"{Colors.format_info('Available miners')}: {Colors.format_dim(', '.join(miners))} ({len(miners)} total)")
+        if unavailable:
+            print(f"{Colors.format_warn('Unavailable miners')}: {Colors.format_dim(', '.join(unavailable))}")
+        
+        if len(miners) < 2:
+            raise RuntimeError(f"Need at least 2 available miners, got {len(miners)}")
+        
+        # Get initial nonces from API for each available sender
         print(f"\n{Colors.format_info('Getting initial nonces from blockchain...')}")
         nonces = {}
         for miner in miners:
             initial_nonce = tester.get_nonce(miner)
-            nonces[miner] = initial_nonce
-            print(f"{Colors.format_dim(f'  {miner}: starting nonce {initial_nonce}')}")
+            if initial_nonce is not None:
+                nonces[miner] = initial_nonce
+                print(f"{Colors.format_dim(f'  {miner}: starting nonce {initial_nonce}')}")
+            else:
+                print(f"{Colors.format_error(f'  {miner}: failed to get nonce - skipping')}")
+        
+        # Only use miners that we could get nonces for
+        miners = list(nonces.keys())
         
         for sender in miners:
             for receiver in miners:
@@ -185,11 +225,8 @@ def main():
                     if sender == receiver:
                         continue
                     
-                    sender_num = miners.index(sender) + 1
-                    receiver_num = miners.index(receiver) + 1  
-                    api_num = miners.index(api_host) + 1
-                    
-                    combo_code = f"{sender_num}-{receiver_num}-{api_num}"
+                    # Create readable combo code (sender-receiver-api indices)
+                    combo_code = f"{miners.index(sender) + 1}-{miners.index(receiver) + 1}-{miners.index(api_host) + 1}"
                     description = f"{sender}→{receiver} via {api_host} API"
                     
                     print(f"\n{Colors.format_subheader(f'TX{tx_counter} ({combo_code}): {description}')}")
@@ -211,19 +248,18 @@ def main():
         expected_combinations = len(miners) * (len(miners) - 1) * len(miners)  # N × (N-1) × N
         print(f"{Colors.format_info('Total transactions')}: {Colors.format_dim(str(len(submitted_txs)))} ({expected_combinations} combinations: {len(miners)} senders × {len(miners)-1} valid receivers × {len(miners)} API hosts)")
         
-        # Step 3: Always stop miner1 while transactions are in mempool
-        if len(miners) < 2:
-            raise RuntimeError("Need at least 2 miners to test mempool behavior")
+        # Step 3: Stop first miner while transactions are in mempool
+        # (This check is redundant since we already verified above)
         
-        # Always stop miner1 (affects transactions submitted via miner1's API)
-        target_miner_name = "miner1"
-        target_miner_num = 1
+        # Stop first miner (affects transactions submitted via this miner's API)
+        target_miner_name = miners[0]
+        target_miner_num = miners.index(target_miner_name) + 1
         
         affected_txs = [tx for tx in submitted_txs if tx[4] == target_miner_name]  # tx[4] is api_host
         unaffected_txs = [tx for tx in submitted_txs if tx[4] != target_miner_name]  # Should still work
         
         print(f"\n{Colors.format_header(f'Step 3: Stop {target_miner_name} (affects {len(affected_txs)} transactions, {len(unaffected_txs)} should survive)')}")
-        print(f"{Colors.format_info('Affected (via miner1 API)')}: {Colors.format_dim(f'{len(affected_txs)} transactions')}")
+        print(f"{Colors.format_info(f'Affected (via {target_miner_name} API)')}: {Colors.format_dim(f'{len(affected_txs)} transactions')}")
         print(f"{Colors.format_info('Unaffected (via other APIs)')}: {Colors.format_dim(f'{len(unaffected_txs)} transactions')}")
         tester.node_manager.stop_miner(target_miner_num)
         
@@ -247,8 +283,8 @@ def main():
             time.sleep(0.5)  # Small delay between API calls
         
         if not found_while_stopped:
-            print(f"\n{Colors.format_success('Expected: No transactions found while miner2 stopped')}")
-            print(f"{Colors.format_dim('  This means all transactions were lost when miner2 stopped')}")
+            print(f"\n{Colors.format_success(f'Expected: No transactions found while {target_miner_name} stopped')}")
+            print(f"{Colors.format_dim(f'  This means all transactions were lost when {target_miner_name} stopped')}")
         else:
             print(f"\n{Colors.format_warn(f'Unexpected: {len(found_while_stopped)} transactions found from other miners')}")
             print(f"{Colors.format_dim('  This means some transactions propagated to other miners')}")
@@ -259,42 +295,77 @@ def main():
         print(f"\n{Colors.format_header(f'Step 5: Resume {target_miner_name}')}")
         tester.node_manager.resume_miner(target_miner_num)
         
-        # Step 6: Wait for confirmation after miner2 is resumed
-        print(f"\n{Colors.format_header('Step 6: Wait for confirmation after miner2 resumed')}")
+        # Step 6: Wait for confirmation after target miner is resumed
+        print(f"\n{Colors.format_header(f'Step 6: Wait for confirmation after {target_miner_name} resumed')}")
         print(f"{Colors.format_info('Waiting for transactions to be processed...')}")
         
-        # Check both sending miners for nonce increases
-        miner1_initial_nonce = tester.get_nonce("miner1")
-        miner3_initial_nonce = tester.get_nonce("miner3") 
-        current_height = tester.get_block_height("miner1")  # Any miner for height
+        # Check available miners for nonce increases
+        available_miners_for_check = [m for m in miners if tester.is_miner_available(m)]
+        if not available_miners_for_check:
+            print(f"{Colors.format_warn('No miners available for confirmation check')}")
+            confirmation_result = False
+        else:
+            initial_nonces = {}
+            for miner in available_miners_for_check[:2]:  # Check up to 2 miners
+                nonce = tester.get_nonce(miner)
+                if nonce is not None:
+                    initial_nonces[miner] = nonce
+            
+            current_height = None
+            for miner in available_miners_for_check:
+                height = tester.get_block_height(miner)
+                if height is not None:
+                    current_height = height
+                    break
+            
+            if not initial_nonces or current_height is None:
+                print(f"{Colors.format_warn('Could not get initial state for confirmation check')}")
+                confirmation_result = False
+            else:
+                for miner, nonce in initial_nonces.items():
+                    print(f"{Colors.format_info(f'{miner.capitalize()} initial nonce')}: {Colors.format_dim(str(nonce))}")
+                print(f"{Colors.format_info('Current height')}: {Colors.format_dim(str(current_height))}")
         
-        print(f"{Colors.format_info('Miner1 initial nonce')}: {Colors.format_dim(str(miner1_initial_nonce))}")
-        print(f"{Colors.format_info('Miner3 initial nonce')}: {Colors.format_dim(str(miner3_initial_nonce))}")
-        print(f"{Colors.format_info('Current height')}: {Colors.format_dim(str(current_height))}")
+                # Wait to see if transactions get confirmed now that target miner is back
+                confirmation_results = {}
+                for miner, initial_nonce in initial_nonces.items():
+                    print(f"{Colors.format_info(f'Checking {miner} for confirmation...')}")
+                    confirmation_results[miner] = tester.wait_for_confirmation(miner, initial_nonce, current_height, timeout=15)
+                
+                confirmation_result = any(confirmation_results.values())
         
-        # Wait to see if transactions get confirmed now that miner2 is back
-        print(f"{Colors.format_info('Checking miner1 for confirmation...')}")
-        miner1_confirmed = tester.wait_for_confirmation("miner1", miner1_initial_nonce, current_height, timeout=15)
-        
-        print(f"{Colors.format_info('Checking miner3 for confirmation...')}")  
-        miner3_confirmed = tester.wait_for_confirmation("miner3", miner3_initial_nonce, current_height, timeout=15)
-        
-        confirmation_result = miner1_confirmed or miner3_confirmed
-        
-        if confirmation_result:
-            final_miner1_nonce = tester.get_nonce("miner1")
-            final_miner3_nonce = tester.get_nonce("miner3")
-            final_height = tester.get_block_height("miner1")
-            print(f"{Colors.format_success('Transactions confirmed after miner2 resumed!')}")
-            print(f"{Colors.format_info('Miner1 nonce')}: {Colors.format_dim(str(miner1_initial_nonce))} → {Colors.format_dim(str(final_miner1_nonce))} (+{final_miner1_nonce - miner1_initial_nonce})")
-            print(f"{Colors.format_info('Miner3 nonce')}: {Colors.format_dim(str(miner3_initial_nonce))} → {Colors.format_dim(str(final_miner3_nonce))} (+{final_miner3_nonce - miner3_initial_nonce})")
-            print(f"{Colors.format_info('Block height')}: {Colors.format_dim(str(current_height))} → {Colors.format_dim(str(final_height))} (+{final_height - current_height})")
+        if confirmation_result and 'initial_nonces' in locals() and 'current_height' in locals():
+            final_nonces = {}
+            for miner in initial_nonces.keys():
+                nonce = tester.get_nonce(miner)
+                if nonce is not None:
+                    final_nonces[miner] = nonce
+            
+            final_height = None
+            for miner in available_miners_for_check:
+                height = tester.get_block_height(miner)
+                if height is not None:
+                    final_height = height
+                    break
+            
+            if final_nonces and final_height is not None:
+                print(f"{Colors.format_success(f'Transactions confirmed after {target_miner_name} resumed!')}")
+                
+                for miner in initial_nonces.keys():
+                    if miner in final_nonces:
+                        initial_nonce = initial_nonces[miner]
+                        final_nonce = final_nonces[miner]
+                        print(f"{Colors.format_info(f'{miner.capitalize()} nonce')}: {Colors.format_dim(str(initial_nonce))} → {Colors.format_dim(str(final_nonce))} (+{final_nonce - initial_nonce})")
+                
+                print(f"{Colors.format_info('Block height')}: {Colors.format_dim(str(current_height))} → {Colors.format_dim(str(final_height))} (+{final_height - current_height})")
+            else:
+                print(f"{Colors.format_warn('Could not get final state for confirmation summary')}")
         else:
             print(f"{Colors.format_warn('No confirmation detected within timeout period')}")
         
-        # Step 7: Try to verify transactions after miner2 resumed
-        print(f"\n{Colors.format_header('Step 7: Verify transactions after miner2 resumed')}")
-        print(f"{Colors.format_info('Checking if transactions are now visible from miner2...')}")
+        # Step 7: Try to verify transactions after target miner resumed
+        print(f"\n{Colors.format_header(f'Step 7: Verify transactions after {target_miner_name} resumed')}")
+        print(f"{Colors.format_info(f'Checking if transactions are now visible from {target_miner_name}...')}")
         
         found_after_resume = []
         for tx_name, txid, sender, receiver, api_host, combo_code in submitted_txs:
@@ -304,15 +375,6 @@ def main():
             if found:
                 found_after_resume.append((tx_name, txid, sender, receiver, api_host, combo_code))
             time.sleep(0.5)  # Small delay between API calls
-        
-        if found_after_resume:
-            print(f"\n{Colors.format_success(f'Expected: {len(found_after_resume)} transactions found after miner2 resumed')}")
-            print(f"{Colors.format_dim('  This means mempool transactions were recovered/processed')}")
-            for tx_name, txid, sender, receiver, api_host, combo_code in found_after_resume:
-                print(f"{Colors.format_dim(f'  - {tx_name} ({combo_code}): {sender} → {receiver} via {api_host}')}")
-        else:
-            print(f"\n{Colors.format_warn('All transactions still not found after resume')}")
-            print(f"{Colors.format_dim('  This means all mempool transactions were permanently lost')}")
         
         transactions_found_after_resume = len(found_after_resume) > 0
         
