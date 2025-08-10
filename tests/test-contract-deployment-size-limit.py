@@ -143,9 +143,18 @@ class SizeLimitTester:
             
             print(f"{Colors.format_success(f'Contract deployment submitted')}: {Colors.format_info(txid)}")
             
+            
             # Wait for confirmation
             if self.wait_for_confirmation(miner, initial_nonce, initial_height, timeout=30):
                 result['success'] = True
+                
+                # Get transaction details from v3 API after confirmation
+                try:
+                    print(f"{Colors.format_info('Fetching confirmed transaction details from v3 API...')}")
+                    tx_details = api.get_transaction_by_id(txid)
+                    print(f"{Colors.format_info('V3 API Response')}: {Colors.format_dim(json.dumps(tx_details, indent=2))}")
+                except Exception as api_error:
+                    print(f"{Colors.format_warn('Could not fetch v3 API details')}: {Colors.format_dim(str(api_error))}")
                 print(f"{Colors.format_success(f'{contract_name} deployed successfully!')}")
             else:
                 result['error'] = "Confirmation timeout"
@@ -247,10 +256,10 @@ def main():
         
         # Test each contract
         results = []
-        miners = ["miner1", "miner2", "miner3"]
+        test_miner = "miner1"  # Use only the first miner
         
         for i, contract_file in enumerate(contract_files):
-            miner = miners[i % len(miners)]  # Rotate between miners
+            miner = test_miner  # Always use miner1
             size_kb = tester.extract_size_from_filename(contract_file)
             contract_name = f"contract-{size_kb}kb" if size_kb else f"contract-{i+1}"
             
@@ -320,16 +329,28 @@ def main():
                 account = ACCOUNTS["miner1"]
                 api = StacksCoreAPIWrapper(base_url=account.api_url)
                 
-                # Try to call a function (assuming the contract has calc-function-0001)
+                # Try to call a function (first try without arguments)
                 function_name = "calc-function-0001"
-                result = api.call_read_only_function(
-                    account.address, 
-                    smallest_working['contract_name'], 
-                    function_name, 
-                    account.address, 
-                    ["u12345"]
-                )
-                print(f"{Colors.format_success('✓ Contract function call successful')}")
+                try:
+                    result = api.call_read_only_function(
+                        account.address, 
+                        smallest_working['contract_name'], 
+                        function_name, 
+                        account.address, 
+                        []  # No arguments first
+                    )
+                except Exception as no_args_error:
+                    # If no-args version fails, try with properly hex-encoded argument
+                    print(f"{Colors.format_info('Retrying with hex-encoded argument...')}")
+                    # u12345 in hex is 0x0100000000000000000000000000003039 (uint 12345)
+                    result = api.call_read_only_function(
+                        account.address, 
+                        smallest_working['contract_name'], 
+                        function_name, 
+                        account.address, 
+                        ["0x0100000000000000000000000000003039"]
+                    )
+                print(f"{Colors.format_success('Contract function call successful')}")
                 print(f"Function: {function_name}, Result: {Colors.format_dim(json.dumps(result))}")
                 
             except Exception as e:

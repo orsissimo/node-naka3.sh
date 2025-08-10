@@ -1,0 +1,8 @@
+PRIMARY:
+- Fixare test-miner-stop-resume in modo che usi tutti i miner in modo intelligente.
+- Fare un giro di "inspection" per capire se posso semplificare il codice dei /tests.
+- Aggiungere debug ovunque --- No prints? O quelli che ora sono prints non sono rilevanti?
+
+SECONDARY:
+- Potremmo gestire CTRL+C stop per fare fare ./three-miners stop prima di interrompere tutto, così da non "corrompere" lo snapshot.
+- Più avanti, funzioni uguali dentro ai vari file in /tests dovrebbero essere messe in un file utils.py, così da non duplicare codice.
