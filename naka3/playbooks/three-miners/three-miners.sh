@@ -115,55 +115,80 @@ function playbook_loop() {
    state_file="$playbook_basedir/.btc_mining_state"
 
    while true; do
-      # Check if we should still be in automatic mode
-      if [ -f "$state_file" ] && [ "$(cat "$state_file")" != "automatic" ]; then
-         echo "BTC mining mode changed to $(cat "$state_file"). Stopping automatic mining loop."
-         break
+      current_mode="automatic"
+      if [ -f "$state_file" ]; then
+         current_mode=$(cat "$state_file")
       fi
 
-      "$naka3" -c "./config-bitcoind-0.sh" bitcoind mine 1 "$btcaddr_0"
-      sleep 0.75s
-      
-      # Check again before continuing
-      if [ -f "$state_file" ] && [ "$(cat "$state_file")" != "automatic" ]; then
-         echo "BTC mining mode changed to $(cat "$state_file"). Stopping automatic mining loop."
-         break
+      if [ "$current_mode" = "automatic" ]; then
+         # Automatic mining mode
+         "$naka3" -c "./config-bitcoind-0.sh" bitcoind mine 1 "$btcaddr_0"
+         sleep 0.75s
+         
+         "$naka3" -c "./config-bitcoind-0.sh" bitcoind mine 1 "$btcaddr_0"
+         
+         # Check state more frequently during long sleeps
+         for i in {1..15}; do
+            sleep 1s
+            if [ -f "$state_file" ] && [ "$(cat "$state_file")" != "automatic" ]; then
+               echo "BTC mining mode changed to $(cat "$state_file"). Switching to manual mode."
+               break
+            fi
+         done
+         
+         "$naka3" -c "./config-bitcoind-0.sh" bitcoind mine 1 "$btcaddr_0"
+         
+         # Check state more frequently during long sleeps
+         for i in {1..15}; do
+            sleep 1s
+            if [ -f "$state_file" ] && [ "$(cat "$state_file")" != "automatic" ]; then
+               echo "BTC mining mode changed to $(cat "$state_file"). Switching to manual mode."
+               break
+            fi
+         done
+         
+      elif [ "$current_mode" = "manual" ]; then
+         # Manual mining mode - wait and watch for manual mining requests
+         echo "Manual mining mode active. Waiting for mining commands..."
+         
+         # Create a trigger file for manual mining
+         trigger_file="$playbook_basedir/.btc_mine_trigger"
+         
+         while [ "$current_mode" = "manual" ]; do
+            # Check for mining trigger
+            if [ -f "$trigger_file" ]; then
+               echo "Manual mining triggered!"
+               "$naka3" -c "./config-bitcoind-0.sh" bitcoind mine 1 "$btcaddr_0"
+               rm -f "$trigger_file"
+               echo "Manual mining completed. Waiting for next command..."
+            fi
+            
+            sleep 1s
+            
+            # Check if mode changed back to automatic
+            if [ -f "$state_file" ]; then
+               current_mode=$(cat "$state_file")
+               if [ "$current_mode" = "automatic" ]; then
+                  echo "BTC mining mode changed back to automatic. Resuming automatic mining."
+                  break
+               fi
+            fi
+         done
+      else
+         # Unknown mode, default to waiting
+         echo "Unknown mining mode: $current_mode. Waiting..."
+         sleep 5s
       fi
-
-      "$naka3" -c "./config-bitcoind-0.sh" bitcoind mine 1 "$btcaddr_0"
-      
-      # Check state more frequently during long sleeps
-      for i in {1..15}; do
-         sleep 1s
-         if [ -f "$state_file" ] && [ "$(cat "$state_file")" != "automatic" ]; then
-            echo "BTC mining mode changed to $(cat "$state_file"). Stopping automatic mining loop."
-            exit 0
-         fi
-      done
-      
-      # Check again before continuing  
-      if [ -f "$state_file" ] && [ "$(cat "$state_file")" != "automatic" ]; then
-         echo "BTC mining mode changed to $(cat "$state_file"). Stopping automatic mining loop."
-         break
-      fi
-
-      "$naka3" -c "./config-bitcoind-0.sh" bitcoind mine 1 "$btcaddr_0"
-      
-      # Check state more frequently during long sleeps
-      for i in {1..15}; do
-         sleep 1s
-         if [ -f "$state_file" ] && [ "$(cat "$state_file")" != "automatic" ]; then
-            echo "BTC mining mode changed to $(cat "$state_file"). Stopping automatic mining loop."
-            exit 0
-         fi
-      done
    done
 }
 
 function playbook_btc_mine() {
-   btcaddr_0="$("$naka3" -c "./config-miner-0.sh" node 0 miner-addr | jq -r '.BTC')"
-   echo "Mining single block to address: $btcaddr_0"
-   "$naka3" -c "./config-bitcoind-0.sh" bitcoind mine 1 "$btcaddr_0"
+   playbook_basedir="$(conf_get_basedir)"
+   trigger_file="$playbook_basedir/.btc_mine_trigger"
+   
+   # Create trigger file to signal the main loop to mine
+   touch "$trigger_file"
+   echo "Manual mining request sent. Check the main terminal for mining activity."
 }
 
 playbook_run -c "./config.sh" $@

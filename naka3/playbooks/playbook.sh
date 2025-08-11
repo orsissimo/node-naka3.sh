@@ -77,10 +77,14 @@ function playbook_run() {
                 require_func "playbook_resume"
                 require_func "playbook_loop"
                 
+                # Resume services but ignore errors if already running
+                set +e
                 playbook_resume
+                set -e
+                
                 mkdir -p "$playbook_basedir"
                 echo "automatic" > "$state_file"
-                playbook_loop
+                echo "Switched to automatic mining mode. The main loop will resume automatic mining."
             fi
             ;;
 
@@ -137,20 +141,6 @@ function playbook_run() {
             # Check if processes are running
             if [ -d "$playbook_basedir" ]; then
                 echo "Playbook Status: initialized"
-                
-                # Try to get BTC block height if bitcoind is accessible
-                if command -v "$naka3" >/dev/null 2>&1; then
-                    if [ -f "./config-bitcoind-0.sh" ]; then
-                        set +e
-                        block_height=$("$naka3" -c "./config-bitcoind-0.sh" bitcoind getblockcount 2>/dev/null)
-                        if [ $? -eq 0 ]; then
-                            echo "BTC Block Height: $block_height"
-                        else
-                            echo "BTC Block Height: unable to retrieve (bitcoind may not be running)"
-                        fi
-                        set -e
-                    fi
-                fi
             else
                 echo "Playbook Status: not initialized"
             fi
