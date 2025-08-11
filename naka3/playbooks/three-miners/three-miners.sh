@@ -111,16 +111,59 @@ function playbook_loop() {
    btcaddr_0="$("$naka3" -c "./config-miner-0.sh" node 0 miner-addr | jq -r '.BTC')"
    echo "Miner 0 address is $btcaddr_0"
 
+   playbook_basedir="$(conf_get_basedir)"
+   state_file="$playbook_basedir/.btc_mining_state"
+
    while true; do
+      # Check if we should still be in automatic mode
+      if [ -f "$state_file" ] && [ "$(cat "$state_file")" != "automatic" ]; then
+         echo "BTC mining mode changed to $(cat "$state_file"). Stopping automatic mining loop."
+         break
+      fi
+
       "$naka3" -c "./config-bitcoind-0.sh" bitcoind mine 1 "$btcaddr_0"
       sleep 0.75s
       
+      # Check again before continuing
+      if [ -f "$state_file" ] && [ "$(cat "$state_file")" != "automatic" ]; then
+         echo "BTC mining mode changed to $(cat "$state_file"). Stopping automatic mining loop."
+         break
+      fi
+
       "$naka3" -c "./config-bitcoind-0.sh" bitcoind mine 1 "$btcaddr_0"
-      sleep 15s
       
+      # Check state more frequently during long sleeps
+      for i in {1..15}; do
+         sleep 1s
+         if [ -f "$state_file" ] && [ "$(cat "$state_file")" != "automatic" ]; then
+            echo "BTC mining mode changed to $(cat "$state_file"). Stopping automatic mining loop."
+            exit 0
+         fi
+      done
+      
+      # Check again before continuing  
+      if [ -f "$state_file" ] && [ "$(cat "$state_file")" != "automatic" ]; then
+         echo "BTC mining mode changed to $(cat "$state_file"). Stopping automatic mining loop."
+         break
+      fi
+
       "$naka3" -c "./config-bitcoind-0.sh" bitcoind mine 1 "$btcaddr_0"
-      sleep 15s
+      
+      # Check state more frequently during long sleeps
+      for i in {1..15}; do
+         sleep 1s
+         if [ -f "$state_file" ] && [ "$(cat "$state_file")" != "automatic" ]; then
+            echo "BTC mining mode changed to $(cat "$state_file"). Stopping automatic mining loop."
+            exit 0
+         fi
+      done
    done
+}
+
+function playbook_btc_mine() {
+   btcaddr_0="$("$naka3" -c "./config-miner-0.sh" node 0 miner-addr | jq -r '.BTC')"
+   echo "Mining single block to address: $btcaddr_0"
+   "$naka3" -c "./config-bitcoind-0.sh" bitcoind mine 1 "$btcaddr_0"
 }
 
 playbook_run -c "./config.sh" $@
