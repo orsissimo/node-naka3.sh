@@ -1,9 +1,12 @@
 PRIMARY:
 - Aggiungere debug ovunque --- No prints? O quelli che ora sono prints non sono rilevanti?
 - Non usare dizionari, se no non abbiamo autocompletamento ---> Usare structs
+    - My coworker told me that files in /tests and /utils might be hard to understand and use for others. An example is the autocompletion while writing tests in /tests ... we are        │
+│   currently using some dictionaries or things that you need to know, and that dont work with autocompletion using dot for example. Investigate what could be improved
 - colors.py --> logger.py
 - Aggiungere btc_manual, auto, mine a node_manager.py
 - Fixare test-miner-stop-resume in modo che usi tutti i miner in modo intelligente.
+- Rimuovere output in /logs in monitor-chain.sh
 
 SECONDARY:
 - Potremmo gestire CTRL+C stop per fare fare ./three-miners stop prima di interrompere tutto, così da non "corrompere" lo snapshot.

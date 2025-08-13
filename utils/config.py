@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+from enum import Enum
+from typing import Dict, Optional
 
 @dataclass
 class Account:
@@ -11,6 +13,12 @@ class Account:
     @property
     def api_url(self) -> str:
         return f"http://localhost:{self.api_port}"
+
+class MinerName(Enum):
+    """Enum for type-safe miner name access with IDE autocompletion."""
+    MINER1 = "miner1"
+    MINER2 = "miner2"
+    MINER3 = "miner3"
 
 # The Single Source of Truth for all miner account information.
 ACCOUNTS = {
@@ -33,4 +41,81 @@ ACCOUNTS = {
         api_port=40443
     )
 }
+
+class AccountManager:
+    """Type-safe account access with IDE autocompletion."""
+    
+    @staticmethod
+    def get(miner: MinerName) -> Account:
+        """Get account by enum with full IDE autocompletion support."""
+        return ACCOUNTS[miner.value]
+    
+    @staticmethod
+    def get_by_name(miner_name: str) -> Optional[Account]:
+        """Get account by string name (for backward compatibility)."""
+        return ACCOUNTS.get(miner_name)
+    
+    @staticmethod
+    def all() -> Dict[str, Account]:
+        """Get all accounts."""
+        return ACCOUNTS.copy()
+
+@dataclass 
+class TransferParams:
+    """Parameters for generating transfers."""
+    to: str
+    amount: int
+    memo: str
+
+@dataclass
+class TransferInfo:
+    """Type-safe transfer information with IDE autocompletion."""
+    miner: str
+    to_address: str
+    amount: int
+    memo: str
+    nonce: int
+    submitted: bool = False
+    txid: Optional[str] = None
+    error: Optional[str] = None
+
+@dataclass
+class DeploymentInfo:
+    """Type-safe deployment information with IDE autocompletion."""
+    miner: str
+    contract_file: str
+    contract_name: str
+    nonce: int
+    submitted: bool = False
+    txid: Optional[str] = None
+    error: Optional[str] = None
+    size_kb: float = 0.0
+
+@dataclass
+class VerificationResults:
+    """Type-safe verification results with IDE autocompletion."""
+    confirmed: int
+    failed: int
+    pending: int
+    success_rate: float
+    confirmed_transfers: list = None
+    failed_transfers: list = None
+    pending_transfers: list = None
+    confirmed_deployments: list = None
+    failed_deployments: list = None
+    pending_deployments: list = None
+    
+    def __post_init__(self):
+        if self.confirmed_transfers is None:
+            self.confirmed_transfers = []
+        if self.failed_transfers is None:
+            self.failed_transfers = []
+        if self.pending_transfers is None:
+            self.pending_transfers = []
+        if self.confirmed_deployments is None:
+            self.confirmed_deployments = []
+        if self.failed_deployments is None:
+            self.failed_deployments = []
+        if self.pending_deployments is None:
+            self.pending_deployments = []
 

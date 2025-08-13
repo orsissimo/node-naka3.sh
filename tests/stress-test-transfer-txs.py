@@ -10,7 +10,7 @@ from typing import Dict, Any, Optional, List
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from utils.config import ACCOUNTS, Account
+from utils.config import ACCOUNTS, Account, MinerName, AccountManager, TransferParams, TransferInfo, VerificationResults
 from utils.stacks_core_api import StacksCoreAPIWrapper
 from utils.blockstack_cli import BlockstackCLIWrapper
 from utils.node_manager import NodeManager
@@ -26,7 +26,7 @@ class TransferStressTester:
         
     def get_account_info(self, miner: str) -> Dict[str, Any]:
         """Get account info (balance, nonce)"""
-        account = ACCOUNTS[miner]
+        account = AccountManager.get_by_name(miner)
         api = StacksCoreAPIWrapper(base_url=account.api_url)
         return api.get_account_info(account.address)
     
@@ -42,7 +42,7 @@ class TransferStressTester:
     
     def get_block_height(self, miner: str) -> int:
         """Get current block height"""
-        account = ACCOUNTS[miner]
+        account = AccountManager.get_by_name(miner)
         api = StacksCoreAPIWrapper(base_url=account.api_url)
         info_data = api.get_info()
         return info_data["stacks_tip_height"]
@@ -58,36 +58,33 @@ class TransferStressTester:
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"CLI command failed: {' '.join(command)}\nError: {e.stderr.decode()}")
     
-    def generate_transfers(self, count: int, base_amount: int = 100) -> List[Dict[str, Any]]:
+    def generate_transfers(self, count: int, base_amount: int = 100) -> List[TransferParams]:
         """Generate list of transfer parameters"""
         # Use a fixed recipient address for simplicity
         recipient_address = "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM"
         
         transfers = []
         for i in range(count):
-            transfers.append({
-                "to": recipient_address,
-                "amount": base_amount + i,  # Unique amounts
-                "memo": f"StressTx{i+1:04d}"  # Zero-padded memo
-            })
+            transfers.append(TransferParams(
+                to=recipient_address,
+                amount=base_amount + i,  # Unique amounts
+                memo=f"StressTx{i+1:04d}"  # Zero-padded memo
+            ))
         
         return transfers
     
-    def submit_transfer(self, miner: str, to_address: str, amount: int, memo: str, nonce: int) -> Dict[str, Any]:
+    def submit_transfer(self, miner: str, to_address: str, amount: int, memo: str, nonce: int) -> TransferInfo:
         """Submit transfer without waiting for confirmation"""
-        account = ACCOUNTS[miner]
+        account = AccountManager.get_by_name(miner)
         api = StacksCoreAPIWrapper(base_url=account.api_url)
         
-        transfer_info = {
-            'miner': miner,
-            'to_address': to_address,
-            'amount': amount,
-            'memo': memo,
-            'nonce': nonce,
-            'submitted': False,
-            'txid': None,
-            'error': None
-        }
+        transfer_info = TransferInfo(
+            miner=miner,
+            to_address=to_address,
+            amount=amount,
+            memo=memo,
+            nonce=nonce
+        )
         
         try:
             print(f"{Colors.format_info('Submitting')}: {amount} µSTX to {to_address[:8]}... (memo: {memo}, nonce: {nonce})")
@@ -103,13 +100,13 @@ class TransferStressTester:
             
             # Submit transaction
             txid = api.post_raw_transaction(tx_binary)
-            transfer_info['txid'] = txid
-            transfer_info['submitted'] = True
+            transfer_info.txid = txid
+            transfer_info.submitted = True
             
             print(f"{Colors.format_success('Submitted')}: {memo} -> {txid}")
             
         except Exception as e:
-            transfer_info['error'] = str(e)
+            transfer_info.error = str(e)
             print(f"{Colors.format_error('Failed')}: {memo} -> {str(e)}")
         
         return transfer_info
@@ -152,7 +149,7 @@ class TransferStressTester:
         transfers = self.generate_transfers(transfer_count)
         
         # Calculate total cost
-        total_amount = sum(t['amount'] for t in transfers)
+        total_amount = sum(t.amount for t in transfers)
         total_fees = transfer_count * 180  # 180 µSTX per transfer
         total_cost = total_amount + total_fees
         
@@ -174,14 +171,14 @@ class TransferStressTester:
         for i, transfer in enumerate(transfers, 1):
             transfer_result = self.submit_transfer(
                 miner,
-                transfer['to'],
-                transfer['amount'],
-                transfer['memo'],
+                transfer.to,
+                transfer.amount,
+                transfer.memo,
                 current_nonce
             )
             submitted_transfers.append(transfer_result)
             
-            if transfer_result['submitted']:
+            if transfer_result.submitted:
                 current_nonce += 1
             else:
                 # Stop submitting after first failure (chaining limit reached)
@@ -196,8 +193,8 @@ class TransferStressTester:
         
         print(f"\n{Colors.format_info('Submission completed in')}: {Colors.format_dim(f'{submission_duration:.2f} seconds')}")
         
-        successful_submissions = [t for t in submitted_transfers if t['submitted']]
-        failed_submissions = [t for t in submitted_transfers if not t['submitted']]
+        successful_submissions = [t for t in submitted_transfers if t.submitted]
+        failed_submissions = [t for t in submitted_transfers if not t.submitted]
         
         print(f"{Colors.format_success('Successful submissions')}: {Colors.format_dim(str(len(successful_submissions)))}")
         print(f"{Colors.format_error('Failed submissions')}: {Colors.format_dim(str(len(failed_submissions)))}")
@@ -205,31 +202,28 @@ class TransferStressTester:
         if failed_submissions:
             print(f"\n{Colors.format_subheader('Failed submission details')}:")
             for i, failed in enumerate(failed_submissions[:10], 1):  # Show up to 10 failures
-                error_preview = failed['error'][:60] + "..." if len(failed['error']) > 60 else failed['error']
-                print(f"  {i}. {failed['memo']}: {Colors.format_error(error_preview)}")
+                error_preview = failed.error[:60] + "..." if len(failed.error) > 60 else failed.error
+                print(f"  {i}. {failed.memo}: {Colors.format_error(error_preview)}")
             
             if len(failed_submissions) > 10:
                 print(f"  ... and {len(failed_submissions) - 10} more failures")
         
         return submitted_transfers
     
-    def wait_and_verify_transfers(self, transfers: List[Dict[str, Any]], timeout: int = 120) -> Dict[str, Any]:
+    def wait_and_verify_transfers(self, transfers: List[TransferInfo], timeout: int = 120) -> VerificationResults:
         """Wait for transfers to be confirmed and verify results"""
         print(f"\n{Colors.format_header('=== VERIFICATION PHASE ===')}")
         
-        successful_transfers = [t for t in transfers if t['submitted']]
+        successful_transfers = [t for t in transfers if t.submitted]
         if not successful_transfers:
-            return {
-                'confirmed': 0,
-                'failed': 0,
-                'pending': 0,
-                'success_rate': 0.0,
-                'confirmed_transfers': [],
-                'failed_transfers': [],
-                'pending_transfers': []
-            }
+            return VerificationResults(
+                confirmed=0,
+                failed=0,
+                pending=0,
+                success_rate=0.0
+            )
         
-        miner = successful_transfers[0]['miner']  # Use first transfer's miner
+        miner = successful_transfers[0].miner  # Use first transfer's miner
         
         print(f"{Colors.format_info('Waiting for confirmations')}: {Colors.format_dim(f'{timeout}s timeout')}")
         print(f"{Colors.format_info('Tracking')}: {Colors.format_dim(f'{len(successful_transfers)} submitted transfers')}")
@@ -244,19 +238,19 @@ class TransferStressTester:
             
             for transfer in unresolved[:10]:  # Check up to 10 at a time
                 try:
-                    account = ACCOUNTS[miner]
+                    account = AccountManager.get_by_name(miner)
                     api = StacksCoreAPIWrapper(base_url=account.api_url)
                     
                     # Try to get transaction info
-                    tx_info = api.get_transaction_by_id(transfer['txid'])
+                    tx_info = api.get_transaction_by_id(transfer.txid)
                     tx_status = tx_info.get('tx_status', 'unknown')
                     
                     if tx_status == 'success':
                         confirmed_transfers.append(transfer)
-                        print(f"{Colors.format_success('✓')} {transfer['memo']}: {Colors.format_success('Confirmed')}")
+                        print(f"{Colors.format_success('✓')} {transfer.memo}: {Colors.format_success('Confirmed')}")
                     elif tx_status in ['abort_by_response', 'abort_by_post_condition']:
                         failed_transfers.append(transfer)
-                        print(f"{Colors.format_error('✗')} {transfer['memo']}: {Colors.format_error('Failed')} ({tx_status})")
+                        print(f"{Colors.format_error('✗')} {transfer.memo}: {Colors.format_error('Failed')} ({tx_status})")
                     
                 except Exception as e:
                     # Transaction might not be found yet, continue waiting
@@ -286,15 +280,15 @@ class TransferStressTester:
         print(f"  Pending: {Colors.format_warn(str(pending_count))}")
         print(f"  Success rate: {Colors.format_info(f'{success_rate:.1f}%')}")
         
-        return {
-            'confirmed': confirmed_count,
-            'failed': failed_count,
-            'pending': pending_count,
-            'success_rate': success_rate,
-            'confirmed_transfers': confirmed_transfers,
-            'failed_transfers': failed_transfers,
-            'pending_transfers': pending_transfers
-        }
+        return VerificationResults(
+            confirmed=confirmed_count,
+            failed=failed_count,
+            pending=pending_count,
+            success_rate=success_rate,
+            confirmed_transfers=confirmed_transfers,
+            failed_transfers=failed_transfers,
+            pending_transfers=pending_transfers
+        )
 
 def main():
     """Execute the transfer stress test"""
@@ -323,9 +317,9 @@ def main():
         transfers = tester.batch_submit_transfers(test_miner, transfer_count)
         
         # Step 2: Wait and verify transfers
-        successful_submissions = [t for t in transfers if t['submitted']]
-        failed_submissions = [t for t in transfers if not t['submitted']]
-        chaining_limit_hit = any('TooMuchChaining' in t.get('error', '') for t in failed_submissions)
+        successful_submissions = [t for t in transfers if t.submitted]
+        failed_submissions = [t for t in transfers if not t.submitted]
+        chaining_limit_hit = any('TooMuchChaining' in (t.error or '') for t in failed_submissions)
         
         if chaining_limit_hit:
             print(f"\n{Colors.format_header('Step 2: Wait for transactions to process (chaining limit reached)')}\n")
@@ -354,12 +348,12 @@ def main():
                     try:
                         account = ACCOUNTS[test_miner]
                         api = StacksCoreAPIWrapper(base_url=account.api_url)
-                        tx_info = api.get_transaction_by_id(transfer['txid'])
+                        tx_info = api.get_transaction_by_id(transfer.txid)
                         
                         # Show transaction details and API response (omit tx field for brevity)
-                        print(f"\n{Colors.format_info(f'Transaction {i}')}: {Colors.format_dim(transfer['memo'])}")
-                        print(f"{Colors.format_info('Nonce')}: {Colors.format_dim(str(transfer['nonce']))}")
-                        print(f"{Colors.format_info('TXID')}: {Colors.format_dim(transfer['txid'])}")
+                        print(f"\n{Colors.format_info(f'Transaction {i}')}: {Colors.format_dim(transfer.memo)}")
+                        print(f"{Colors.format_info('Nonce')}: {Colors.format_dim(str(transfer.nonce))}")
+                        print(f"{Colors.format_info('TXID')}: {Colors.format_dim(transfer.txid)}")
                         
                         # Create a copy of tx_info without the 'tx' field for cleaner output
                         display_info = dict(tx_info)
@@ -382,32 +376,32 @@ def main():
                             
                     except Exception as e:
                         failed_count += 1
-                        print(f"\n{Colors.format_info(f'Transaction {i}')}: {Colors.format_dim(transfer['memo'])}")
-                        print(f"{Colors.format_info('Nonce')}: {Colors.format_dim(str(transfer['nonce']))}")
-                        print(f"{Colors.format_info('TXID')}: {Colors.format_dim(transfer['txid'])}")
+                        print(f"\n{Colors.format_info(f'Transaction {i}')}: {Colors.format_dim(transfer.memo)}")
+                        print(f"{Colors.format_info('Nonce')}: {Colors.format_dim(str(transfer.nonce))}")
+                        print(f"{Colors.format_info('TXID')}: {Colors.format_dim(transfer.txid)}")
                         print(f"{Colors.format_error('Status')}: {Colors.format_error('API Error')} ({str(e)[:50]}...)")
                 
                 success_rate = (confirmed_count / len(successful_submissions)) * 100 if successful_submissions else 0
-                verification_results = {
-                    'confirmed': confirmed_count,
-                    'failed': failed_count,
-                    'pending': 0,
-                    'success_rate': success_rate,
-                    'confirmed_transfers': [t for t in successful_submissions][:confirmed_count],
-                    'failed_transfers': [t for t in successful_submissions][confirmed_count:confirmed_count+failed_count],
-                    'pending_transfers': []
-                }
+                verification_results = VerificationResults(
+                    confirmed=confirmed_count,
+                    failed=failed_count,
+                    pending=0,
+                    success_rate=success_rate,
+                    confirmed_transfers=[t for t in successful_submissions][:confirmed_count],
+                    failed_transfers=[t for t in successful_submissions][confirmed_count:confirmed_count+failed_count],
+                    pending_transfers=[]
+                )
             else:
                 print(f"{Colors.format_error('Timeout waiting for transaction processing')}")
-                verification_results = {
-                    'confirmed': 0,
-                    'failed': 0,
-                    'pending': len(successful_submissions),
-                    'success_rate': 0.0,
-                    'confirmed_transfers': [],
-                    'failed_transfers': [],
-                    'pending_transfers': successful_submissions
-                }
+                verification_results = VerificationResults(
+                    confirmed=0,
+                    failed=0,
+                    pending=len(successful_submissions),
+                    success_rate=0.0,
+                    confirmed_transfers=[],
+                    failed_transfers=[],
+                    pending_transfers=successful_submissions
+                )
         else:
             print(f"\n{Colors.format_header('Step 2: Wait and verify transfers')}")
             verification_results = tester.wait_and_verify_transfers(transfers)
@@ -416,7 +410,7 @@ def main():
         step_num = "Step 4" if chaining_limit_hit else "Step 3"
         print(f"\n{Colors.format_header(f'{step_num}: Analyze stress test results')}")
         
-        successful_submissions = [t for t in transfers if t['submitted']]
+        successful_submissions = [t for t in transfers if t.submitted]
         submission_rate = (len(successful_submissions) / len(transfers)) * 100 if transfers else 0
         
         print(f"\n{Colors.format_subheader('Submission Analysis')}:")
@@ -425,33 +419,33 @@ def main():
         print(f"  Submission rate: {Colors.format_info(f'{submission_rate:.1f}%')}")
         
         print(f"\n{Colors.format_subheader('Confirmation Analysis')}:")
-        print(f"  Confirmed transfers: {Colors.format_success(str(verification_results['confirmed']))}")
-        print(f"  Failed transfers: {Colors.format_error(str(verification_results['failed']))}")
-        print(f"  Pending transfers: {Colors.format_warn(str(verification_results['pending']))}")
-        success_rate = verification_results['success_rate']
+        print(f"  Confirmed transfers: {Colors.format_success(str(verification_results.confirmed))}")
+        print(f"  Failed transfers: {Colors.format_error(str(verification_results.failed))}")
+        print(f"  Pending transfers: {Colors.format_warn(str(verification_results.pending))}")
+        success_rate = verification_results.success_rate
         print(f"  Confirmation rate: {Colors.format_info(f'{success_rate:.1f}%')}")
         
         # Calculate transaction throughput
-        if verification_results['confirmed'] > 0:
+        if verification_results.confirmed > 0:
             # Estimate time from submission start to last confirmation
             # For simplicity, use a rough estimate
             throughput_time = 120  # Approximate time window
-            throughput = verification_results['confirmed'] / (throughput_time / 60)  # TPS converted to TPM
+            throughput = verification_results.confirmed / (throughput_time / 60)  # TPS converted to TPM
             print(f"  Estimated throughput: {Colors.format_dim(f'{throughput:.1f} tx/min')}")
         
         # Determine test success
         if chaining_limit_hit:
             # When chaining limit is hit, success is finding the limit + reasonable confirmation rate
             # Lower confirmation rate threshold since processing is slower due to chaining
-            test_success = submission_rate >= 90.0 and verification_results['success_rate'] >= 50.0
+            test_success = submission_rate >= 90.0 and verification_results.success_rate >= 50.0
         else:
             # Normal case: high submission and confirmation rates
-            test_success = submission_rate >= 90.0 and verification_results['success_rate'] >= 70.0
+            test_success = submission_rate >= 90.0 and verification_results.success_rate >= 70.0
         
-        if verification_results['confirmed'] > 0:
+        if verification_results.confirmed > 0:
             print(f"\n{Colors.format_subheader('Transfer Amount Analysis')}:")
-            confirmed = verification_results['confirmed_transfers']
-            amounts = [t['amount'] for t in confirmed]
+            confirmed = verification_results.confirmed_transfers
+            amounts = [t.amount for t in confirmed]
             if amounts:
                 total_amount = sum(amounts)
                 avg_amount = total_amount / len(amounts)
