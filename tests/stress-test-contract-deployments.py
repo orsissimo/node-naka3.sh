@@ -10,7 +10,7 @@ from typing import Dict, Any, Optional, List
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from utils.config import ACCOUNTS, Account
+from utils.config import ACCOUNTS, Account, MinerName, AccountManager, DeploymentInfo, VerificationResults
 from utils.stacks_core_api import StacksCoreAPIWrapper
 from utils.blockstack_cli import BlockstackCLIWrapper
 from utils.node_manager import NodeManager
@@ -26,7 +26,7 @@ class ContractDeploymentStressTester:
         
     def get_account_info(self, miner: str) -> Dict[str, Any]:
         """Get account info (balance, nonce)"""
-        account = ACCOUNTS[miner]
+        account = AccountManager.get_by_name(miner)
         api = StacksCoreAPIWrapper(base_url=account.api_url)
         return api.get_account_info(account.address)
     
@@ -42,7 +42,7 @@ class ContractDeploymentStressTester:
     
     def get_block_height(self, miner: str) -> int:
         """Get current block height"""
-        account = ACCOUNTS[miner]
+        account = AccountManager.get_by_name(miner)
         api = StacksCoreAPIWrapper(base_url=account.api_url)
         info_data = api.get_info()
         return info_data["stacks_tip_height"]
@@ -84,9 +84,9 @@ class ContractDeploymentStressTester:
             pass
         return None
     
-    def submit_contract_deployment(self, miner: str, contract_file: str, contract_name: str, nonce: int) -> Dict[str, Any]:
+    def submit_contract_deployment(self, miner: str, contract_file: str, contract_name: str, nonce: int) -> DeploymentInfo:
         """Submit contract deployment without waiting for confirmation"""
-        account = ACCOUNTS[miner]
+        account = AccountManager.get_by_name(miner)
         api = StacksCoreAPIWrapper(base_url=account.api_url)
         
         # Get contract file path
@@ -95,19 +95,15 @@ class ContractDeploymentStressTester:
         else:
             contract_path = contract_file
         
-        deployment_info = {
-            'miner': miner,
-            'contract_file': contract_file,
-            'contract_name': contract_name,
-            'nonce': nonce,
-            'submitted': False,
-            'txid': None,
-            'error': None,
-            'size_kb': 0
-        }
+        deployment_info = DeploymentInfo(
+            miner=miner,
+            contract_file=contract_file,
+            contract_name=contract_name,
+            nonce=nonce
+        )
         
         if not os.path.exists(contract_path):
-            deployment_info['error'] = f"Contract file not found: {contract_path}"
+            deployment_info.error = f"Contract file not found: {contract_path}"
             return deployment_info
         
         try:
@@ -115,9 +111,9 @@ class ContractDeploymentStressTester:
             with open(contract_path, 'r') as f:
                 contract_code = f.read().strip()
             
-            deployment_info['size_kb'] = len(contract_code) / 1024
+            deployment_info.size_kb = len(contract_code) / 1024
             
-            print(f"{Colors.format_info('Submitting')}: {contract_name} ({deployment_info['size_kb']:.1f}KB) with nonce {nonce}")
+            print(f"{Colors.format_info('Submitting')}: {contract_name} ({deployment_info.size_kb:.1f}KB) with nonce {nonce}")
             
             # Calculate fee
             contract_size = len(contract_code)
@@ -132,13 +128,13 @@ class ContractDeploymentStressTester:
             
             # Submit transaction
             txid = api.post_raw_transaction(tx_binary)
-            deployment_info['txid'] = txid
-            deployment_info['submitted'] = True
+            deployment_info.txid = txid
+            deployment_info.submitted = True
             
             print(f"{Colors.format_success('Submitted')}: {contract_name} -> {txid}")
             
         except Exception as e:
-            deployment_info['error'] = str(e)
+            deployment_info.error = str(e)
             print(f"{Colors.format_error('Failed')}: {contract_name} -> {str(e)}")
         
         return deployment_info
@@ -162,7 +158,7 @@ class ContractDeploymentStressTester:
         
         return False
     
-    def batch_submit_contracts(self, miner: str, contract_count: int) -> List[Dict[str, Any]]:
+    def batch_submit_contracts(self, miner: str, contract_count: int) -> List[DeploymentInfo]:
         """Submit multiple contracts rapidly to test mempool limits"""
         print(f"\n{Colors.format_header('=== BATCH CONTRACT DEPLOYMENT ===')}")
         print(f"{Colors.format_info('Miner')}: {Colors.format_dim(miner)}")
@@ -194,7 +190,7 @@ class ContractDeploymentStressTester:
             deployment = self.submit_contract_deployment(miner, contract_file, contract_name, current_nonce)
             deployments.append(deployment)
             
-            if deployment['submitted']:
+            if deployment.submitted:
                 current_nonce += 1
             else:
                 # Stop submitting after first failure (chaining limit reached)
@@ -209,8 +205,8 @@ class ContractDeploymentStressTester:
         
         print(f"\n{Colors.format_info('Submission completed in')}: {Colors.format_dim(f'{submission_duration:.2f} seconds')}")
         
-        successful_submissions = [d for d in deployments if d['submitted']]
-        failed_submissions = [d for d in deployments if not d['submitted']]
+        successful_submissions = [d for d in deployments if d.submitted]
+        failed_submissions = [d for d in deployments if not d.submitted]
         
         print(f"{Colors.format_success('Successful submissions')}: {Colors.format_dim(str(len(successful_submissions)))}")
         print(f"{Colors.format_error('Failed submissions')}: {Colors.format_dim(str(len(failed_submissions)))}")
@@ -218,27 +214,24 @@ class ContractDeploymentStressTester:
         if failed_submissions:
             print(f"\n{Colors.format_subheader('Failed submission details')}:")
             for i, failed in enumerate(failed_submissions, 1):
-                print(f"  {i}. {failed['contract_name']}: {Colors.format_error(failed['error'])}")
+                print(f"  {i}. {failed.contract_name}: {Colors.format_error(failed.error)}")
         
         return deployments
     
-    def wait_and_verify_deployments(self, deployments: List[Dict[str, Any]], timeout: int = 120) -> Dict[str, Any]:
+    def wait_and_verify_deployments(self, deployments: List[DeploymentInfo], timeout: int = 120) -> VerificationResults:
         """Wait for deployments to be confirmed and verify results"""
         print(f"\n{Colors.format_header('=== VERIFICATION PHASE ===')}")
         
-        successful_deployments = [d for d in deployments if d['submitted']]
+        successful_deployments = [d for d in deployments if d.submitted]
         if not successful_deployments:
-            return {
-                'confirmed': 0,
-                'failed': 0,
-                'pending': 0,
-                'success_rate': 0.0,
-                'confirmed_deployments': [],
-                'failed_deployments': [],
-                'pending_deployments': []
-            }
+            return VerificationResults(
+                confirmed=0,
+                failed=0,
+                pending=0,
+                success_rate=0.0
+            )
         
-        miner = successful_deployments[0]['miner']  # Use first deployment's miner
+        miner = successful_deployments[0].miner  # Use first deployment's miner
         
         print(f"{Colors.format_info('Waiting for confirmations')}: {Colors.format_dim(f'{timeout}s timeout')}")
         print(f"{Colors.format_info('Tracking')}: {Colors.format_dim(f'{len(successful_deployments)} submitted deployments')}")
@@ -253,19 +246,19 @@ class ContractDeploymentStressTester:
             
             for deployment in unresolved[:5]:  # Check up to 5 at a time to avoid overwhelming API
                 try:
-                    account = ACCOUNTS[miner]
+                    account = AccountManager.get_by_name(miner)
                     api = StacksCoreAPIWrapper(base_url=account.api_url)
                     
                     # Try to get transaction info
-                    tx_info = api.get_transaction_by_id(deployment['txid'])
+                    tx_info = api.get_transaction_by_id(deployment.txid)
                     tx_status = tx_info.get('tx_status', 'unknown')
                     
                     if tx_status == 'success':
                         confirmed_deployments.append(deployment)
-                        print(f"{Colors.format_success('✓')} {deployment['contract_name']}: {Colors.format_success('Confirmed')}")
+                        print(f"{Colors.format_success('✓')} {deployment.contract_name}: {Colors.format_success('Confirmed')}")
                     elif tx_status in ['abort_by_response', 'abort_by_post_condition']:
                         failed_deployments.append(deployment)
-                        print(f"{Colors.format_error('✗')} {deployment['contract_name']}: {Colors.format_error('Failed')} ({tx_status})")
+                        print(f"{Colors.format_error('✗')} {deployment.contract_name}: {Colors.format_error('Failed')} ({tx_status})")
                     
                 except Exception as e:
                     # Transaction might not be found yet, continue waiting
@@ -288,15 +281,15 @@ class ContractDeploymentStressTester:
         print(f"  Pending: {Colors.format_warn(str(pending_count))}")
         print(f"  Success rate: {Colors.format_info(f'{success_rate:.1f}%')}")
         
-        return {
-            'confirmed': confirmed_count,
-            'failed': failed_count,
-            'pending': pending_count,
-            'success_rate': success_rate,
-            'confirmed_deployments': confirmed_deployments,
-            'failed_deployments': failed_deployments,
-            'pending_deployments': pending_deployments
-        }
+        return VerificationResults(
+            confirmed=confirmed_count,
+            failed=failed_count,
+            pending=pending_count,
+            success_rate=success_rate,
+            confirmed_deployments=confirmed_deployments,
+            failed_deployments=failed_deployments,
+            pending_deployments=pending_deployments
+        )
 
 def main():
     """Execute the contract deployment stress test"""
@@ -325,9 +318,9 @@ def main():
         deployments = tester.batch_submit_contracts(test_miner, contract_count)
         
         # Step 2: Wait and verify deployments
-        successful_submissions = [d for d in deployments if d['submitted']]
-        failed_submissions = [d for d in deployments if not d['submitted']]
-        chaining_limit_hit = any('TooMuchChaining' in d.get('error', '') for d in failed_submissions)
+        successful_submissions = [d for d in deployments if d.submitted]
+        failed_submissions = [d for d in deployments if not d.submitted]
+        chaining_limit_hit = any('TooMuchChaining' in (d.error or '') for d in failed_submissions)
         
         if chaining_limit_hit:
             print(f"\n{Colors.format_header('Step 2: Wait for contracts to process (chaining limit reached)')}")
@@ -374,14 +367,14 @@ def main():
                     try:
                         account = ACCOUNTS[test_miner]
                         api = StacksCoreAPIWrapper(base_url=account.api_url)
-                        tx_info = api.get_transaction_by_id(deployment['txid'])
+                        tx_info = api.get_transaction_by_id(deployment.txid)
                         
                         # Show deployment details and API response (omit tx field for brevity)
-                        print(f"\n{Colors.format_info(f'Deployment {i}')}: {Colors.format_dim(deployment['contract_name'])}")
-                        print(f"{Colors.format_info('Nonce')}: {Colors.format_dim(str(deployment['nonce']))}")
-                        size_kb = deployment['size_kb']
+                        print(f"\n{Colors.format_info(f'Deployment {i}')}: {Colors.format_dim(deployment.contract_name)}")
+                        print(f"{Colors.format_info('Nonce')}: {Colors.format_dim(str(deployment.nonce))}")
+                        size_kb = deployment.size_kb
                         print(f"{Colors.format_info('Size')}: {Colors.format_dim(f'{size_kb:.1f}KB')}")
-                        print(f"{Colors.format_info('TXID')}: {Colors.format_dim(deployment['txid'])}")
+                        print(f"{Colors.format_info('TXID')}: {Colors.format_dim(deployment.txid)}")
                         
                         # Create a copy of tx_info without the 'tx' field for cleaner output
                         display_info = dict(tx_info)
@@ -404,34 +397,34 @@ def main():
                             
                     except Exception as e:
                         failed_count += 1
-                        print(f"\n{Colors.format_info(f'Deployment {i}')}: {Colors.format_dim(deployment['contract_name'])}")
-                        print(f"{Colors.format_info('Nonce')}: {Colors.format_dim(str(deployment['nonce']))}")
-                        size_kb = deployment['size_kb']
+                        print(f"\n{Colors.format_info(f'Deployment {i}')}: {Colors.format_dim(deployment.contract_name)}")
+                        print(f"{Colors.format_info('Nonce')}: {Colors.format_dim(str(deployment.nonce))}")
+                        size_kb = deployment.size_kb
                         print(f"{Colors.format_info('Size')}: {Colors.format_dim(f'{size_kb:.1f}KB')}")
-                        print(f"{Colors.format_info('TXID')}: {Colors.format_dim(deployment['txid'])}")
+                        print(f"{Colors.format_info('TXID')}: {Colors.format_dim(deployment.txid)}")
                         print(f"{Colors.format_error('Status')}: {Colors.format_error('API Error')} ({str(e)[:50]}...)")
                 
                 success_rate = (confirmed_count / len(deployments_to_check)) * 100 if deployments_to_check else 0
-                verification_results = {
-                    'confirmed': confirmed_count,
-                    'failed': failed_count,
-                    'pending': len(successful_submissions) - actual_processed,  # Transactions that weren't processed
-                    'success_rate': success_rate,
-                    'confirmed_deployments': deployments_to_check[:confirmed_count],
-                    'failed_deployments': deployments_to_check[confirmed_count:confirmed_count+failed_count],
-                    'pending_deployments': successful_submissions[actual_processed:]  # Unprocessed transactions
-                }
+                verification_results = VerificationResults(
+                    confirmed=confirmed_count,
+                    failed=failed_count,
+                    pending=len(successful_submissions) - actual_processed,  # Transactions that weren't processed
+                    success_rate=success_rate,
+                    confirmed_deployments=deployments_to_check[:confirmed_count],
+                    failed_deployments=deployments_to_check[confirmed_count:confirmed_count+failed_count],
+                    pending_deployments=successful_submissions[actual_processed:]  # Unprocessed transactions
+                )
             else:
                 print(f"{Colors.format_error('Timeout waiting for deployment processing')}")
-                verification_results = {
-                    'confirmed': 0,
-                    'failed': 0,
-                    'pending': len(successful_submissions),
-                    'success_rate': 0.0,
-                    'confirmed_deployments': [],
-                    'failed_deployments': [],
-                    'pending_deployments': successful_submissions
-                }
+                verification_results = VerificationResults(
+                    confirmed=0,
+                    failed=0,
+                    pending=len(successful_submissions),
+                    success_rate=0.0,
+                    confirmed_deployments=[],
+                    failed_deployments=[],
+                    pending_deployments=successful_submissions
+                )
         else:
             print(f"\n{Colors.format_header('Step 2: Wait and verify deployments')}")
             verification_results = tester.wait_and_verify_deployments(deployments)
@@ -440,7 +433,7 @@ def main():
         step_num = "Step 4" if chaining_limit_hit else "Step 3"
         print(f"\n{Colors.format_header(f'{step_num}: Analyze stress test results')}")
         
-        successful_submissions = [d for d in deployments if d['submitted']]
+        successful_submissions = [d for d in deployments if d.submitted]
         submission_rate = (len(successful_submissions) / len(deployments)) * 100 if deployments else 0
         
         print(f"\n{Colors.format_subheader('Submission Analysis')}:")
@@ -449,25 +442,25 @@ def main():
         print(f"  Submission rate: {Colors.format_info(f'{submission_rate:.1f}%')}")
         
         print(f"\n{Colors.format_subheader('Confirmation Analysis')}:")
-        print(f"  Confirmed deployments: {Colors.format_success(str(verification_results['confirmed']))}")
-        print(f"  Failed deployments: {Colors.format_error(str(verification_results['failed']))}")
-        print(f"  Pending deployments: {Colors.format_warn(str(verification_results['pending']))}")
-        success_rate = verification_results['success_rate']
+        print(f"  Confirmed deployments: {Colors.format_success(str(verification_results.confirmed))}")
+        print(f"  Failed deployments: {Colors.format_error(str(verification_results.failed))}")
+        print(f"  Pending deployments: {Colors.format_warn(str(verification_results.pending))}")
+        success_rate = verification_results.success_rate
         print(f"  Confirmation rate: {Colors.format_info(f'{success_rate:.1f}%')}")
         
         # Determine test success
         if chaining_limit_hit:
             # When chaining limit is hit, success is finding the limit + reasonable confirmation rate
             # Lower confirmation rate threshold since processing is slower due to chaining
-            test_success = submission_rate >= 80.0 and verification_results['success_rate'] >= 50.0
+            test_success = submission_rate >= 80.0 and verification_results.success_rate >= 50.0
         else:
             # Normal case: high submission and confirmation rates
-            test_success = submission_rate >= 80.0 and verification_results['success_rate'] >= 50.0
+            test_success = submission_rate >= 80.0 and verification_results.success_rate >= 50.0
         
-        if verification_results['confirmed'] > 0:
+        if verification_results.confirmed > 0:
             print(f"\n{Colors.format_subheader('Contract Size Analysis')}:")
-            confirmed = verification_results['confirmed_deployments']
-            sizes = [d['size_kb'] for d in confirmed if d['size_kb'] > 0]
+            confirmed = verification_results.confirmed_deployments
+            sizes = [d.size_kb for d in confirmed if d.size_kb > 0]
             if sizes:
                 avg_size = sum(sizes) / len(sizes)
                 min_size = min(sizes)
