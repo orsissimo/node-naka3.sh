@@ -10,7 +10,7 @@ from typing import Dict, Any, Optional
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from utils.config import ACCOUNTS, Account
+from utils.config import ACCOUNTS, Account, MinerName, AccountManager
 from utils.stacks_core_api import StacksCoreAPIWrapper
 from utils.blockstack_cli import BlockstackCLIWrapper
 from utils.node_manager import NodeManager
@@ -23,11 +23,11 @@ class NFTTester:
         self.node_manager = NodeManager()
         self.api = StacksCoreAPIWrapper(base_url="http://localhost:20443")
         self.cli = BlockstackCLIWrapper()
-        self.miner1 = ACCOUNTS["miner1"]
+        self.miner1 = AccountManager.get(MinerName.MINER1)
         
     def get_account_info(self, miner: str) -> Dict[str, Any]:
         """Get account info (balance, nonce)"""
-        account = ACCOUNTS[miner]
+        account = AccountManager.get_by_name(miner)
         api = StacksCoreAPIWrapper(base_url=account.api_url)
         return api.get_account_info(account.address)
     
@@ -43,7 +43,7 @@ class NFTTester:
     
     def get_block_height(self, miner: str) -> int:
         """Get current block height"""
-        account = ACCOUNTS[miner]
+        account = AccountManager.get_by_name(miner)
         api = StacksCoreAPIWrapper(base_url=account.api_url)
         info_data = api.get_info()
         return info_data["stacks_tip_height"]
@@ -80,7 +80,7 @@ class NFTTester:
     
     def deploy_contract(self, miner: str, contract_file: str, contract_name: str) -> str:
         """Deploy contract and return transaction ID"""
-        account = ACCOUNTS[miner]
+        account = AccountManager.get_by_name(miner)
         api = StacksCoreAPIWrapper(base_url=account.api_url)
         
         # Get contract file path
@@ -133,7 +133,7 @@ class NFTTester:
     
     def read_contract(self, miner: str, contract_address: str, contract_name: str, function_name: str) -> Dict[str, Any]:
         """Call read-only contract function"""
-        account = ACCOUNTS[miner]
+        account = AccountManager.get_by_name(miner)
         api = StacksCoreAPIWrapper(base_url=account.api_url)
         
         print(f"\n{Colors.format_subheader('--- CONTRACT READ CALL ---')}")
@@ -149,7 +149,7 @@ class NFTTester:
     
     def call_contract(self, miner: str, contract_address: str, contract_name: str, function_name: str, args: list = []) -> str:
         """Call contract function and return transaction ID"""
-        account = ACCOUNTS[miner]
+        account = AccountManager.get_by_name(miner)
         api = StacksCoreAPIWrapper(base_url=account.api_url)
         
         # Get initial state

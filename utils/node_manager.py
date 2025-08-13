@@ -5,7 +5,7 @@ import time
 import os
 from .colors import Colors, logger
 from .stacks_core_api import StacksCoreAPIWrapper
-from .config import ACCOUNTS
+from .config import ACCOUNTS, AccountManager
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PLAYBOOK_DIR = os.path.join(PROJECT_ROOT, "naka3", "playbooks", "three-miners")
@@ -16,7 +16,7 @@ class NodeManager:
         self.running = False
         self.apis = {
             name: StacksCoreAPIWrapper(base_url=account.api_url)
-            for name, account in ACCOUNTS.items()
+            for name, account in AccountManager.all().items()
         }
 
     def wait_for_miners_ready(self, timeout: int = 45) -> bool:

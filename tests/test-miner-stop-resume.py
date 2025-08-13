@@ -9,7 +9,7 @@ from typing import Dict, Any, Optional, List
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from utils.config import ACCOUNTS, Account
+from utils.config import ACCOUNTS, Account, MinerName, AccountManager
 from utils.stacks_core_api import StacksCoreAPIWrapper
 from utils.blockstack_cli import BlockstackCLIWrapper
 from utils.node_manager import NodeManager
@@ -26,7 +26,7 @@ class MinerStopResumeTester:
     def get_account_info(self, miner: str) -> Optional[Dict[str, Any]]:
         """Get account info (balance, nonce) with connection error handling"""
         try:
-            account = ACCOUNTS[miner]
+            account = AccountManager.get_by_name(miner)
             api = StacksCoreAPIWrapper(base_url=account.api_url)
             return api.get_account_info(account.address)
         except Exception as e:
@@ -49,7 +49,7 @@ class MinerStopResumeTester:
     def get_block_height(self, miner: str) -> Optional[int]:
         """Get current block height with connection error handling"""
         try:
-            account = ACCOUNTS[miner]
+            account = AccountManager.get_by_name(miner)
             api = StacksCoreAPIWrapper(base_url=account.api_url)
             info_data = api.get_info()
             return info_data["stacks_tip_height"]
@@ -90,8 +90,8 @@ class MinerStopResumeTester:
     def submit_no_wait(self, api_miner: str, from_miner: str, to_address: str, 
                           amount: int, memo: Optional[str] = None, nonce: Optional[int] = None) -> str:
         """Submit transaction via specific miner's API endpoint without waiting for confirmation"""
-        from_account = ACCOUNTS[from_miner]
-        api_account = ACCOUNTS[api_miner]
+        from_account = AccountManager.get_by_name(from_miner)
+        api_account = AccountManager.get_by_name(api_miner)
         api_wrapper = StacksCoreAPIWrapper(base_url=api_account.api_url)
         
         # Use provided nonce or get current nonce
@@ -146,7 +146,7 @@ class MinerStopResumeTester:
     def is_miner_available(self, miner: str) -> bool:
         """Check if miner is available for API calls"""
         try:
-            account = ACCOUNTS[miner]
+            account = AccountManager.get_by_name(miner)
             api = StacksCoreAPIWrapper(base_url=account.api_url)
             api.get_info()
             return True
@@ -160,7 +160,7 @@ class MinerStopResumeTester:
             return False
             
         try:
-            account = ACCOUNTS[miner]
+            account = AccountManager.get_by_name(miner)
             api = StacksCoreAPIWrapper(base_url=account.api_url)
             tx_data = api.get_transaction_by_id(txid)
             print(f"{Colors.format_success('Transaction found')}: {Colors.format_dim(txid)}")
@@ -234,7 +234,7 @@ def main():
                     txid = tester.submit_no_wait(
                         api_miner=api_host,
                         from_miner=sender,
-                        to_address=ACCOUNTS[receiver].address,
+                        to_address=AccountManager.get_by_name(receiver).address,
                         amount=100000 + (tx_counter * 10000),  # Unique amounts
                         memo=f"{combo_code}: {description}",
                         nonce=nonces[sender]  # Use global nonce for this sender

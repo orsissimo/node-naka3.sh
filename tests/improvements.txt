@@ -5,7 +5,7 @@ PRIMARY:
 │   currently using some dictionaries or things that you need to know, and that dont work with autocompletion using dot for example. Investigate what could be improved
 - colors.py --> logger.py
 - Aggiungere btc_manual, auto, mine a node_manager.py
-- Fixare test-miner-stop-resume in modo che usi tutti i miner in modo intelligente.
+- Fixare test-miner-stop-resume in modo che usi tutti i miner in modo intelligente ---> Pre resume tutti usano miner2 come endpoint di verifica + ensure its working fine
 - Rimuovere output in /logs in monitor-chain.sh
 
 SECONDARY:

@@ -365,7 +365,7 @@ def main():
                 
                 for i, deployment in enumerate(deployments_to_check, 1):
                     try:
-                        account = ACCOUNTS[test_miner]
+                        account = AccountManager.get_by_name(test_miner)
                         api = StacksCoreAPIWrapper(base_url=account.api_url)
                         tx_info = api.get_transaction_by_id(deployment.txid)
                         
