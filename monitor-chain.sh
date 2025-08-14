@@ -9,12 +9,7 @@ case "$MINER" in
 esac && \
 API_URL="http://localhost:$MINER_PORT" && \
 echo "Using $MINER on port: $MINER_PORT" && \
-mkdir -p ./tmp ./logs && \
-TIMESTAMP=$(date '+%Y%m%d_%H%M%S') && \
-LOGFILE="./logs/monitor_${TIMESTAMP}_${MINER}.log" && \
-echo "=== CHAIN MONITORING LOG START - $(date) ===" > "$LOGFILE" && \
-echo "Miner: $MINER" >> "$LOGFILE" && \
-echo "API URL: $API_URL" >> "$LOGFILE" && \
+mkdir -p ./tmp && \
 
 echo "Starting Stacks chain monitoring..." && \
 echo "Press Ctrl+C to stop monitoring" && \
@@ -28,18 +23,15 @@ while true; do
     ITERATION=$((ITERATION + 1)) && \
     
     echo "[$ITERATION] Checking chain status..." && \
-    echo "=== ITERATION $ITERATION - $(date) ===" >> "$LOGFILE" && \
     
-    echo "Getting /v2/info..." >> "$LOGFILE" && \
-    INFO_RESPONSE=$(curl -s $API_URL/v2/info | tee -a "$LOGFILE") && \
+    INFO_RESPONSE=$(curl -s $API_URL/v2/info) && \
     STACKS_HEIGHT=$(echo "$INFO_RESPONSE" | jq -r '.stacks_tip_height') && \
     BURN_HEIGHT=$(echo "$INFO_RESPONSE" | jq -r '.burn_block_height') && \
     STACKS_TIP=$(echo "$INFO_RESPONSE" | jq -r '.stacks_tip') && \
     IS_SYNCED=$(echo "$INFO_RESPONSE" | jq -r '.is_fully_synced') && \
     TENURE_HEIGHT=$(echo "$INFO_RESPONSE" | jq -r '.tenure_height') && \
     
-    echo "Getting /v2/pox..." >> "$LOGFILE" && \
-    POX_RESPONSE=$(curl -s $API_URL/v2/pox | tee -a "$LOGFILE") && \
+    POX_RESPONSE=$(curl -s $API_URL/v2/pox) && \
     CURRENT_CYCLE=$(echo "$POX_RESPONSE" | jq -r '.current_cycle.id') && \
     NEXT_CYCLE=$(echo "$POX_RESPONSE" | jq -r '.next_cycle.id') && \
     BLOCKS_UNTIL_REWARD=$(echo "$POX_RESPONSE" | jq -r '.next_cycle.blocks_until_reward_phase') && \
@@ -119,5 +111,4 @@ while true; do
     sleep 10
 done && \
 
-echo "=== CHAIN MONITORING LOG END - $(date) ===" >> "$LOGFILE" && \
-echo "Log saved: $LOGFILE"
+echo "Monitoring stopped."

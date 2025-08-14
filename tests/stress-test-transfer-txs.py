@@ -14,7 +14,7 @@ from utils.config import ACCOUNTS, Account, MinerName, AccountManager, TransferP
 from utils.stacks_core_api import StacksCoreAPIWrapper
 from utils.blockstack_cli import BlockstackCLIWrapper
 from utils.node_manager import NodeManager
-from utils.colors import Colors, logger
+from utils.logger import Colors, logger
 
 class TransferStressTester:
     """Direct transfer stress testing without recipes framework"""

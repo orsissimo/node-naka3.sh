@@ -3,7 +3,7 @@
 import requests
 import json
 from typing import List, Optional, Dict, Any
-from .colors import Colors, logger
+from .logger import Colors, logger
 
 class StacksCoreAPIWrapper:
     """

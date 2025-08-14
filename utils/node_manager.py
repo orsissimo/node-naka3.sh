@@ -3,7 +3,7 @@
 import subprocess
 import time
 import os
-from .colors import Colors, logger
+from .logger import Colors, logger
 from .stacks_core_api import StacksCoreAPIWrapper
 from .config import ACCOUNTS, AccountManager
 

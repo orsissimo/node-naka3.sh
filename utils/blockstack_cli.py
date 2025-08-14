@@ -2,7 +2,7 @@ import subprocess
 import shlex
 import json
 from typing import List, Optional, Tuple, Dict, Any
-from .colors import Colors, logger
+from .logger import Colors, logger
 
 class BlockstackCLIWrapper:
     """

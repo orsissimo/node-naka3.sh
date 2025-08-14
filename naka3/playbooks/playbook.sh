@@ -21,7 +21,17 @@ function playbook_run() {
             shift 2
             ;;
         h)
-            echo "Usage: $_SOURCER start|resume|stop|btc_automatic|btc_manual|btc_mine|info"
+            echo "Usage: $_SOURCER [COMMAND] [OPTIONS]"
+            echo "Commands:"
+            echo "  start <auto|manual>        - Start in automatic or manual mining mode (required)"
+            echo "  resume                     - Resume from stopped state"
+            echo "  stop                       - Stop all services"
+            echo "  btc_auto                   - Switch to automatic mining mode"
+            echo "  btc_manual                 - Switch to manual mining mode"
+            echo "  btc_mine                   - Mine single block (manual mode only)"
+            echo "  info                       - Show status information"
+            echo "  snapshot create            - Create generic snapshot"
+            echo "  snapshot restore <auto|manual> - Restore snapshot in specified mode (required)"
             exit 0
             ;;
         ?)
@@ -43,7 +53,27 @@ function playbook_run() {
     echo "Command is '$cmd'"
     case "$cmd" in 
         start)
-            echo "Starting $playbook_basedir ... "
+            local start_mode
+            set +ue
+            start_mode="$2"
+            set -ue
+            
+            # Require explicit mode - no defaults
+            if [ -z "$start_mode" ]; then
+                echo "Error: Start mode is required. Use 'auto' or 'manual'"
+                echo "Usage: start <auto|manual>"
+                exit 1
+            elif [ "$start_mode" = "auto" ]; then
+                start_mode="automatic"
+            elif [ "$start_mode" = "manual" ]; then
+                start_mode="manual"
+            else
+                echo "Error: Invalid start mode '$start_mode'. Use 'auto' or 'manual'"
+                echo "Usage: start <auto|manual>"
+                exit 1
+            fi
+            
+            echo "Starting $playbook_basedir in $start_mode mode... "
             
             require_func "playbook_start"
             require_func "playbook_loop"
@@ -51,7 +81,15 @@ function playbook_run() {
             rm -rf "$playbook_basedir"
             playbook_start
             mkdir -p "$playbook_basedir"
-            echo "automatic" > "$playbook_basedir/.btc_mining_state"
+            echo "$start_mode" > "$playbook_basedir/.btc_mining_state"
+            
+            if [ "$start_mode" = "automatic" ]; then
+                echo "Starting in automatic mining mode"
+            else
+                echo "Starting in manual mining mode. Use 'btc_mine' to mine blocks manually."
+            fi
+            
+            # Always start the loop to show logs and handle state changes
             playbook_loop
             ;;
         
@@ -66,7 +104,7 @@ function playbook_run() {
             playbook_loop
             ;;
 
-        btc_automatic)
+        btc_auto)
             state_file="$playbook_basedir/.btc_mining_state"
             
             if [ -f "$state_file" ] && [ "$(cat "$state_file")" = "automatic" ]; then
@@ -164,7 +202,7 @@ function playbook_run() {
             case "$sub" in 
                 create)
                     snap_basedir="$playbook_basedir"_snapshot
-                    echo "Snapshotting $playbook_basedir ... "
+                    echo "Creating generic snapshot of $playbook_basedir... "
                     
                     require_func "playbook_start"
 
@@ -176,19 +214,42 @@ function playbook_run() {
                     playbook_stop
                     sleep 10
                     cp -r "$playbook_basedir"/. "$snap_basedir"/
+                    
+                    echo "Generic snapshot created"
                     #rsync -a --ignore-errors "$playbook_basedir" "$snap_basedir"
                     ;;
 
                 restore)
+                    local restore_mode
+                    set +ue
+                    restore_mode="$3"
+                    set -ue
+                    
                     snap_basedir="$playbook_basedir"_snapshot
-                    echo "Restoring snapshot from $snap_basedir ... "
-
-                    require_func "playbook_resume"
                     
                     if ! [ -d "$snap_basedir" ]; then
                         echo "Snapshot doesn't exist: $snap_basedir"
                         exit 1
                     fi
+                    
+                    # Require explicit restore mode - no defaults
+                    if [ -z "$restore_mode" ]; then
+                        echo "Error: Restore mode is required. Use 'auto' or 'manual'"
+                        echo "Usage: snapshot restore <auto|manual>"
+                        exit 1
+                    elif [ "$restore_mode" = "auto" ]; then
+                        restore_mode="automatic"
+                        echo "Restoring snapshot from $snap_basedir in automatic mode..."
+                    elif [ "$restore_mode" = "manual" ]; then
+                        restore_mode="manual"
+                        echo "Restoring snapshot from $snap_basedir in manual mode..."
+                    else
+                        echo "Error: Invalid snapshot restore mode '$restore_mode'. Use 'auto' or 'manual'"
+                        echo "Usage: snapshot restore <auto|manual>"
+                        exit 1
+                    fi
+
+                    require_func "playbook_resume"
 
                     rm -rf "$playbook_basedir"
                     mkdir -p "$playbook_basedir"
@@ -196,18 +257,38 @@ function playbook_run() {
                     #rsync -a --ignore-errors "$snap_basedir" "$playbook_basedir"
 
                     playbook_resume
-                    echo "automatic" > "$playbook_basedir/.btc_mining_state"
+                    echo "$restore_mode" > "$playbook_basedir/.btc_mining_state"
+                    
+                    if [ "$restore_mode" = "automatic" ]; then
+                        echo "Snapshot restored in automatic mining mode"
+                    else
+                        echo "Snapshot restored in manual mining mode. Use 'btc_mine' to mine blocks manually."
+                    fi
+                    
+                    # Always start the loop to show logs and handle state changes
                     playbook_loop
                     ;;
 
                 *)        
-                    echo "Usage: $_SOURCER start|resume|stop|btc_automatic|btc_manual|btc_mine|info|snapshot [create, restore]"
+                    echo "Usage: $_SOURCER snapshot [create|restore]"
+                    echo "  create                    - Create generic snapshot"
+                    echo "  restore <auto|manual>     - Restore snapshot in specified mode (required)"
                     ;;
             esac
             ;;
 
         *)
-            echo "Usage: $_SOURCER start|resume|stop|btc_automatic|btc_manual|btc_mine|info|snapshot [create, restore]"
+            echo "Usage: $_SOURCER [COMMAND] [OPTIONS]"
+            echo "Commands:"
+            echo "  start <auto|manual>        - Start in automatic or manual mining mode (required)"
+            echo "  resume                     - Resume from stopped state"
+            echo "  stop                       - Stop all services"
+            echo "  btc_auto                   - Switch to automatic mining mode"
+            echo "  btc_manual                 - Switch to manual mining mode"
+            echo "  btc_mine                   - Mine single block (manual mode only)"
+            echo "  info                       - Show status information"
+            echo "  snapshot create            - Create generic snapshot"
+            echo "  snapshot restore <auto|manual> - Restore snapshot in specified mode (required)"
             ;;
     esac
 }
