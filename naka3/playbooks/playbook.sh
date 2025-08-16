@@ -187,9 +187,31 @@ function playbook_run() {
         stop)
             echo "Stopping $playbook_basedir ... "
 
-            require_func "playbook_loop"
+            require_func "playbook_stop"
 
+            # Stop services
             playbook_stop
+            
+            # Kill any running three-miners.sh background processes
+            echo "Terminating background three-miners processes..."
+            playbook_script_name="$(basename "$_SOURCER")"
+            
+            # Find and kill any background three-miners.sh processes (except current one)
+            current_pid=$$
+            pids_to_kill=$(pgrep -f "$playbook_script_name" | grep -v "^$current_pid$" || true)
+            
+            if [ -n "$pids_to_kill" ]; then
+                echo "Found background processes to terminate: $pids_to_kill"
+                echo "$pids_to_kill" | xargs kill -TERM 2>/dev/null || true
+                sleep 2
+                # Force kill if still running
+                echo "$pids_to_kill" | xargs kill -KILL 2>/dev/null || true
+                echo "Background processes terminated"
+            else
+                echo "No background processes found"
+            fi
+            
+            echo "Stop completed"
             ;;
         
         snapshot)
