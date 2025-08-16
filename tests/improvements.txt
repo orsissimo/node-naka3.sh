@@ -1,12 +1,11 @@
 PRIMARY:
-- Aggiungere debug ovunque --- No prints? O quelli che ora sono prints non sono rilevanti?
-- Aggiungere btc_manual, auto, mine a node_manager.py
 - Fixare test-miner-stop-resume in modo che usi tutti i miner in modo intelligente ---> Pre resume tutti usano miner2 come endpoint di verifica + ensure its working fine
 
 SECONDARY:
 - Potremmo gestire CTRL+C stop per fare fare ./three-miners stop prima di interrompere tutto, così da non "corrompere" lo snapshot.
 - Più avanti, funzioni uguali dentro ai vari file in /tests dovrebbero essere messe in un file utils.py, così da non duplicare codice.
 - Fare un giro di "inspection" per capire se posso semplificare il codice dei /tests.
+- Aggiungere debug ovunque --- No prints? O quelli che ora sono prints non sono rilevanti?
 
 
 
