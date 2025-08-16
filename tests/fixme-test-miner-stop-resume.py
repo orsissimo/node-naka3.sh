@@ -9,36 +9,35 @@ from typing import Dict, Any, Optional, List
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from utils.config import ACCOUNTS, Account, MinerName, AccountManager
+from utils.config import MinerName, AccountManager, ACCOUNTS
+from utils.base_test import BaseTestClass
 from utils.stacks_core_api import StacksCoreAPIWrapper
 from utils.blockstack_cli import BlockstackCLIWrapper
-from utils.node_manager import NodeManager
 from utils.logger import Colors, logger
 
-class MinerStopResumeTester:
+class MinerStopResumeTester(BaseTestClass):
     """Direct miner stop/resume testing without recipes framework"""
     
     def __init__(self):
-        self.node_manager = NodeManager()
-        self.cli = BlockstackCLIWrapper()
+        super().__init__()
         self.submitted_transactions = []  # Store submitted transaction IDs for later verification
         
-    def get_account_info(self, miner: str) -> Optional[Dict[str, Any]]:
+    def get_account_info(self, miner: MinerName) -> Optional[Dict[str, Any]]:
         """Get account info (balance, nonce) with connection error handling"""
         try:
-            account = AccountManager.get_by_name(miner)
+            account = AccountManager.get(miner)
             api = StacksCoreAPIWrapper(base_url=account.api_url)
             return api.get_account_info(account.address)
         except Exception as e:
             logger.error(f"Failed to get account info for {miner}: {e}")
             return None
     
-    def get_nonce(self, miner: str) -> Optional[int]:
+    def get_nonce(self, miner: MinerName) -> Optional[int]:
         """Get current nonce for account"""
         account_info = self.get_account_info(miner)
         return account_info["nonce"] if account_info else None
     
-    def get_balance(self, miner: str) -> Optional[int]:
+    def get_balance(self, miner: MinerName) -> Optional[int]:
         """Get STX balance for account"""
         account_info = self.get_account_info(miner)
         if not account_info:
@@ -46,10 +45,10 @@ class MinerStopResumeTester:
         balance_hex = account_info.get('balance', '0x0')
         return int(balance_hex, 16) if balance_hex.startswith('0x') else int(balance_hex)
     
-    def get_block_height(self, miner: str) -> Optional[int]:
+    def get_block_height(self, miner: MinerName) -> Optional[int]:
         """Get current block height with connection error handling"""
         try:
-            account = AccountManager.get_by_name(miner)
+            account = AccountManager.get(miner)
             api = StacksCoreAPIWrapper(base_url=account.api_url)
             info_data = api.get_info()
             return info_data["stacks_tip_height"]
@@ -68,7 +67,7 @@ class MinerStopResumeTester:
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"CLI command failed: {' '.join(command)}\nError: {e.stderr.decode()}")
     
-    def wait_for_confirmation(self, miner: str, initial_nonce: int, initial_height: int, timeout: int = 60) -> bool:
+    def wait_for_confirmation(self, miner: MinerName, initial_nonce: int, initial_height: int, timeout: int = 60) -> bool:
         """Wait for transaction confirmation (nonce + height increase)"""
         start_time = time.time()
         
@@ -87,11 +86,11 @@ class MinerStopResumeTester:
         
         return False
     
-    def submit_no_wait(self, api_miner: str, from_miner: str, to_address: str, 
+    def submit_no_wait(self, api_miner: MinerName, from_miner: MinerName, to_address: str, 
                           amount: int, memo: Optional[str] = None, nonce: Optional[int] = None) -> str:
         """Submit transaction via specific miner's API endpoint without waiting for confirmation"""
-        from_account = AccountManager.get_by_name(from_miner)
-        api_account = AccountManager.get_by_name(api_miner)
+        from_account = AccountManager.get(from_miner)
+        api_account = AccountManager.get(api_miner)
         api_wrapper = StacksCoreAPIWrapper(base_url=api_account.api_url)
         
         # Use provided nonce or get current nonce
@@ -143,24 +142,24 @@ class MinerStopResumeTester:
         
         return txid
 
-    def is_miner_available(self, miner: str) -> bool:
+    def is_miner_available(self, miner: MinerName) -> bool:
         """Check if miner is available for API calls"""
         try:
-            account = AccountManager.get_by_name(miner)
+            account = AccountManager.get(miner)
             api = StacksCoreAPIWrapper(base_url=account.api_url)
             api.get_info()
             return True
         except Exception:
             return False
     
-    def verify_transaction(self, miner: str, txid: str) -> bool:
+    def verify_transaction(self, miner: MinerName, txid: str) -> bool:
         """Simple transaction verification - returns True if transaction is found"""
         if not self.is_miner_available(miner):
             print(f"{Colors.format_warn('Miner unavailable, skipping verification')}: {Colors.format_dim(miner)}")
             return False
             
         try:
-            account = AccountManager.get_by_name(miner)
+            account = AccountManager.get(miner)
             api = StacksCoreAPIWrapper(base_url=account.api_url)
             tx_data = api.get_transaction_by_id(txid)
             print(f"{Colors.format_success('Transaction found')}: {Colors.format_dim(txid)}")
@@ -180,7 +179,7 @@ def main():
     try:
         # Start the node
         print(f"\n{Colors.format_stacks('Starting miners...')}")
-        if not tester.node_manager.start_node():
+        if not tester.start_node():
             raise RuntimeError("Failed to start miners")
         
         # Step 1: Submit ALL valid transaction combinations (sender-receiver-api_host)
@@ -234,7 +233,7 @@ def main():
                     txid = tester.submit_no_wait(
                         api_miner=api_host,
                         from_miner=sender,
-                        to_address=AccountManager.get_by_name(receiver).address,
+                        to_address=AccountManager.get(receiver).address,
                         amount=100000 + (tx_counter * 10000),  # Unique amounts
                         memo=f"{combo_code}: {description}",
                         nonce=nonces[sender]  # Use global nonce for this sender
@@ -398,8 +397,8 @@ def main():
     finally:
         # Cleanup
         print(f"\n{Colors.format_stacks('Cleaning up...')}")
-        tester.node_manager.stop_node()
-        tester.node_manager.cleanup()
+        tester.stop_node()
+        tester.cleanup()
 
 if __name__ == "__main__":
     import sys

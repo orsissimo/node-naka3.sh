@@ -10,179 +10,74 @@ from typing import Dict, Any, Optional
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from utils.config import ACCOUNTS, Account, MinerName, AccountManager
-from utils.stacks_core_api import StacksCoreAPIWrapper
-from utils.blockstack_cli import BlockstackCLIWrapper
-from utils.node_manager import NodeManager
+from utils.config import MinerName
+from utils.base_test import BaseTestClass
 from utils.logger import Colors, logger
 
-class ContractTester:
+class ContractTester(BaseTestClass):
     """Direct contract testing without recipes framework"""
     
     def __init__(self):
-        self.node_manager = NodeManager()
-        self.api = StacksCoreAPIWrapper(base_url="http://localhost:20443")
-        self.cli = BlockstackCLIWrapper()
-        self.miner1 = AccountManager.get(MinerName.MINER1)
-        
-    def get_account_info(self, miner: str) -> Dict[str, Any]:
-        """Get account info (balance, nonce)"""
-        account = AccountManager.get_by_name(miner)
-        api = StacksCoreAPIWrapper(base_url=account.api_url)
-        return api.get_account_info(account.address)
+        super().__init__()
     
-    def get_nonce(self, miner: str) -> int:
-        """Get current nonce for account"""
-        return self.get_account_info(miner)["nonce"]
-    
-    def get_balance(self, miner: str) -> int:
-        """Get STX balance for account"""
-        account_info = self.get_account_info(miner)
-        balance_hex = account_info.get('balance', '0x0')
-        return int(balance_hex, 16) if balance_hex.startswith('0x') else int(balance_hex)
-    
-    def get_block_height(self, miner: str) -> int:
-        """Get current block height"""
-        account = AccountManager.get_by_name(miner)
-        api = StacksCoreAPIWrapper(base_url=account.api_url)
-        info_data = api.get_info()
-        return info_data["stacks_tip_height"]
-    
-    def run_cli_command(self, command: list, binary_output: bool = False) -> bytes:
-        """Run blockstack-cli command and return output"""
-        try:
-            result = subprocess.run(command, capture_output=True, check=True)
-            if binary_output:
-                hex_output = result.stdout.decode().strip()
-                return bytes.fromhex(hex_output)
-            return result.stdout
-        except subprocess.CalledProcessError as e:
-            raise RuntimeError(f"CLI command failed: {' '.join(command)}\nError: {e.stderr.decode()}")
-    
-    def wait_for_confirmation(self, miner: str, initial_nonce: int, initial_height: int, timeout: int = 60) -> bool:
-        """Wait for transaction confirmation (nonce + height increase)"""
-        start_time = time.time()
-        
-        while time.time() - start_time < timeout:
-            try:
-                current_nonce = self.get_nonce(miner)
-                current_height = self.get_block_height(miner)
-                
-                if current_nonce > initial_nonce and current_height > initial_height:
-                    return True
-                    
-            except Exception:
-                pass
-            
-            time.sleep(1)
-        
-        return False
-    
-    def deploy_contract(self, miner: str, contract_file: str, contract_name: str) -> str:
-        """Deploy contract and return transaction ID"""
-        account = AccountManager.get_by_name(miner)
-        api = StacksCoreAPIWrapper(base_url=account.api_url)
-        
-        # Get contract file path
-        if not os.path.isabs(contract_file):
-            contract_path = os.path.join(os.path.dirname(__file__), '..', contract_file)
-        else:
-            contract_path = contract_file
-        
-        if not os.path.exists(contract_path):
-            raise FileNotFoundError(f"Contract file not found: {contract_path}")
-        
-        # Get initial state
-        initial_nonce = self.get_nonce(miner)
-        initial_balance = self.get_balance(miner)
-        initial_height = self.get_block_height(miner)
-        
+    def deploy_contract_with_details(self, miner: MinerName, contract_file: str, contract_name: str) -> str:
+        """Deploy contract with detailed logging and return transaction ID"""
         print(f"\n{Colors.format_header('=== CONTRACT DEPLOYMENT ===')}")
         print(f"{Colors.format_info('Contract')}: {Colors.format_dim(contract_name)}")
-        print(f"{Colors.format_info('File')}: {Colors.format_dim(contract_path)}")
-        print(f"{Colors.format_info('Account')}: {Colors.format_dim(account.address)}")
-        print(f"{Colors.format_info('Initial balance')}: {Colors.format_dim(str(initial_balance))}")
-        print(f"{Colors.format_info('Using nonce')}: {Colors.format_dim(str(initial_nonce))}")
+        print(f"{Colors.format_info('File')}: {Colors.format_dim(contract_file)}")
+        print(f"{Colors.format_info('Miner')}: {Colors.format_dim(miner.value)}")
         
-        # Calculate fee based on contract size
-        with open(contract_path, 'r') as f:
-            contract_code = f.read().strip()
+        # Get initial state for nonce-based confirmation
+        initial_nonce = self.get_nonce(miner)
+        initial_height = self.get_block_height(miner)
         
-        contract_size = len(contract_code)
-        base_fee = max(contract_size, 10000)
-        fee = str(int(base_fee * 1.1))
-        print(f"{Colors.format_info('Using fee')}: {Colors.format_dim(f'{fee} µSTX')}")
+        # Use BaseTestClass deploy_contract method
+        txid = self.deploy_contract(miner, contract_file, contract_name)
+        print(f"{Colors.format_success('Contract deployed')}: {Colors.format_info(txid)}")
         
-        # Build and run CLI command
-        cmd = self.cli.publish_contract(account.private_key, int(fee), initial_nonce, contract_name, contract_path)
-        
-        print(f"{Colors.format_info('Creating contract deployment transaction...')}")
-        tx_binary = self.run_cli_command(cmd, binary_output=True)
-        
-        print(f"{Colors.format_info('Submitting transaction...')}")
-        txid = api.post_raw_transaction(tx_binary)
-        
-        print(f"{Colors.format_success(f'Contract deployment submitted')}: {Colors.format_info(txid)}")
-        
-        # Wait for confirmation
-        if not self.wait_for_confirmation(miner, initial_nonce, initial_height):
+        # Wait for confirmation using the original working approach
+        print(f"\n{Colors.format_info('Waiting for confirmation...')}")
+        if self.wait_for_confirmation(miner, initial_nonce, initial_height, timeout=120):
+            print(f"{Colors.format_success(f'Contract {contract_name} deployment confirmed!')}")
+            return txid
+        else:
             raise RuntimeError("Contract deployment confirmation timeout")
-        
-        print(f"{Colors.format_success(f'Contract {contract_name} deployed successfully!')}")
-        return txid
     
-    def read_contract(self, miner: str, contract_address: str, contract_name: str, function_name: str) -> Dict[str, Any]:
-        """Call read-only contract function"""
-        account = AccountManager.get_by_name(miner)
-        api = StacksCoreAPIWrapper(base_url=account.api_url)
-        
+    def read_contract_with_details(self, miner: MinerName, contract_address: str, contract_name: str, function_name: str) -> Dict[str, Any]:
+        """Call read-only contract function with detailed logging"""
         print(f"\n{Colors.format_subheader('--- CONTRACT READ CALL ---')}")
         print(f"{Colors.format_info('Contract')}: {Colors.format_dim(f'{contract_address}.{contract_name}')}")
         print(f"{Colors.format_info('Function')}: {Colors.format_dim(function_name)}")
         
-        result = api.call_read_only_function(contract_address, contract_name, function_name, account.address, [])
+        # Use BaseTestClass read_contract method
+        result = self.read_contract(miner, contract_address, contract_name, function_name)
         
         print(f"{Colors.format_success('Read-only call successful')}")
         print(f"{Colors.format_info('Response')}: {Colors.format_dim(json.dumps(result, indent=2))}")
         
         return result
     
-    def call_contract(self, miner: str, contract_address: str, contract_name: str, function_name: str) -> str:
-        """Call contract function and return transaction ID"""
-        account = AccountManager.get_by_name(miner)
-        api = StacksCoreAPIWrapper(base_url=account.api_url)
-        
-        # Get initial state
-        initial_nonce = self.get_nonce(miner)
-        initial_balance = self.get_balance(miner)
-        initial_height = self.get_block_height(miner)
-        
+    def call_contract_with_details(self, miner: MinerName, contract_address: str, contract_name: str, function_name: str) -> str:
+        """Call contract function with detailed logging and return transaction ID"""
         print(f"\n{Colors.format_header('=== CONTRACT CALL ===')}")
         print(f"{Colors.format_info('Contract')}: {Colors.format_dim(f'{contract_address}.{contract_name}')}")
         print(f"{Colors.format_info('Function')}: {Colors.format_dim(function_name)}")
-        print(f"{Colors.format_info('Initial balance')}: {Colors.format_dim(str(initial_balance))}")
-        print(f"{Colors.format_info('Using nonce')}: {Colors.format_dim(str(initial_nonce))}")
         
-        fee = "5000"
-        print(f"{Colors.format_info('Using fee')}: {Colors.format_dim(f'{fee} µSTX')}")
+        # Get initial state for nonce-based confirmation
+        initial_nonce = self.get_nonce(miner)
+        initial_height = self.get_block_height(miner)
         
-        # Build and run CLI command
-        cmd = self.cli.call_contract(account.private_key, int(fee), initial_nonce, contract_address, contract_name, function_name)
-        
-        print(f"{Colors.format_info('Creating transaction binary...')}")
-        tx_binary = self.run_cli_command(cmd, binary_output=True)
-        
-        print(f"{Colors.format_info('Submitting contract call...')}")
-        txid = api.post_raw_transaction(tx_binary)
-        
+        # Use BaseTestClass call_contract method
+        txid = self.call_contract(miner, contract_address, contract_name, function_name)
         print(f"{Colors.format_success('Contract call submitted')}: {Colors.format_info(txid)}")
         
-        # Wait for confirmation
-        if not self.wait_for_confirmation(miner, initial_nonce, initial_height):
+        # Wait for confirmation using the original working approach
+        print(f"\n{Colors.format_info('Waiting for confirmation...')}")
+        if self.wait_for_confirmation(miner, initial_nonce, initial_height, timeout=120):
+            print(f"{Colors.format_success(f'{function_name} call confirmed!')}")
+            return txid
+        else:
             raise RuntimeError("Contract call confirmation timeout")
-        
-        print(f"{Colors.format_success(f'Contract call {function_name} confirmed!')}")
-        return txid
 
 def main():
     """Execute the contract deployment and interaction test"""
@@ -195,44 +90,44 @@ def main():
     try:
         # Start the node
         print(f"\n{Colors.format_stacks('Starting miners...')}")
-        if not tester.node_manager.start_node():
+        if not tester.start_node():
             raise RuntimeError("Failed to start miners")
         
         # Step 1: Deploy counter contract
         print(f"\n{Colors.format_header('Step 1: Deploy counter contract')}")
-        deploy_txid = tester.deploy_contract("miner1", "contracts/contract-counter.clar", "mycontract")
+        deploy_txid = tester.deploy_contract_with_details(MinerName.MINER1, "contracts/contract-counter.clar", "mycontract")
         
         # Step 2: Read initial counter value  
         print(f"\n{Colors.format_header('Step 2: Read initial counter')}")
-        initial_counter = tester.read_contract("miner1", tester.miner1.address, "mycontract", "get-counter")
+        initial_counter = tester.read_contract_with_details(MinerName.MINER1, tester.miner1.address, "mycontract", "get-counter")
         
         # Step 3: Read initial last caller
         print(f"\n{Colors.format_header('Step 3: Read initial last caller')}")
-        initial_caller = tester.read_contract("miner1", tester.miner1.address, "mycontract", "get-last-caller")
+        initial_caller = tester.read_contract_with_details(MinerName.MINER1, tester.miner1.address, "mycontract", "get-last-caller")
         
         # Step 4: Increment counter
         print(f"\n{Colors.format_header('Step 4: Increment counter')}")
-        increment_txid = tester.call_contract("miner1", tester.miner1.address, "mycontract", "increment")
+        increment_txid = tester.call_contract_with_details(MinerName.MINER1, tester.miner1.address, "mycontract", "increment")
         
         # Step 5: Read counter after increment
         print(f"\n{Colors.format_header('Step 5: Read counter after increment')}")
-        after_increment_counter = tester.read_contract("miner1", tester.miner1.address, "mycontract", "get-counter")
+        after_increment_counter = tester.read_contract_with_details(MinerName.MINER1, tester.miner1.address, "mycontract", "get-counter")
         
         # Step 6: Read last caller after increment
         print(f"\n{Colors.format_header('Step 6: Read last caller after increment')}")
-        after_increment_caller = tester.read_contract("miner1", tester.miner1.address, "mycontract", "get-last-caller")
+        after_increment_caller = tester.read_contract_with_details(MinerName.MINER1, tester.miner1.address, "mycontract", "get-last-caller")
         
         # Step 7: Reset counter
         print(f"\n{Colors.format_header('Step 7: Reset counter')}")
-        reset_txid = tester.call_contract("miner1", tester.miner1.address, "mycontract", "reset")
+        reset_txid = tester.call_contract_with_details(MinerName.MINER1, tester.miner1.address, "mycontract", "reset")
         
         # Step 8: Read counter after reset
         print(f"\n{Colors.format_header('Step 8: Read counter after reset')}")
-        after_reset_counter = tester.read_contract("miner1", tester.miner1.address, "mycontract", "get-counter")
+        after_reset_counter = tester.read_contract_with_details(MinerName.MINER1, tester.miner1.address, "mycontract", "get-counter")
         
         # Step 9: Read last caller after reset
         print(f"\n{Colors.format_header('Step 9: Read last caller after reset')}")
-        after_reset_caller = tester.read_contract("miner1", tester.miner1.address, "mycontract", "get-last-caller")
+        after_reset_caller = tester.read_contract_with_details(MinerName.MINER1, tester.miner1.address, "mycontract", "get-last-caller")
         
         # Final summary
         print(f"\n{Colors.format_dim('=' * 60)}")
@@ -252,8 +147,8 @@ def main():
     finally:
         # Cleanup
         print(f"\n{Colors.format_header('Cleaning up...')}")
-        tester.node_manager.stop_node()
-        tester.node_manager.cleanup()
+        tester.stop_node()
+        tester.cleanup()
 
 if __name__ == "__main__":
     import sys

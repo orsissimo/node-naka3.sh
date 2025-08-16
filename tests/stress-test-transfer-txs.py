@@ -10,53 +10,17 @@ from typing import Dict, Any, Optional, List
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from utils.config import ACCOUNTS, Account, MinerName, AccountManager, TransferParams, TransferInfo, VerificationResults
-from utils.stacks_core_api import StacksCoreAPIWrapper
-from utils.blockstack_cli import BlockstackCLIWrapper
-from utils.node_manager import NodeManager
+from utils.config import MinerName, TransferParams, TransferInfo, VerificationResults
+from utils.base_test import BaseTestClass
 from utils.logger import Colors, logger
 
-class TransferStressTester:
+class TransferStressTester(BaseTestClass):
     """Direct transfer stress testing without recipes framework"""
     
     def __init__(self):
-        self.node_manager = NodeManager()
-        self.cli = BlockstackCLIWrapper()
+        super().__init__()
         self.submitted_transfers = []
         
-    def get_account_info(self, miner: str) -> Dict[str, Any]:
-        """Get account info (balance, nonce)"""
-        account = AccountManager.get_by_name(miner)
-        api = StacksCoreAPIWrapper(base_url=account.api_url)
-        return api.get_account_info(account.address)
-    
-    def get_nonce(self, miner: str) -> int:
-        """Get current nonce for account"""
-        return self.get_account_info(miner)["nonce"]
-    
-    def get_balance(self, miner: str) -> int:
-        """Get STX balance for account"""
-        account_info = self.get_account_info(miner)
-        balance_hex = account_info.get('balance', '0x0')
-        return int(balance_hex, 16) if balance_hex.startswith('0x') else int(balance_hex)
-    
-    def get_block_height(self, miner: str) -> int:
-        """Get current block height"""
-        account = AccountManager.get_by_name(miner)
-        api = StacksCoreAPIWrapper(base_url=account.api_url)
-        info_data = api.get_info()
-        return info_data["stacks_tip_height"]
-    
-    def run_cli_command(self, command: list, binary_output: bool = False) -> bytes:
-        """Run blockstack-cli command and return output"""
-        try:
-            result = subprocess.run(command, capture_output=True, check=True)
-            if binary_output:
-                hex_output = result.stdout.decode().strip()
-                return bytes.fromhex(hex_output)
-            return result.stdout
-        except subprocess.CalledProcessError as e:
-            raise RuntimeError(f"CLI command failed: {' '.join(command)}\nError: {e.stderr.decode()}")
     
     def generate_transfers(self, count: int, base_amount: int = 100) -> List[TransferParams]:
         """Generate list of transfer parameters"""
@@ -73,11 +37,8 @@ class TransferStressTester:
         
         return transfers
     
-    def submit_transfer(self, miner: str, to_address: str, amount: int, memo: str, nonce: int) -> TransferInfo:
+    def submit_transfer(self, miner: MinerName, to_address: str, amount: int, memo: str, nonce: int) -> TransferInfo:
         """Submit transfer without waiting for confirmation"""
-        account = AccountManager.get_by_name(miner)
-        api = StacksCoreAPIWrapper(base_url=account.api_url)
-        
         transfer_info = TransferInfo(
             miner=miner,
             to_address=to_address,
@@ -89,17 +50,16 @@ class TransferStressTester:
         try:
             print(f"{Colors.format_info('Submitting')}: {amount} µSTX to {to_address[:8]}... (memo: {memo}, nonce: {nonce})")
             
-            # Fixed fee for transfers
+            # Use BaseTestClass transfer_stx method with manual nonce
+            from utils.config import AccountManager
+            account = AccountManager.get(miner)
             fee = 180
             
             # Build CLI command
             cmd = self.cli.token_transfer(account.private_key, fee, nonce, to_address, amount, memo)
             
-            # Create transaction binary
-            tx_binary = self.run_cli_command(cmd, binary_output=True)
-            
-            # Submit transaction
-            txid = api.post_raw_transaction(tx_binary)
+            # Submit transaction using base class method
+            txid = self.submit_transaction(miner, cmd)
             transfer_info.txid = txid
             transfer_info.submitted = True
             
@@ -111,26 +71,8 @@ class TransferStressTester:
         
         return transfer_info
     
-    def wait_for_confirmation(self, miner: str, initial_nonce: int, initial_height: int, timeout: int = 60) -> bool:
-        """Wait for transaction confirmation (nonce + height increase)"""
-        start_time = time.time()
-        
-        while time.time() - start_time < timeout:
-            try:
-                current_nonce = self.get_nonce(miner)
-                current_height = self.get_block_height(miner)
-                
-                if current_nonce > initial_nonce and current_height > initial_height:
-                    return True
-                    
-            except Exception:
-                pass
-            
-            time.sleep(1)
-        
-        return False
     
-    def batch_submit_transfers(self, miner: str, transfer_count: int) -> List[Dict[str, Any]]:
+    def batch_submit_transfers(self, miner: MinerName, transfer_count: int) -> List[TransferInfo]:
         """Submit multiple transfers rapidly to test mempool limits"""
         print(f"\n{Colors.format_header('=== BATCH TRANSFER SUBMISSION ===')}")
         print(f"{Colors.format_info('Miner')}: {Colors.format_dim(miner)}")
@@ -238,11 +180,8 @@ class TransferStressTester:
             
             for transfer in unresolved[:10]:  # Check up to 10 at a time
                 try:
-                    account = AccountManager.get_by_name(miner)
-                    api = StacksCoreAPIWrapper(base_url=account.api_url)
-                    
-                    # Try to get transaction info
-                    tx_info = api.get_transaction_by_id(transfer.txid)
+                    # Try to get transaction info using base class method
+                    tx_info = self.get_transaction_status(miner, transfer.txid)
                     tx_status = tx_info.get('tx_status', 'unknown')
                     
                     if tx_status == 'success':
@@ -301,16 +240,16 @@ def main():
     try:
         # Start the node
         print(f"\n{Colors.format_stacks('Starting miners...')}")
-        if not tester.node_manager.start_node():
+        if not tester.start_node():
             raise RuntimeError("Failed to start miners")
         
         # Configuration
         transfer_count = 50  # Test with 50 transfers initially
-        test_miner = "miner1"
+        test_miner = MinerName.MINER1
         
         print(f"\n{Colors.format_header('Test Configuration')}:")
         print(f"  Target transfers: {Colors.format_dim(str(transfer_count))}")
-        print(f"  Test miner: {Colors.format_dim(test_miner)}")
+        print(f"  Test miner: {Colors.format_dim(test_miner.value)}")
         
         # Step 1: Batch submit transfers
         print(f"\n{Colors.format_header('Step 1: Batch submit transfers')}")
@@ -346,9 +285,7 @@ def main():
                 
                 for i, transfer in enumerate(successful_submissions, 1):
                     try:
-                        account = AccountManager.get_by_name(test_miner)
-                        api = StacksCoreAPIWrapper(base_url=account.api_url)
-                        tx_info = api.get_transaction_by_id(transfer.txid)
+                        tx_info = tester.get_transaction_status(test_miner, transfer.txid)
                         
                         # Show transaction details and API response (omit tx field for brevity)
                         print(f"\n{Colors.format_info(f'Transaction {i}')}: {Colors.format_dim(transfer.memo)}")
@@ -464,8 +401,8 @@ def main():
     finally:
         # Cleanup
         print(f"\n{Colors.format_header('Cleaning up...')}")
-        tester.node_manager.stop_node()
-        tester.node_manager.cleanup()
+        tester.stop_node()
+        tester.cleanup()
 
 if __name__ == "__main__":
     import sys

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 @dataclass
 class Account:
@@ -15,7 +15,7 @@ class Account:
         return f"http://localhost:{self.api_port}"
 
 class MinerName(Enum):
-    """Enum for type-safe miner name access with IDE autocompletion."""
+    """Enum for type-safe miner name access."""
     MINER1 = "miner1"
     MINER2 = "miner2"
     MINER3 = "miner3"
@@ -43,7 +43,7 @@ ACCOUNTS = {
 }
 
 class AccountManager:
-    """Type-safe account access with IDE autocompletion."""
+    """Type-safe account access."""
     
     @staticmethod
     def get(miner: MinerName) -> Account:
@@ -51,9 +51,9 @@ class AccountManager:
         return ACCOUNTS[miner.value]
     
     @staticmethod
-    def get_by_name(miner_name: str) -> Optional[Account]:
-        """Get account by string name (for backward compatibility)."""
-        return ACCOUNTS.get(miner_name)
+    def all_miners() -> List[MinerName]:
+        """Get all available miner enums."""
+        return list(MinerName)
     
     @staticmethod
     def all() -> Dict[str, Account]:
@@ -69,8 +69,8 @@ class TransferParams:
 
 @dataclass
 class TransferInfo:
-    """Type-safe transfer information with IDE autocompletion."""
-    miner: str
+    """Type-safe transfer information."""
+    miner: MinerName
     to_address: str
     amount: int
     memo: str
@@ -81,8 +81,8 @@ class TransferInfo:
 
 @dataclass
 class DeploymentInfo:
-    """Type-safe deployment information with IDE autocompletion."""
-    miner: str
+    """Type-safe deployment information."""
+    miner: MinerName
     contract_file: str
     contract_name: str
     nonce: int
@@ -93,7 +93,7 @@ class DeploymentInfo:
 
 @dataclass
 class VerificationResults:
-    """Type-safe verification results with IDE autocompletion."""
+    """Type-safe verification results."""
     confirmed: int
     failed: int
     pending: int

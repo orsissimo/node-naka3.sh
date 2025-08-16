@@ -10,41 +10,37 @@ from typing import Dict, Any, Optional, List
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from utils.config import ACCOUNTS, Account, MinerName, AccountManager
+from utils.config import MinerName, AccountManager
+from utils.base_test import BaseTestClass
 from utils.stacks_core_api import StacksCoreAPIWrapper
 from utils.blockstack_cli import BlockstackCLIWrapper
-from utils.node_manager import NodeManager
 from utils.logger import Colors, logger
 
-class SizeLimitTester:
+class SizeLimitTester(BaseTestClass):
     """Direct size limit testing without recipes framework"""
     
     def __init__(self):
-        self.node_manager = NodeManager()
-        self.cli = BlockstackCLIWrapper()
-        self.miner1 = AccountManager.get(MinerName.MINER1)
-        self.miner2 = AccountManager.get(MinerName.MINER2)
-        self.miner3 = AccountManager.get(MinerName.MINER3)
+        super().__init__()
         
-    def get_account_info(self, miner: str) -> Dict[str, Any]:
+    def get_account_info(self, miner: MinerName) -> Dict[str, Any]:
         """Get account info (balance, nonce)"""
-        account = AccountManager.get_by_name(miner)
+        account = AccountManager.get(miner)
         api = StacksCoreAPIWrapper(base_url=account.api_url)
         return api.get_account_info(account.address)
     
-    def get_nonce(self, miner: str) -> int:
+    def get_nonce(self, miner: MinerName) -> int:
         """Get current nonce for account"""
         return self.get_account_info(miner)["nonce"]
     
-    def get_balance(self, miner: str) -> int:
+    def get_balance(self, miner: MinerName) -> int:
         """Get STX balance for account"""
         account_info = self.get_account_info(miner)
         balance_hex = account_info.get('balance', '0x0')
         return int(balance_hex, 16) if balance_hex.startswith('0x') else int(balance_hex)
     
-    def get_block_height(self, miner: str) -> int:
+    def get_block_height(self, miner: MinerName) -> int:
         """Get current block height"""
-        account = AccountManager.get_by_name(miner)
+        account = AccountManager.get(miner)
         api = StacksCoreAPIWrapper(base_url=account.api_url)
         info_data = api.get_info()
         return info_data["stacks_tip_height"]
@@ -60,7 +56,7 @@ class SizeLimitTester:
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"CLI command failed: {' '.join(command)}\nError: {e.stderr.decode()}")
     
-    def wait_for_confirmation(self, miner: str, initial_nonce: int, initial_height: int, timeout: int = 60) -> bool:
+    def wait_for_confirmation(self, miner: MinerName, initial_nonce: int, initial_height: int, timeout: int = 60) -> bool:
         """Wait for transaction confirmation (nonce + height increase)"""
         start_time = time.time()
         
@@ -79,9 +75,9 @@ class SizeLimitTester:
         
         return False
     
-    def try_deploy_contract(self, miner: str, contract_file: str, contract_name: str) -> Dict[str, Any]:
+    def try_deploy_contract(self, miner: MinerName, contract_file: str, contract_name: str) -> Dict[str, Any]:
         """Try to deploy contract and return detailed result"""
-        account = AccountManager.get_by_name(miner)
+        account = AccountManager.get(miner)
         api = StacksCoreAPIWrapper(base_url=account.api_url)
         
         # Get contract file path
@@ -248,7 +244,7 @@ def main():
     try:
         # Start the node
         print(f"\n{Colors.format_stacks('Starting miners...')}")
-        if not tester.node_manager.start_node():
+        if not tester.start_node():
             raise RuntimeError("Failed to start miners")
         
         print(f"\n{Colors.format_header('Testing contract deployment size limits')}")
@@ -256,7 +252,7 @@ def main():
         
         # Test each contract
         results = []
-        test_miner = "miner1"  # Use only the first miner
+        test_miner = MinerName.MINER1  # Use only the first miner
         
         for i, contract_file in enumerate(contract_files):
             miner = test_miner  # Always use miner1
@@ -365,8 +361,8 @@ def main():
     finally:
         # Cleanup
         print(f"\n{Colors.format_header('Cleaning up...')}")
-        tester.node_manager.stop_node()
-        tester.node_manager.cleanup()
+        tester.stop_node()
+        tester.cleanup()
 
 if __name__ == "__main__":
     import sys

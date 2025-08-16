@@ -10,53 +10,17 @@ from typing import Dict, Any, Optional, List
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from utils.config import ACCOUNTS, Account, MinerName, AccountManager, DeploymentInfo, VerificationResults
-from utils.stacks_core_api import StacksCoreAPIWrapper
-from utils.blockstack_cli import BlockstackCLIWrapper
-from utils.node_manager import NodeManager
+from utils.config import MinerName, DeploymentInfo, VerificationResults
+from utils.base_test import BaseTestClass
 from utils.logger import Colors, logger
 
-class ContractDeploymentStressTester:
+class ContractDeploymentStressTester(BaseTestClass):
     """Direct contract deployment stress testing without recipes framework"""
     
     def __init__(self):
-        self.node_manager = NodeManager()
-        self.cli = BlockstackCLIWrapper()
+        super().__init__()
         self.submitted_deployments = []
         
-    def get_account_info(self, miner: str) -> Dict[str, Any]:
-        """Get account info (balance, nonce)"""
-        account = AccountManager.get_by_name(miner)
-        api = StacksCoreAPIWrapper(base_url=account.api_url)
-        return api.get_account_info(account.address)
-    
-    def get_nonce(self, miner: str) -> int:
-        """Get current nonce for account"""
-        return self.get_account_info(miner)["nonce"]
-    
-    def get_balance(self, miner: str) -> int:
-        """Get STX balance for account"""
-        account_info = self.get_account_info(miner)
-        balance_hex = account_info.get('balance', '0x0')
-        return int(balance_hex, 16) if balance_hex.startswith('0x') else int(balance_hex)
-    
-    def get_block_height(self, miner: str) -> int:
-        """Get current block height"""
-        account = AccountManager.get_by_name(miner)
-        api = StacksCoreAPIWrapper(base_url=account.api_url)
-        info_data = api.get_info()
-        return info_data["stacks_tip_height"]
-    
-    def run_cli_command(self, command: list, binary_output: bool = False) -> bytes:
-        """Run blockstack-cli command and return output"""
-        try:
-            result = subprocess.run(command, capture_output=True, check=True)
-            if binary_output:
-                hex_output = result.stdout.decode().strip()
-                return bytes.fromhex(hex_output)
-            return result.stdout
-        except subprocess.CalledProcessError as e:
-            raise RuntimeError(f"CLI command failed: {' '.join(command)}\nError: {e.stderr.decode()}")
     
     def generate_contract_files(self, count: int) -> List[str]:
         """Generate list of contract files cycling through available sizes"""
@@ -84,10 +48,9 @@ class ContractDeploymentStressTester:
             pass
         return None
     
-    def submit_contract_deployment(self, miner: str, contract_file: str, contract_name: str, nonce: int) -> DeploymentInfo:
+    def submit_contract_deployment(self, miner: MinerName, contract_file: str, contract_name: str, nonce: int) -> DeploymentInfo:
         """Submit contract deployment without waiting for confirmation"""
-        account = AccountManager.get_by_name(miner)
-        api = StacksCoreAPIWrapper(base_url=account.api_url)
+        from utils.config import AccountManager
         
         # Get contract file path
         if not os.path.isabs(contract_file):
@@ -120,14 +83,12 @@ class ContractDeploymentStressTester:
             base_fee = max(contract_size, 10000)
             fee = int(base_fee * 1.1)
             
-            # Build CLI command
+            # Build CLI command using manual nonce
+            account = AccountManager.get(miner)
             cmd = self.cli.publish_contract(account.private_key, fee, nonce, contract_name, contract_path)
             
-            # Create transaction binary
-            tx_binary = self.run_cli_command(cmd, binary_output=True)
-            
-            # Submit transaction
-            txid = api.post_raw_transaction(tx_binary)
+            # Submit transaction using base class method
+            txid = self.submit_transaction(miner, cmd)
             deployment_info.txid = txid
             deployment_info.submitted = True
             
@@ -139,26 +100,8 @@ class ContractDeploymentStressTester:
         
         return deployment_info
     
-    def wait_for_confirmation(self, miner: str, initial_nonce: int, initial_height: int, timeout: int = 60) -> bool:
-        """Wait for transaction confirmation (nonce + height increase)"""
-        start_time = time.time()
-        
-        while time.time() - start_time < timeout:
-            try:
-                current_nonce = self.get_nonce(miner)
-                current_height = self.get_block_height(miner)
-                
-                if current_nonce > initial_nonce and current_height > initial_height:
-                    return True
-                    
-            except Exception:
-                pass
-            
-            time.sleep(1)
-        
-        return False
     
-    def batch_submit_contracts(self, miner: str, contract_count: int) -> List[DeploymentInfo]:
+    def batch_submit_contracts(self, miner: MinerName, contract_count: int) -> List[DeploymentInfo]:
         """Submit multiple contracts rapidly to test mempool limits"""
         print(f"\n{Colors.format_header('=== BATCH CONTRACT DEPLOYMENT ===')}")
         print(f"{Colors.format_info('Miner')}: {Colors.format_dim(miner)}")
@@ -246,11 +189,8 @@ class ContractDeploymentStressTester:
             
             for deployment in unresolved[:5]:  # Check up to 5 at a time to avoid overwhelming API
                 try:
-                    account = AccountManager.get_by_name(miner)
-                    api = StacksCoreAPIWrapper(base_url=account.api_url)
-                    
-                    # Try to get transaction info
-                    tx_info = api.get_transaction_by_id(deployment.txid)
+                    # Try to get transaction info using base class method
+                    tx_info = self.get_transaction_status(miner, deployment.txid)
                     tx_status = tx_info.get('tx_status', 'unknown')
                     
                     if tx_status == 'success':
@@ -302,16 +242,16 @@ def main():
     try:
         # Start the node
         print(f"\n{Colors.format_stacks('Starting miners...')}")
-        if not tester.node_manager.start_node():
+        if not tester.start_node():
             raise RuntimeError("Failed to start miners")
         
         # Configuration
         contract_count = 50  # Test with 50 contracts initially
-        test_miner = "miner1"
+        test_miner = MinerName.MINER1
         
         print(f"\n{Colors.format_header('Test Configuration')}:")
         print(f"  Target contracts: {Colors.format_dim(str(contract_count))}")
-        print(f"  Test miner: {Colors.format_dim(test_miner)}")
+        print(f"  Test miner: {Colors.format_dim(test_miner.value)}")
         
         # Step 1: Batch submit contracts
         print(f"\n{Colors.format_header('Step 1: Batch submit contracts')}")
@@ -365,9 +305,7 @@ def main():
                 
                 for i, deployment in enumerate(deployments_to_check, 1):
                     try:
-                        account = AccountManager.get_by_name(test_miner)
-                        api = StacksCoreAPIWrapper(base_url=account.api_url)
-                        tx_info = api.get_transaction_by_id(deployment.txid)
+                        tx_info = tester.get_transaction_status(test_miner, deployment.txid)
                         
                         # Show deployment details and API response (omit tx field for brevity)
                         print(f"\n{Colors.format_info(f'Deployment {i}')}: {Colors.format_dim(deployment.contract_name)}")
@@ -477,8 +415,8 @@ def main():
     finally:
         # Cleanup
         print(f"\n{Colors.format_header('Cleaning up...')}")
-        tester.node_manager.stop_node()
-        tester.node_manager.cleanup()
+        tester.stop_node()
+        tester.cleanup()
 
 if __name__ == "__main__":
     import sys

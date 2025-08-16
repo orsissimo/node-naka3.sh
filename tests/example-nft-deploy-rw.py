@@ -10,40 +10,37 @@ from typing import Dict, Any, Optional
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from utils.config import ACCOUNTS, Account, MinerName, AccountManager
+from utils.config import MinerName, AccountManager
+from utils.base_test import BaseTestClass
 from utils.stacks_core_api import StacksCoreAPIWrapper
 from utils.blockstack_cli import BlockstackCLIWrapper
-from utils.node_manager import NodeManager
 from utils.logger import Colors, logger
 
-class NFTTester:
+class NFTTester(BaseTestClass):
     """Direct NFT contract testing without recipes framework"""
     
     def __init__(self):
-        self.node_manager = NodeManager()
-        self.api = StacksCoreAPIWrapper(base_url="http://localhost:20443")
-        self.cli = BlockstackCLIWrapper()
-        self.miner1 = AccountManager.get(MinerName.MINER1)
+        super().__init__()
         
-    def get_account_info(self, miner: str) -> Dict[str, Any]:
+    def get_account_info(self, miner: MinerName) -> Dict[str, Any]:
         """Get account info (balance, nonce)"""
-        account = AccountManager.get_by_name(miner)
+        account = AccountManager.get(miner)
         api = StacksCoreAPIWrapper(base_url=account.api_url)
         return api.get_account_info(account.address)
     
-    def get_nonce(self, miner: str) -> int:
+    def get_nonce(self, miner: MinerName) -> int:
         """Get current nonce for account"""
         return self.get_account_info(miner)["nonce"]
     
-    def get_balance(self, miner: str) -> int:
+    def get_balance(self, miner: MinerName) -> int:
         """Get STX balance for account"""
         account_info = self.get_account_info(miner)
         balance_hex = account_info.get('balance', '0x0')
         return int(balance_hex, 16) if balance_hex.startswith('0x') else int(balance_hex)
     
-    def get_block_height(self, miner: str) -> int:
+    def get_block_height(self, miner: MinerName) -> int:
         """Get current block height"""
-        account = AccountManager.get_by_name(miner)
+        account = AccountManager.get(miner)
         api = StacksCoreAPIWrapper(base_url=account.api_url)
         info_data = api.get_info()
         return info_data["stacks_tip_height"]
@@ -59,7 +56,7 @@ class NFTTester:
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"CLI command failed: {' '.join(command)}\nError: {e.stderr.decode()}")
     
-    def wait_for_confirmation(self, miner: str, initial_nonce: int, initial_height: int, timeout: int = 60) -> bool:
+    def wait_for_confirmation(self, miner: MinerName, initial_nonce: int, initial_height: int, timeout: int = 60) -> bool:
         """Wait for transaction confirmation (nonce + height increase)"""
         start_time = time.time()
         
@@ -78,9 +75,9 @@ class NFTTester:
         
         return False
     
-    def deploy_contract(self, miner: str, contract_file: str, contract_name: str) -> str:
+    def deploy_contract(self, miner: MinerName, contract_file: str, contract_name: str) -> str:
         """Deploy contract and return transaction ID"""
-        account = AccountManager.get_by_name(miner)
+        account = AccountManager.get(miner)
         api = StacksCoreAPIWrapper(base_url=account.api_url)
         
         # Get contract file path
@@ -131,9 +128,9 @@ class NFTTester:
         print(f"{Colors.format_success(f'Contract {contract_name} deployed successfully!')}")
         return txid
     
-    def read_contract(self, miner: str, contract_address: str, contract_name: str, function_name: str) -> Dict[str, Any]:
+    def read_contract(self, miner: MinerName, contract_address: str, contract_name: str, function_name: str) -> Dict[str, Any]:
         """Call read-only contract function"""
-        account = AccountManager.get_by_name(miner)
+        account = AccountManager.get(miner)
         api = StacksCoreAPIWrapper(base_url=account.api_url)
         
         print(f"\n{Colors.format_subheader('--- CONTRACT READ CALL ---')}")
@@ -147,9 +144,9 @@ class NFTTester:
         
         return result
     
-    def call_contract(self, miner: str, contract_address: str, contract_name: str, function_name: str, args: list = []) -> str:
+    def call_contract(self, miner: MinerName, contract_address: str, contract_name: str, function_name: str, args: list = []) -> str:
         """Call contract function and return transaction ID"""
-        account = AccountManager.get_by_name(miner)
+        account = AccountManager.get(miner)
         api = StacksCoreAPIWrapper(base_url=account.api_url)
         
         # Get initial state
@@ -197,64 +194,64 @@ def main():
     try:
         # Start the node
         print(f"\n{Colors.format_stacks('Starting miners...')}")
-        if not tester.node_manager.start_node():
+        if not tester.start_node():
             raise RuntimeError("Failed to start miners")
         
         # Step 1: Deploy cyberpunk NFT contract
         print(f"\n{Colors.format_header('Step 1: Deploy cyberpunk NFT contract')}")
-        deploy_txid = tester.deploy_contract("miner1", "contracts/cyberpunk2140a.clar", "cyberpunk2140a")
+        deploy_txid = tester.deploy_contract(MinerName.MINER1, "contracts/cyberpunk2140a.clar", "cyberpunk2140a")
         
         # Step 2: Read max token count  
         print(f"\n{Colors.format_header('Step 2: Read max token count')}")
-        max_tokens = tester.read_contract("miner1", tester.miner1.address, "cyberpunk2140a", "get-last-token-id")
+        max_tokens = tester.read_contract(MinerName.MINER1, tester.miner1.address, "cyberpunk2140a", "get-last-token-id")
         
         # Step 3: Read mint price
         print(f"\n{Colors.format_header('Step 3: Read mint price')}")
-        mint_price = tester.read_contract("miner1", tester.miner1.address, "cyberpunk2140a", "get-mint-price")
+        mint_price = tester.read_contract(MinerName.MINER1, tester.miner1.address, "cyberpunk2140a", "get-mint-price")
         
         # Step 4: Read available count
         print(f"\n{Colors.format_header('Step 4: Read available count')}")
-        available_count = tester.read_contract("miner1", tester.miner1.address, "cyberpunk2140a", "get-available-count")
+        available_count = tester.read_contract(MinerName.MINER1, tester.miner1.address, "cyberpunk2140a", "get-available-count")
         
         # Step 5: Read initial minted count
         print(f"\n{Colors.format_header('Step 5: Read initial minted count')}")
-        initial_minted = tester.read_contract("miner1", tester.miner1.address, "cyberpunk2140a", "get-minted-count")
+        initial_minted = tester.read_contract(MinerName.MINER1, tester.miner1.address, "cyberpunk2140a", "get-minted-count")
         
         # Step 6: Read collection attribute
         print(f"\n{Colors.format_header('Step 6: Read collection attribute')}")
-        collection_attr = tester.read_contract("miner1", tester.miner1.address, "cyberpunk2140a", "get-collection-attribute")
+        collection_attr = tester.read_contract(MinerName.MINER1, tester.miner1.address, "cyberpunk2140a", "get-collection-attribute")
         
         # Step 7: Check if collection data is frozen
         print(f"\n{Colors.format_header('Step 7: Check collection data frozen')}")
-        data_frozen = tester.read_contract("miner1", tester.miner1.address, "cyberpunk2140a", "is-collection-data-frozen")
+        data_frozen = tester.read_contract(MinerName.MINER1, tester.miner1.address, "cyberpunk2140a", "is-collection-data-frozen")
         
         # Step 8: Set token URI
         print(f"\n{Colors.format_header('Step 8: Set token URI')}")
-        set_uri_txid = tester.call_contract("miner1", tester.miner1.address, "cyberpunk2140a", "set-token-uri", ["\"https://cyberpunk2140.com/metadata/{id}.json\""])
+        set_uri_txid = tester.call_contract(MinerName.MINER1, tester.miner1.address, "cyberpunk2140a", "set-token-uri", ["\"https://cyberpunk2140.com/metadata/{id}.json\""])
         
         # Step 9: Set collection attribute
         print(f"\n{Colors.format_header('Step 9: Set collection attribute')}")
-        set_attr_txid = tester.call_contract("miner1", tester.miner1.address, "cyberpunk2140a", "set-collection-attribute", ["u\"Cyberpunk 2140 NFT Collection\""])
+        set_attr_txid = tester.call_contract(MinerName.MINER1, tester.miner1.address, "cyberpunk2140a", "set-collection-attribute", ["u\"Cyberpunk 2140 NFT Collection\""])
         
         # Step 10: Set collection icon data
         print(f"\n{Colors.format_header('Step 10: Set collection icon data')}")
-        set_icon_txid = tester.call_contract("miner1", tester.miner1.address, "cyberpunk2140a", "set-collection-icon-data", ["0x89504e470d0a1a0a0000000d49484452"])
+        set_icon_txid = tester.call_contract(MinerName.MINER1, tester.miner1.address, "cyberpunk2140a", "set-collection-icon-data", ["0x89504e470d0a1a0a0000000d49484452"])
         
         # Step 11: Set tokens data
         print(f"\n{Colors.format_header('Step 11: Set tokens data')}")
-        set_tokens_txid = tester.call_contract("miner1", tester.miner1.address, "cyberpunk2140a", "set-tokens", ["(list {id: u1, data: 0x89504e470d0a1a0a, attribute: u\"First Token\"} {id: u2, data: 0x89504e470d0a1a0b, attribute: u\"Second Token\"})"])
+        set_tokens_txid = tester.call_contract(MinerName.MINER1, tester.miner1.address, "cyberpunk2140a", "set-tokens", ["(list {id: u1, data: 0x89504e470d0a1a0a, attribute: u\"First Token\"} {id: u2, data: 0x89504e470d0a1a0b, attribute: u\"Second Token\"})"])
         
         # Step 12: Mint cyberpunk NFT
         print(f"\n{Colors.format_header('Step 12: Mint cyberpunk NFT')}")
-        mint_txid = tester.call_contract("miner1", tester.miner1.address, "cyberpunk2140a", "mint")
+        mint_txid = tester.call_contract(MinerName.MINER1, tester.miner1.address, "cyberpunk2140a", "mint")
         
         # Step 13: Read minted count after mint
         print(f"\n{Colors.format_header('Step 13: Read minted count after mint')}")
-        final_minted = tester.read_contract("miner1", tester.miner1.address, "cyberpunk2140a", "get-minted-count")
+        final_minted = tester.read_contract(MinerName.MINER1, tester.miner1.address, "cyberpunk2140a", "get-minted-count")
         
         # Step 14: Read collection attribute after setting
         print(f"\n{Colors.format_header('Step 14: Read collection attribute after setting')}")
-        final_collection_attr = tester.read_contract("miner1", tester.miner1.address, "cyberpunk2140a", "get-collection-attribute")
+        final_collection_attr = tester.read_contract(MinerName.MINER1, tester.miner1.address, "cyberpunk2140a", "get-collection-attribute")
         
         # Final summary
         print(f"\n{Colors.format_dim('=' * 60)}")
@@ -277,8 +274,8 @@ def main():
     finally:
         # Cleanup
         print(f"\n{Colors.format_header('Cleaning up...')}")
-        tester.node_manager.stop_node()
-        tester.node_manager.cleanup()
+        tester.stop_node()
+        tester.cleanup()
 
 if __name__ == "__main__":
     import sys
