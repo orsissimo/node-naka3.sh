@@ -1,11 +1,6 @@
 PRIMARY:
 - Fixare test-miner-stop-resume in modo che usi tutti i miner in modo intelligente ---> Pre resume tutti usano miner2 come endpoint di verifica + ensure its working fine
 - In test contract deployment size limit alcuni limits dicono X kb ma in realtà sono Y kb, quindi fixare i nomi.
-    - Detailed Results:
-   1. contract-4000kb      (7864.2KB): ✗ FAILED
-      CLI command failed: blockstack-cli --testnet publish cb3df38053d132895220b9ce471...
-   2. contract-3000kb      (5875.0KB): ✗ FAILED
-      CLI command failed: blockstack-cli --testnet publish cb3df38053d132895220b9ce471...
 - Si è rotto miners stop resume completamente.
 
 SECONDARY:

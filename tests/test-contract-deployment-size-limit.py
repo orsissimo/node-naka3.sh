@@ -214,8 +214,8 @@ def main():
     
     # Define contract files to test (ordered by size - biggest to smallest)
     contract_files = [
-        "contracts/contract-4000kb.clar",
-        "contracts/contract-3000kb.clar",
+        "contracts/contract-8000kb.clar",
+        "contracts/contract-6000kb.clar",
         "contracts/contract-2250kb.clar",
         "contracts/contract-2000kb.clar",
         "contracts/contract-1500kb.clar",

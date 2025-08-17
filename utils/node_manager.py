@@ -57,7 +57,7 @@ class NodeManager:
     
     def stop_node(self):
         """Stop the three miners node."""
-        logger.info(Colors.format_stacks("Stopping three miners..."))
+        logger.info(Colors.format_stacks("Stopping miners..."))
         try:
             subprocess.run(
                 ["./three-miners.sh", "stop"],

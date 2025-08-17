@@ -233,17 +233,18 @@ class BaseTestClass(ABC):
         return False
     
     def start_node(self, mode: str = "auto") -> bool:
-        """Start the node in specified mode and wait for readiness."""
-        logger.info(Colors.format_stacks(f"Starting node in {mode} mode..."))
+        """Start miners in specified mode and wait for readiness."""
+        logger.info(Colors.format_stacks(f"Starting miners in {mode} mode..."))
+        
+        # Start miners using node manager (this has its own readiness check)
         if not self.node_manager.start_node(mode):
             return False
         
-        # Wait for miners to be ready using our improved method
-        return self.wait_for_miners_ready()
+        # NodeManager already checked readiness, so we don't need to check again
+        return True
     
     def stop_node(self):
-        """Stop the node."""
-        logger.info(Colors.format_stacks("Stopping node..."))
+        """Stop the miners."""
         self.node_manager.stop_node()
     
     def cleanup(self):
