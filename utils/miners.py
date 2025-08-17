@@ -10,9 +10,9 @@ from .config import ACCOUNTS, AccountManager
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PLAYBOOK_DIR = os.path.join(PROJECT_ROOT, "naka3", "playbooks", "three-miners")
 
-class NodeManager:
+class MinerManager:
     def __init__(self):
-        self.node_process = None
+        self.miner_process = None
         self.running = False
         self.apis = {
             name: StacksCoreAPIWrapper(base_url=account.api_url)
@@ -44,19 +44,21 @@ class NodeManager:
         logger.error(Colors.format_fail(f"Timeout: Only {len(ready_miners)}/{len(miners_to_check)} miners became ready."))
         return False
 
-    def start_node(self, mode: str = "auto") -> bool:
-        """Start the three miners node from snapshot (backward compatibility).
+    def start(self, mode: str) -> bool:
+        """Start in automatic or manual mining mode (required).
         
         Args:
-            mode: Mining mode - 'auto' (default) or 'manual'
-        
-        Note: This method restores from snapshot. Use start_from_scratch() for clean start.
+            mode: Mining mode - 'auto' or 'manual' (required)
         """
-        logger.info(Colors.format_stacks("Starting three miners from snapshot..."))
-        return self.restore_snapshot(mode)
+        if mode not in ["auto", "manual"]:
+            raise ValueError(f"Invalid mode '{mode}'. Use 'auto' or 'manual'")
+            
+        logger.info(Colors.format_stacks(f"Starting three miners in {mode} mode..."))
+        return self.start_from_scratch(mode)
     
-    def stop_node(self):
-        """Stop the three miners node."""
+    
+    def stop(self):
+        """Stop the three miners."""
         logger.info(Colors.format_stacks("Stopping miners..."))
         try:
             subprocess.run(
@@ -65,12 +67,13 @@ class NodeManager:
                 check=True,
                 capture_output=True
             )
-            logger.info(Colors.format_stacks("Node stopped"))
+            logger.info(Colors.format_stacks("Miners stopped"))
         except Exception as e:
-            logger.error(Colors.format_fail("Failed to stop node", str(e)))
+            logger.error(Colors.format_fail("Failed to stop miners", str(e)))
     
-    def resume_node(self):
-        """Resume the three miners node."""
+    
+    def resume(self):
+        """Resume the three miners."""
         logger.info(Colors.format_stacks("Resuming three miners..."))
         try:
             subprocess.run(
@@ -79,9 +82,10 @@ class NodeManager:
                 check=True,
                 capture_output=True
             )
-            logger.info(Colors.format_stacks("Node resumed"))
+            logger.info(Colors.format_stacks("Miners resumed"))
         except Exception as e:
-            logger.error(Colors.format_fail("Failed to resume node", str(e)))
+            logger.error(Colors.format_fail("Failed to resume miners", str(e)))
+    
     
     def _manage_miner(self, action: str, miner_id: int):
         """Internal helper to stop or resume a specific miner."""
@@ -121,7 +125,7 @@ class NodeManager:
         try:
             cmd = ["./three-miners.sh", "start", mode]
             
-            self.node_process = subprocess.Popen(
+            self.miner_process = subprocess.Popen(
                 cmd,
                 cwd=PLAYBOOK_DIR,
                 stdout=subprocess.DEVNULL,
@@ -132,8 +136,8 @@ class NodeManager:
             
             time.sleep(5) 
             
-            if self.node_process.poll() is not None:
-                logger.error(Colors.format_fail("Node process exited early."))
+            if self.miner_process.poll() is not None:
+                logger.error(Colors.format_fail("Miners process exited early."))
                 return False
                 
             logger.info(Colors.format_stacks(f"Started from scratch in {mode} mode"))
@@ -144,19 +148,12 @@ class NodeManager:
             return True
         except Exception as e:
             logger.error(Colors.format_fail("Failed to start from scratch", str(e)))
-            if self.node_process and self.node_process.poll() is None:
-                self.node_process.terminate()
+            if self.miner_process and self.miner_process.poll() is None:
+                self.miner_process.terminate()
             return False
     
-    def start_auto_mining(self):
-        """Start three miners from scratch in automatic mining mode."""
-        return self.start_from_scratch("auto")
     
-    def start_manual_mining(self):
-        """Start three miners from scratch in manual mining mode."""
-        return self.start_from_scratch("manual")
-    
-    def switch_to_auto_mining(self):
+    def btc_auto(self):
         """Switch to automatic mining mode."""
         logger.info(Colors.format_stacks("Switching to automatic mining..."))
         try:
@@ -170,7 +167,7 @@ class NodeManager:
         except Exception as e:
             logger.error(Colors.format_fail("Failed to switch to automatic mining", str(e)))
     
-    def switch_to_manual_mining(self):
+    def btc_manual(self):
         """Switch to manual mining mode."""
         logger.info(Colors.format_stacks("Switching to manual mining..."))
         try:
@@ -184,8 +181,8 @@ class NodeManager:
         except Exception as e:
             logger.error(Colors.format_fail("Failed to switch to manual mining", str(e)))
     
-    def mine_single_btc_block(self):
-        """Mine a single BTC block (manual mode only)."""
+    def btc_mine(self):
+        """Mine single block (manual mode only)."""
         logger.info(Colors.format_stacks("Mining single BTC block..."))
         try:
             subprocess.run(
@@ -198,8 +195,8 @@ class NodeManager:
         except Exception as e:
             logger.error(Colors.format_fail("Failed to mine block", str(e)))
     
-    def create_snapshot(self):
-        """Create a generic snapshot."""
+    def snapshot_create(self):
+        """Create generic snapshot."""
         logger.info(Colors.format_stacks("Creating snapshot..."))
         try:
             subprocess.run(
@@ -212,8 +209,8 @@ class NodeManager:
         except Exception as e:
             logger.error(Colors.format_fail("Failed to create snapshot", str(e)))
     
-    def restore_snapshot(self, mode: str = "auto"):
-        """Restore snapshot in specified mode.
+    def snapshot_restore(self, mode: str):
+        """Restore snapshot in specified mode (required).
         
         Args:
             mode: Mining mode - 'auto' (default) or 'manual'
@@ -222,7 +219,7 @@ class NodeManager:
         try:
             cmd = ["./three-miners.sh", "snapshot", "restore", mode]
             
-            self.node_process = subprocess.Popen(
+            self.miner_process = subprocess.Popen(
                 cmd,
                 cwd=PLAYBOOK_DIR,
                 stdout=subprocess.DEVNULL,
@@ -233,8 +230,8 @@ class NodeManager:
             
             time.sleep(5) 
             
-            if self.node_process.poll() is not None:
-                logger.error(Colors.format_fail("Node process exited early."))
+            if self.miner_process.poll() is not None:
+                logger.error(Colors.format_fail("Miners process exited early."))
                 return False
                 
             logger.info(Colors.format_stacks("Snapshot restored"))
@@ -245,12 +242,12 @@ class NodeManager:
             return True
         except Exception as e:
             logger.error(Colors.format_fail("Failed to restore snapshot", str(e)))
-            if self.node_process and self.node_process.poll() is None:
-                self.node_process.terminate()
+            if self.miner_process and self.miner_process.poll() is None:
+                self.miner_process.terminate()
             return False
     
-    def get_mining_info(self):
-        """Get mining status information."""
+    def info(self):
+        """Show status information."""
         logger.info(Colors.format_stacks("Getting mining info..."))
         try:
             result = subprocess.run(
@@ -267,15 +264,15 @@ class NodeManager:
             return None
 
     def cleanup(self):
-        """Clean up the node process if it's running."""
-        if self.node_process and self.running:
-            logger.info(Colors.format_grey("Cleaning up background node process..."))
-            self.node_process.terminate()
+        """Clean up the miner process if it's running."""
+        if self.miner_process and self.running:
+            logger.info(Colors.format_grey("Cleaning up background miner process..."))
+            self.miner_process.terminate()
             try:
-                self.node_process.wait(timeout=5)
+                self.miner_process.wait(timeout=5)
             except subprocess.TimeoutExpired:
-                logger.warning("Node process did not terminate gracefully, killing it.")
-                self.node_process.kill()
-                self.node_process.wait()
+                logger.warning("Miners process did not terminate gracefully, killing it.")
+                self.miner_process.kill()
+                self.miner_process.wait()
             self.running = False
             logger.info(Colors.format_stacks("Cleanup complete"))

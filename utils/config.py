@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Any
 
 @dataclass
 class Account:
@@ -19,6 +19,34 @@ class MinerName(Enum):
     MINER1 = "miner1"
     MINER2 = "miner2"
     MINER3 = "miner3"
+
+class TransactionStatus(Enum):
+    """Enum for transaction status with IDE autocompletion."""
+    SUBMITTED = "submitted"
+    PENDING = "pending"
+    CONFIRMED = "confirmed"
+    FAILED = "failed"
+
+class TestResult(Enum):
+    """Enum for test results with IDE autocompletion."""
+    SUCCESS = "success"
+    FAILURE = "failure"
+    ERROR = "error"
+
+class TxStatus(Enum):
+    """Enum for transaction status values from Stacks API."""
+    SUCCESS = "success"
+    PENDING = "pending"
+    ABORT_BY_RESPONSE = "abort_by_response"
+    ABORT_BY_POST_CONDITION = "abort_by_post_condition"
+    UNKNOWN = "unknown"
+
+class ApiError(Enum):
+    """Enum for standardized API error types."""
+    NOT_FOUND = "Not found (404)"
+    TIMEOUT = "Timeout"
+    CONNECTION_ERROR = "Connection error"
+    UNKNOWN_ERROR = "Unknown error"
 
 # The Single Source of Truth for all miner account information.
 ACCOUNTS = {
@@ -75,7 +103,7 @@ class TransferInfo:
     amount: int
     memo: str
     nonce: int
-    submitted: bool = False
+    status: TransactionStatus = TransactionStatus.PENDING
     txid: Optional[str] = None
     error: Optional[str] = None
 
@@ -86,32 +114,52 @@ class DeploymentInfo:
     contract_file: str
     contract_name: str
     nonce: int
-    submitted: bool = False
+    status: TransactionStatus = TransactionStatus.PENDING
     txid: Optional[str] = None
     error: Optional[str] = None
     size_kb: float = 0.0
 
 @dataclass
-class VerificationResults:
-    """Type-safe verification results."""
+class AccountInfo:
+    """Type-safe account information from API."""
+    address: str
+    balance: int
+    nonce: int
+
+@dataclass
+class ApiResult:
+    """Type-safe API call result."""
+    success: bool
+    data: Optional[Any] = None
+    error: Optional[ApiError] = None
+    error_message: Optional[str] = None
+
+@dataclass 
+class VerificationSummary:
+    """Type-safe verification summary with full IDE support."""
+    total: int
     confirmed: int
-    failed: int
     pending: int
+    failed: int
     success_rate: float
-    confirmed_transfers: list = None
-    failed_transfers: list = None
-    pending_transfers: list = None
-    confirmed_deployments: list = None
-    failed_deployments: list = None
-    pending_deployments: list = None
+    
+@dataclass
+class VerificationResults:
+    """Type-safe verification results with full IDE support."""
+    confirmed: List['TransferInfo'] = None
+    failed: List['TransferInfo'] = None
+    pending: List['TransferInfo'] = None
+    confirmed_deployments: List['DeploymentInfo'] = None
+    failed_deployments: List['DeploymentInfo'] = None
+    pending_deployments: List['DeploymentInfo'] = None
     
     def __post_init__(self):
-        if self.confirmed_transfers is None:
-            self.confirmed_transfers = []
-        if self.failed_transfers is None:
-            self.failed_transfers = []
-        if self.pending_transfers is None:
-            self.pending_transfers = []
+        if self.confirmed is None:
+            self.confirmed = []
+        if self.failed is None:
+            self.failed = []
+        if self.pending is None:
+            self.pending = []
         if self.confirmed_deployments is None:
             self.confirmed_deployments = []
         if self.failed_deployments is None:

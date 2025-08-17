@@ -1,6 +1,6 @@
 PRIMARY:
 - Fixare test-miner-stop-resume in modo che usi tutti i miner in modo intelligente ---> Pre resume tutti usano miner2 come endpoint di verifica + ensure its working fine
-- In test contract deployment size limit alcuni limits dicono X kb ma in realtà sono Y kb, quindi fixare i nomi.
+- Controllare che le nomenclature e prints siano corretti, controllare che la logica sia giusta ed ottimale
 - Si è rotto miners stop resume completamente.
 
 SECONDARY:
