@@ -70,17 +70,47 @@ class MinerManager:
         return False
 
     def start(self, mode: MiningMode) -> bool:
-        """Start in automatic or manual mining mode (required).
+        """Start miners from scratch in specified mode.
         
         Args:
-            mode: Mining mode - 'auto' or 'manual' (required)
+            mode: Mining mode - MiningMode.AUTO or MiningMode.MANUAL (required)
         """
         if not isinstance(mode, MiningMode):
             raise ValueError(f"Invalid mode '{mode}'. Use MiningMode.AUTO or MiningMode.MANUAL")
             
-        logger.info(Colors.format_stacks(f"Starting three miners in {mode.value} mode..."))
-        return self.start_from_scratch(mode)
+        logger.info(Colors.format_stacks(f"Starting three miners from scratch in {mode.value} mode..."))
+        try:
+            cmd = ["./three-miners.sh", "start", mode.value]
+            
+            self.miner_process = subprocess.Popen(
+                cmd,
+                cwd=PLAYBOOK_DIR,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                text=True
+            )
+            self.running = True
+            
+            if self.wait_for_miners_ready():
+                logger.info(Colors.format_success("All 3 miners are ready."))
+                return True
+            else:
+                logger.error(Colors.format_fail("Timeout waiting for miners to start."))
+                return False
+                
+        except Exception as e:
+            logger.error(Colors.format_fail("Failed to start from scratch", str(e)))
+            if self.miner_process and self.miner_process.poll() is None:
+                self.miner_process.terminate()
+            return False
     
+    def start_auto(self) -> bool:
+        """Start miners in auto mining mode."""
+        return self.start(MiningMode.AUTO)
+    
+    def start_manual(self) -> bool:
+        """Start miners in manual mining mode."""
+        return self.start(MiningMode.MANUAL)
     
     def stop(self):
         """Stop the three miners."""
@@ -137,47 +167,6 @@ class MinerManager:
         """Resume specific miner."""
         self._manage_miner("resume", miner.value)
     
-    def start_from_scratch(self, mode: MiningMode):
-        """Start three miners from scratch in specified mode.
-        
-        Args:
-            mode: Mining mode - MiningMode.AUTO or MiningMode.MANUAL (required)
-        """
-        if not isinstance(mode, MiningMode):
-            raise ValueError(f"Invalid mode '{mode}'. Use MiningMode.AUTO or MiningMode.MANUAL")
-            
-        logger.info(Colors.format_stacks(f"Starting three miners from scratch in {mode.value} mode..."))
-        try:
-            cmd = ["./three-miners.sh", "start", mode.value]
-            
-            self.miner_process = subprocess.Popen(
-                cmd,
-                cwd=PLAYBOOK_DIR,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                text=True
-            )
-            self.running = True
-            
-            # Wait for miners to be ready instead of fixed delay
-            if not self.wait_for_miners_ready(timeout=15):
-                logger.warning("Miners may not be fully ready yet")
-            
-            if self.miner_process.poll() is not None:
-                logger.error(Colors.format_fail("Miners process exited early."))
-                return False
-                
-            logger.info(Colors.format_stacks(f"Started from scratch in {mode.value} mode"))
-            
-            if not self.wait_for_miners_ready():
-                raise RuntimeError("Not all miners became ready within the timeout period.")
-                
-            return True
-        except Exception as e:
-            logger.error(Colors.format_fail("Failed to start from scratch", str(e)))
-            if self.miner_process and self.miner_process.poll() is None:
-                self.miner_process.terminate()
-            return False
     
     
     def btc_auto(self):
@@ -235,30 +224,6 @@ class MinerManager:
             logger.info(Colors.format_stacks("Snapshot created"))
         except Exception as e:
             logger.error(Colors.format_fail("Failed to create snapshot", str(e)))
-    
-    def start_auto(self) -> bool:
-        """Start miners in auto mining mode."""
-        return self.start(MiningMode.AUTO)
-    
-    def start_manual(self) -> bool:
-        """Start miners in manual mining mode."""
-        return self.start(MiningMode.MANUAL)
-    
-    def start_from_scratch_auto(self):
-        """Start miners from scratch in auto mining mode."""
-        return self.start_from_scratch(MiningMode.AUTO)
-    
-    def start_from_scratch_manual(self):
-        """Start miners from scratch in manual mining mode."""
-        return self.start_from_scratch(MiningMode.MANUAL)
-
-    def snapshot_restore_auto(self):
-        """Restore snapshot in auto mining mode."""
-        return self.snapshot_restore(MiningMode.AUTO)
-    
-    def snapshot_restore_manual(self):
-        """Restore snapshot in manual mining mode.""" 
-        return self.snapshot_restore(MiningMode.MANUAL)
 
     def snapshot_restore(self, mode: MiningMode):
         """Restore snapshot in specified mode (required).
@@ -298,6 +263,14 @@ class MinerManager:
             if self.miner_process and self.miner_process.poll() is None:
                 self.miner_process.terminate()
             return False
+
+    def snapshot_restore_auto(self):
+        """Restore snapshot in auto mining mode."""
+        return self.snapshot_restore(MiningMode.AUTO)
+    
+    def snapshot_restore_manual(self):
+        """Restore snapshot in manual mining mode.""" 
+        return self.snapshot_restore(MiningMode.MANUAL)
     
     def info(self):
         """Show status information."""

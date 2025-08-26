@@ -7,10 +7,12 @@ import json
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from utils.helpers import get_api, get_cli, submit_tx_hex, get_nonce, get_block_height, wait_for_confirmation
+from utils.helpers import get_account_info_typed, get_block_height, wait_for_confirmation
 from utils.config import AccountManager, Miner
 from utils.miners import MinerManager
 from utils.logger import Colors
+from utils.blockstack_cli import BlockstackCLIWrapper
+from utils.stacks_core_api import StacksCoreAPIWrapper
 
 def main():
     """Execute the NFT contract deployment and interaction test"""
@@ -20,12 +22,12 @@ def main():
     
     # Raw minimal setup
     miners = MinerManager()
-    api = get_api(Miner.MINER1)
-    cli = get_cli()
     account = AccountManager.get(Miner.MINER1)
+    api = StacksCoreAPIWrapper(base_url=account.api_url)
+    cli = BlockstackCLIWrapper()
     
     try:
-        # Start the node
+        # Start miners
         print(f"\n{Colors.format_stacks('Starting miners...')}")
         if not miners.snapshot_restore_auto():
             raise RuntimeError("Failed to start miners")
@@ -35,12 +37,13 @@ def main():
         print(f"{Colors.format_info('Contract')}: {Colors.format_dim('cyberpunk2140a')}")
         print(f"{Colors.format_info('File')}: {Colors.format_dim('contracts/cyberpunk2140a.clar')}")
         
-        initial_nonce = get_nonce(api, account.address)
+        account_info = get_account_info_typed(api, account.address)
+        initial_nonce = account_info.nonce
         initial_height = get_block_height(api)
         
         tx_hex = cli.publish_contract(account.private_key, 50000, initial_nonce, "cyberpunk2140a", 
                                     os.path.join(os.path.dirname(__file__), "..", "contracts/cyberpunk2140a.clar"))
-        deploy_txid = submit_tx_hex(api, tx_hex)
+        deploy_txid = api.post_raw_transaction(bytes.fromhex(tx_hex))
         print(f"{Colors.format_success('Contract deployed')}: {Colors.format_info(deploy_txid)}")
         
         if not wait_for_confirmation(api, account.address, initial_nonce, initial_height, timeout=120):
@@ -85,12 +88,13 @@ def main():
         
         # Step 8: Set token URI
         print(f"\n{Colors.format_header('Step 8: Set token URI')}")
-        initial_nonce = get_nonce(api, account.address)
+        account_info = get_account_info_typed(api, account.address)
+        initial_nonce = account_info.nonce
         initial_height = get_block_height(api)
         
         tx_hex = cli.call_contract(account.private_key, 5000, initial_nonce, account.address, "cyberpunk2140a", "set-token-uri", 
                                  ['"https://cyberpunk2140.com/metadata/{id}.json"'])
-        set_uri_txid = submit_tx_hex(api, tx_hex)
+        set_uri_txid = api.post_raw_transaction(bytes.fromhex(tx_hex))
         print(f"{Colors.format_success('Contract call submitted')}: {Colors.format_info(set_uri_txid)}")
         
         if not wait_for_confirmation(api, account.address, initial_nonce, initial_height, timeout=120):
@@ -99,12 +103,13 @@ def main():
         
         # Step 9: Set collection attribute
         print(f"\n{Colors.format_header('Step 9: Set collection attribute')}")
-        initial_nonce = get_nonce(api, account.address)
+        account_info = get_account_info_typed(api, account.address)
+        initial_nonce = account_info.nonce
         initial_height = get_block_height(api)
         
         tx_hex = cli.call_contract(account.private_key, 5000, initial_nonce, account.address, "cyberpunk2140a", "set-collection-attribute", 
                                  ['u"Cyberpunk 2140 NFT Collection"'])
-        set_attr_txid = submit_tx_hex(api, tx_hex)
+        set_attr_txid = api.post_raw_transaction(bytes.fromhex(tx_hex))
         print(f"{Colors.format_success('Contract call submitted')}: {Colors.format_info(set_attr_txid)}")
         
         if not wait_for_confirmation(api, account.address, initial_nonce, initial_height, timeout=120):
@@ -113,12 +118,13 @@ def main():
         
         # Step 10: Set collection icon data
         print(f"\n{Colors.format_header('Step 10: Set collection icon data')}")
-        initial_nonce = get_nonce(api, account.address)
+        account_info = get_account_info_typed(api, account.address)
+        initial_nonce = account_info.nonce
         initial_height = get_block_height(api)
         
         tx_hex = cli.call_contract(account.private_key, 5000, initial_nonce, account.address, "cyberpunk2140a", "set-collection-icon-data", 
                                  ["0x89504e470d0a1a0a0000000d49484452"])
-        set_icon_txid = submit_tx_hex(api, tx_hex)
+        set_icon_txid = api.post_raw_transaction(bytes.fromhex(tx_hex))
         print(f"{Colors.format_success('Contract call submitted')}: {Colors.format_info(set_icon_txid)}")
         
         if not wait_for_confirmation(api, account.address, initial_nonce, initial_height, timeout=120):
@@ -127,12 +133,13 @@ def main():
         
         # Step 11: Set tokens data
         print(f"\n{Colors.format_header('Step 11: Set tokens data')}")
-        initial_nonce = get_nonce(api, account.address)
+        account_info = get_account_info_typed(api, account.address)
+        initial_nonce = account_info.nonce
         initial_height = get_block_height(api)
         
         tx_hex = cli.call_contract(account.private_key, 5000, initial_nonce, account.address, "cyberpunk2140a", "set-tokens", 
                               ['(list {id: u1, data: 0x89504e470d0a1a0a, attribute: u"First Token"} {id: u2, data: 0x89504e470d0a1a0b, attribute: u"Second Token"})'])
-        set_tokens_txid = submit_tx_hex(api, tx_hex)
+        set_tokens_txid = api.post_raw_transaction(bytes.fromhex(tx_hex))
         print(f"{Colors.format_success('Contract call submitted')}: {Colors.format_info(set_tokens_txid)}")
         
         if not wait_for_confirmation(api, account.address, initial_nonce, initial_height, timeout=120):
@@ -141,11 +148,12 @@ def main():
         
         # Step 12: Mint cyberpunk NFT
         print(f"\n{Colors.format_header('Step 12: Mint cyberpunk NFT')}")
-        initial_nonce = get_nonce(api, account.address)
+        account_info = get_account_info_typed(api, account.address)
+        initial_nonce = account_info.nonce
         initial_height = get_block_height(api)
         
         tx_hex = cli.call_contract(account.private_key, 5000, initial_nonce, account.address, "cyberpunk2140a", "mint", [])
-        mint_txid = submit_tx_hex(api, tx_hex)
+        mint_txid = api.post_raw_transaction(bytes.fromhex(tx_hex))
         print(f"{Colors.format_success('Contract call submitted')}: {Colors.format_info(mint_txid)}")
         
         if not wait_for_confirmation(api, account.address, initial_nonce, initial_height, timeout=120):
@@ -179,7 +187,7 @@ def main():
         return True
         
     except Exception as e:
-        print(f"\n{Colors.format_error('✗ TEST FAILED')}: {Colors.format_error(str(e))}")
+        print(f"\n{Colors.format_error('TEST FAILED')}: {Colors.format_error(str(e))}")
         return False
         
     finally:

@@ -7,10 +7,12 @@ import json
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from utils.helpers import get_api, get_cli, submit_tx_hex, get_nonce, get_block_height, wait_for_confirmation
+from utils.helpers import get_account_info_typed, get_block_height, wait_for_confirmation
 from utils.config import AccountManager, Miner
 from utils.miners import MinerManager
 from utils.logger import Colors
+from utils.blockstack_cli import BlockstackCLIWrapper
+from utils.stacks_core_api import StacksCoreAPIWrapper
 
 def main():
     """Execute the contract deployment and interaction test"""
@@ -20,12 +22,12 @@ def main():
     
     # Raw minimal setup
     miners = MinerManager()
-    api = get_api(Miner.MINER1)
-    cli = get_cli()
     account = AccountManager.get(Miner.MINER1)
+    api = StacksCoreAPIWrapper(base_url=account.api_url)
+    cli = BlockstackCLIWrapper()
     
     try:
-        # Start the node
+        # Start miners
         print(f"\n{Colors.format_stacks('Starting miners...')}")
         if not miners.snapshot_restore_auto():
             raise RuntimeError("Failed to start miners")
@@ -35,12 +37,13 @@ def main():
         print(f"{Colors.format_info('Contract')}: {Colors.format_dim('mycontract')}")
         print(f"{Colors.format_info('File')}: {Colors.format_dim('contracts/contract-counter.clar')}")
         
-        initial_nonce = get_nonce(api, account.address)
+        account_info = get_account_info_typed(api, account.address)
+        initial_nonce = account_info.nonce
         initial_height = get_block_height(api)
         
         tx_hex = cli.publish_contract(account.private_key, 5000, initial_nonce, "mycontract", 
                                     os.path.join(os.path.dirname(__file__), "..", "contracts/contract-counter.clar"))
-        deploy_txid = submit_tx_hex(api, tx_hex)
+        deploy_txid = api.post_raw_transaction(bytes.fromhex(tx_hex))
         print(f"{Colors.format_success('Contract deployed')}: {Colors.format_info(deploy_txid)}")
         
         if not wait_for_confirmation(api, account.address, initial_nonce, initial_height, timeout=120):
@@ -61,11 +64,12 @@ def main():
         
         # Step 4: Increment counter
         print(f"\n{Colors.format_header('Step 4: Increment counter')}")
-        initial_nonce = get_nonce(api, account.address)
+        account_info = get_account_info_typed(api, account.address)
+        initial_nonce = account_info.nonce
         initial_height = get_block_height(api)
         
         tx_hex = cli.call_contract(account.private_key, 5000, initial_nonce, account.address, "mycontract", "increment", [])
-        increment_txid = submit_tx_hex(api, tx_hex)
+        increment_txid = api.post_raw_transaction(bytes.fromhex(tx_hex))
         print(f"{Colors.format_success('Contract call submitted')}: {Colors.format_info(increment_txid)}")
         
         if not wait_for_confirmation(api, account.address, initial_nonce, initial_height, timeout=120):
@@ -86,11 +90,12 @@ def main():
         
         # Step 7: Reset counter
         print(f"\n{Colors.format_header('Step 7: Reset counter')}")
-        initial_nonce = get_nonce(api, account.address)
+        account_info = get_account_info_typed(api, account.address)
+        initial_nonce = account_info.nonce
         initial_height = get_block_height(api)
         
         tx_hex = cli.call_contract(account.private_key, 5000, initial_nonce, account.address, "mycontract", "reset", [])
-        reset_txid = submit_tx_hex(api, tx_hex)
+        reset_txid = api.post_raw_transaction(bytes.fromhex(tx_hex))
         print(f"{Colors.format_success('Contract call submitted')}: {Colors.format_info(reset_txid)}")
         
         if not wait_for_confirmation(api, account.address, initial_nonce, initial_height, timeout=120):
@@ -121,7 +126,7 @@ def main():
         return True
         
     except Exception as e:
-        print(f"\n{Colors.format_error('✗ TEST FAILED')}: {Colors.format_error(str(e))}")
+        print(f"\n{Colors.format_error('TEST FAILED')}: {Colors.format_error(str(e))}")
         return False
         
     finally:

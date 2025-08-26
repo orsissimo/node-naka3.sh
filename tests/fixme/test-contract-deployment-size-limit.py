@@ -8,16 +8,18 @@ import json
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from utils.helpers import get_api, get_cli, submit_tx_hex, get_nonce, get_block_height, wait_for_confirmation
+from utils.helpers import get_account_info_typed, get_block_height, wait_for_confirmation
 from utils.config import AccountManager, Miner
 from utils.miners import MinerManager
 from utils.logger import Colors
+from utils.blockstack_cli import BlockstackCLIWrapper
+from utils.stacks_core_api import StacksCoreAPIWrapper
 
 def try_deploy_contract(miner: Miner, contract_file: str, contract_name: str) -> dict:
     """Try to deploy contract and return detailed result"""
-    api = get_api(miner)
-    cli = get_cli()
     account = AccountManager.get(miner)
+    api = StacksCoreAPIWrapper(base_url=account.api_url)
+    cli = BlockstackCLIWrapper()
     
     # Get contract file path
     if not os.path.isabs(contract_file):
@@ -50,7 +52,8 @@ def try_deploy_contract(miner: Miner, contract_file: str, contract_name: str) ->
     
     try:
         # Get initial state
-        initial_nonce = get_nonce(api, account.address)
+        account_info = get_account_info_typed(api, account.address)
+        initial_nonce = account_info.nonce
         initial_height = get_block_height(api)
         
         size_kb = result['size_kb']
@@ -68,7 +71,7 @@ def try_deploy_contract(miner: Miner, contract_file: str, contract_name: str) ->
         # Deploy using raw APIs + helpers
         tx_hex = cli.publish_contract(account.private_key, fee, initial_nonce, contract_name, contract_path)
         print(f"{Colors.format_info('Deploying contract using minimal helpers...')}")
-        txid = submit_tx_hex(api, tx_hex)
+        txid = api.post_raw_transaction(bytes.fromhex(tx_hex))
         result['txid'] = txid
         
         print(f"{Colors.format_success(f'Contract deployment submitted')}: {Colors.format_info(txid)}")
@@ -256,8 +259,8 @@ def main():
             print(f"Contract: {smallest_working['contract_name']} ({smallest_working['size_kb']:.1f}KB)")
             
             try:
-                api = get_api(Miner.MINER1)
                 account = AccountManager.get(Miner.MINER1)
+                api = StacksCoreAPIWrapper(base_url=account.api_url)
                 
                 # Try to call a function (first try without arguments)
                 function_name = "calc-function-0001"

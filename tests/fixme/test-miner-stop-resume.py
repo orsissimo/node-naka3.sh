@@ -7,18 +7,19 @@ import time
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from utils.helpers import get_api, get_nonce, get_balance, get_account_info_typed
+from utils.helpers import get_account_info_typed
 from utils.config import Miner, AccountManager
 from utils.miners import MinerManager
 from utils.logger import Colors
+from utils.stacks_core_api import StacksCoreAPIWrapper
 
 def check_miner_connectivity(miner: Miner) -> dict:
     """Check if miner API is responsive"""
     result = {'miner': miner, 'connected': False, 'error': None}
     
     try:
-        api = get_api(miner)
         account = AccountManager.get(miner)
+        api = StacksCoreAPIWrapper(base_url=account.api_url)
         
         # Try to get account info
         account_info = get_account_info_typed(api, account.address)
@@ -81,10 +82,11 @@ def main():
         print(f"\n{Colors.format_header('Step 3: Testing remaining miners')}")
         for miner in [Miner.MINER1, Miner.MINER3]:
             try:
-                api = get_api(miner)
                 account = AccountManager.get(miner)
-                balance = get_balance(api, account.address)
-                nonce = get_nonce(api, account.address)
+                api = StacksCoreAPIWrapper(base_url=account.api_url)
+                account_info = get_account_info_typed(api, account.address)
+                balance = account_info.balance
+                nonce = account_info.nonce
                 print(f"  {miner.value}: Balance: {balance:,} µSTX, Nonce: {nonce}")
             except Exception as e:
                 print(f"  {miner.value}: {Colors.format_error('ERROR')} - {e}")

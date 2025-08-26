@@ -7,8 +7,10 @@ import time
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from utils.helpers import get_api, get_cli, submit_tx_hex, get_nonce, get_balance, get_block_height, submit_transfer, wait_for_confirmation, get_tx_status_typed
+from utils.helpers import get_account_info_typed, get_block_height, wait_for_confirmation, get_tx_status_typed
 from utils.config import AccountManager, Miner, TransferParams, TransferInfo, VerificationResults, TransactionStatus, TxStatus, VerificationSummary
+from utils.blockstack_cli import BlockstackCLIWrapper
+from utils.stacks_core_api import StacksCoreAPIWrapper
 from typing import List
 from utils.miners import MinerManager
 from utils.logger import Colors, logger
@@ -30,13 +32,14 @@ def generate_transfers(count: int, base_amount: int = 100) -> List[TransferParam
 
 def submit_transfer_batch(miner: Miner, transfers: list) -> list:
     """Submit batch of transfers using raw APIs + helpers"""
-    api = get_api(miner)
-    cli = get_cli()
     account = AccountManager.get(miner)
+    api = StacksCoreAPIWrapper(base_url=account.api_url)
+    cli = BlockstackCLIWrapper()
     submitted_transfers = []
     
     # Get initial nonce and manage it manually for batch submission
-    current_nonce = get_nonce(api, account.address)
+    account_info = get_account_info_typed(api, account.address)
+    current_nonce = account_info.nonce
     
     print(f"\n{Colors.format_info('Submitting batch of transfers...')}")
     print(f"{Colors.format_info('Starting nonce')}: {Colors.format_dim(str(current_nonce))}")
@@ -56,7 +59,7 @@ def submit_transfer_batch(miner: Miner, transfers: list) -> list:
             
             # Use raw CLI + API
             tx_hex = cli.token_transfer(account.private_key, 180, nonce, transfer.to, transfer.amount, transfer.memo)
-            txid = submit_tx_hex(api, tx_hex)
+            txid = api.post_raw_transaction(bytes.fromhex(tx_hex))
             
             transfer_info.txid = txid
             transfer_info.status = TransactionStatus.SUBMITTED
@@ -81,7 +84,8 @@ def wait_and_verify_transfers(submitted_transfers: list, timeout: int = 300) -> 
         return {"total": 0, "confirmed": 0, "pending": 0, "failed": 0}
     
     # Get initial block height
-    api = get_api(Miner.MINER1)
+    account = AccountManager.get(Miner.MINER1)
+    api = StacksCoreAPIWrapper(base_url=account.api_url)
     initial_height = get_block_height(api)
     start_time = time.time()
     
@@ -131,7 +135,8 @@ def verify_transfers(submitted_transfers: list) -> dict:
             verification_results.failed.append(transfer_info)
             continue
         
-        api = get_api(transfer_info.miner)
+        account = AccountManager.get(transfer_info.miner)
+        api = StacksCoreAPIWrapper(base_url=account.api_url)
         
         try:
             # If we can get transaction details, it passed
@@ -164,10 +169,10 @@ def print_balance_summary(miners: list):
     print(f"\n{Colors.format_header('Balance Summary')}")
     for miner in miners:
         try:
-            api = get_api(miner)
             account = AccountManager.get(miner)
-            balance = get_balance(api, account.address)
-            account = AccountManager.get(miner)
+            api = StacksCoreAPIWrapper(base_url=account.api_url)
+            account_info = get_account_info_typed(api, account.address)
+            balance = account_info.balance
             print(f"  {miner.value}: {balance:,} µSTX ({account.address})")
         except Exception as e:
             print(f"  {miner.value}: Error getting balance - {e}")
