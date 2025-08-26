@@ -1,17 +1,91 @@
 PRIMARY:
 - Fixare test-miner-stop-resume in modo che usi tutti i miner in modo intelligente ---> Pre resume tutti usano miner2 come endpoint di verifica + ensure its working fine
-- Controllare che le nomenclature e prints siano corretti, controllare che la logica sia giusta ed ottimale
-- Si è rotto miners stop resume completamente.
+    - Si è rotto miners stop resume completamente.
+- Dobbiamo usare def wait_for_confirmation(api: StacksCoreAPIWrapper, account_address: str, initial_nonce: int, initial_height: int, timeout: int = 60) -> bool: in helpers.py nei /test
+- Dobbiamo mostrare la response anche nelle write functions:
+    ANCHE IN:
+        - Step 7: Check collection data frozen
+        ✓ Read-only call successful
+        Response: {
+        "okay": true,
+        "result": "0x04"
+        }
+
+        Step 8: Set token URI
+        ✓ Contract call submitted: 83d19ad3d4c09289c9960998d2c9fe48293ab3c401c17e08902b4b09fd5bb858
+        ✓ set-token-uri call confirmed!
+
+        Step 9: Set collection attribute
+        ✓ Contract call submitted: d691b3ec2174d053fd0706076f65b47c41d8c0b070b29cef2f0c93b333cb4f1b
+        ✓ set-collection-attribute call confirmed!
+
+        Step 10: Set collection icon data
+        ✓ Contract call submitted: c64fe070074950cbae02c01703b4ebe7e3cccf3f09e122d30e85c36cb5fd6600
+        ✓ set-collection-icon-data call confirmed!
+
+        Step 11: Set tokens data
+        ✓ Contract call submitted: ae586cc4c1b8795437b6ccd9b7c354a453b7b15406a3b4e27fd0975b74e5b49f
+        ✓ set-tokens call confirmed!
+
+        Step 12: Mint cyberpunk NFT
+        ✓ Contract call submitted: 92f5b38efe21b19b8aa1e84d25535505c1a8c7cb685bcd26016ed3f508b116c3
+        ✓ mint call confirmed!
+
+    ANCHE IN:
+        Step 3: Read initial last caller
+        ✓ Read-only call successful
+        Response: {
+        "okay": true,
+        "result": "0x051a164247d6f2b425ac5771423ae6c80c754f7172b0"
+        }
+
+        Step 4: Increment counter
+        ✓ Contract call submitted: 0ab9a4317e90553206afe3beffac50059ed832500400269fb603af1a632f19f3
+        ✓ increment call confirmed!
+
+- In stress test transfer tx ho:
+    ...
+    - 17:58:34 - INFO     - All 3 miners are ready.
+
+    Testing contract deployment size limits
+    Total contracts to test: 25
+
+    --- Deploying contract-8000kb (7864.2KB) ---
+    File: /home/simone/Desktop/node-naka3.sh/tests/../contracts/contract-8000kb.clar
+    Account: STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6
+    Using nonce: 0
+    Using fee: 8858259 µSTX
+    17:58:34 - ERROR    - Command failed with exit code 1
+    17:58:34 - ERROR    - STDERR: ✗ Stacks CodecError: failed to fill whole buffer
+    17:58:34 - ERROR    - Contract publish failed: Stacks CodecError: failed to fill whole buffer
+    Deploying contract using minimal helpers...
+    ✗ contract-8000kb deployment failed: ✗ fromhex() argument must be str, not None
+
+    --- Deploying contract-6000kb (5875.0KB) ---
+    File: /home/simone/Desktop/node-naka3.sh/tests/../contracts/contract-6000kb.clar
+    Account: STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6
+    Using nonce: 0
+    Using fee: 6617556 µSTX
+    17:58:35 - ERROR    - Command failed with exit code 1
+    17:58:35 - ERROR    - STDERR: ✗ Stacks CodecError: failed to fill whole buffer
+    17:58:35 - ERROR    - Contract publish failed: Stacks CodecError: failed to fill whole buffer
+    Deploying contract using minimal helpers...
+    ✗ contract-6000kb deployment failed: ✗ fromhex() argument must be str, not None
+
+    --- Deploying contract-2250kb (2188.4KB) ---
+    File: /home/simone/Desktop/node-naka3.sh/tests/../contracts/contract-2250kb.clar
+    Account: STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6
+    Using nonce: 0
+    Using fee: 2465054 µSTX
+    17:58:36 - ERROR    - Command failed with exit code 1
+    17:58:36 - ERROR    - STDERR: ✗ Stacks CodecError: failed to fill whole buffer
+    17:58:36 - ERROR    - Contract publish failed: Stacks CodecError: failed to fill whole buffer
+    Deploying contract using minimal helpers...
+    ✗ contract-2250kb deployment failed: ✗ fromhex() argument must be str, not None
+
+    It should fail but not with: ✗ contract-2250kb deployment failed: ✗ fromhex() argument must be str, not None -- should be a buffer error!
 
 SECONDARY:
 - Potremmo gestire CTRL+C stop per fare fare ./three-miners stop prima di interrompere tutto, così da non "corrompere" lo snapshot.
 - Più avanti, funzioni uguali dentro ai vari file in /tests dovrebbero essere messe in un file utils.py, così da non duplicare codice.
-- Fare un giro di "inspection" per capire se posso semplificare il codice dei /tests.
-- Aggiungere debug ovunque --- No prints? O quelli che ora sono prints non sono rilevanti?
-
-
-
-
-
-- Non usare dizionari, se no non abbiamo autocompletamento ---> Usare structs
-    - My coworker told me that files in /tests and /utils might be hard to understand and use for others. An example is the autocompletion while writing tests in /tests ... we arecurrently using some dictionaries or things that you need to know, and that dont work with autocompletion using dot for example. Investigate what could be improved
+- Il debugger va bene così com'è?

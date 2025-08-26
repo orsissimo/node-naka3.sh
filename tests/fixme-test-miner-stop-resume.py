@@ -8,11 +8,11 @@ import time
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from utils.helpers import get_api, get_nonce, get_balance, get_account_info_typed
-from utils.config import MinerName, AccountManager
+from utils.config import Miner, AccountManager
 from utils.miners import MinerManager
 from utils.logger import Colors
 
-def check_miner_connectivity(miner: MinerName) -> dict:
+def check_miner_connectivity(miner: Miner) -> dict:
     """Check if miner API is responsive"""
     result = {'miner': miner, 'connected': False, 'error': None}
     
@@ -57,12 +57,12 @@ def main():
     
     # Raw minimal setup
     miner_manager = MinerManager()
-    miners = [MinerName.MINER1, MinerName.MINER2, MinerName.MINER3]
+    miners = [Miner.MINER1, Miner.MINER2, Miner.MINER3]
     
     try:
         # Start all miners
         print(f"\n{Colors.format_stacks('Starting all miners...')}")
-        if not miner_manager.snapshot_restore("auto"):
+        if not miner_manager.snapshot_restore_auto():
             raise RuntimeError("Failed to start miners")
         
         # Initial connectivity check
@@ -71,7 +71,7 @@ def main():
         
         # Stop miner2
         print(f"\n{Colors.format_header('Step 2: Stopping miner2')}")
-        miner_manager.stop_miner(2)
+        miner_manager.stop_miner(Miner.MINER2)
         time.sleep(5)  # Give time for miner to stop
         
         print(f"\n{Colors.format_subheader('Connectivity after stopping miner2:')}")
@@ -79,7 +79,7 @@ def main():
         
         # Verify miner1 and miner3 still work
         print(f"\n{Colors.format_header('Step 3: Testing remaining miners')}")
-        for miner in [MinerName.MINER1, MinerName.MINER3]:
+        for miner in [Miner.MINER1, Miner.MINER3]:
             try:
                 api = get_api(miner)
                 account = AccountManager.get(miner)
@@ -91,7 +91,7 @@ def main():
         
         # Stop miner3
         print(f"\n{Colors.format_header('Step 4: Stopping miner3')}")
-        miner_manager.stop_miner(3)
+        miner_manager.stop_miner(Miner.MINER3)
         time.sleep(5)  # Give time for miner to stop
         
         print(f"\n{Colors.format_subheader('Connectivity after stopping miner3:')}")
@@ -99,7 +99,7 @@ def main():
         
         # Resume miner2
         print(f"\n{Colors.format_header('Step 5: Resuming miner2')}")
-        miner_manager.resume_miner(2)
+        miner_manager.resume_miner(Miner.MINER2)
         time.sleep(10)  # Give time for miner to start
         
         print(f"\n{Colors.format_subheader('Connectivity after resuming miner2:')}")
@@ -107,7 +107,7 @@ def main():
         
         # Resume miner3
         print(f"\n{Colors.format_header('Step 6: Resuming miner3')}")
-        miner_manager.resume_miner(3)
+        miner_manager.resume_miner(Miner.MINER3)
         time.sleep(10)  # Give time for miner to start
         
         print(f"\n{Colors.format_subheader('Connectivity after resuming miner3:')}")

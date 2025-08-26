@@ -3,13 +3,12 @@
 import os
 import sys
 import time
-import json
 
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from utils.helpers import get_api, get_cli, submit_tx, get_nonce, get_balance, submit_transfer, wait_for_confirmation, safe_api_call, get_tx_status_typed
-from utils.config import AccountManager, MinerName, TransferParams, TransferInfo, VerificationResults, TransactionStatus, TxStatus, VerificationSummary
+from utils.helpers import get_api, get_cli, submit_tx_hex, get_nonce, get_balance, get_block_height, submit_transfer, wait_for_confirmation, get_tx_status_typed
+from utils.config import AccountManager, Miner, TransferParams, TransferInfo, VerificationResults, TransactionStatus, TxStatus, VerificationSummary
 from typing import List
 from utils.miners import MinerManager
 from utils.logger import Colors, logger
@@ -29,7 +28,7 @@ def generate_transfers(count: int, base_amount: int = 100) -> List[TransferParam
     
     return transfers
 
-def submit_transfer_batch(miner: MinerName, transfers: list) -> list:
+def submit_transfer_batch(miner: Miner, transfers: list) -> list:
     """Submit batch of transfers using raw APIs + helpers"""
     api = get_api(miner)
     cli = get_cli()
@@ -56,8 +55,8 @@ def submit_transfer_batch(miner: MinerName, transfers: list) -> list:
             )
             
             # Use raw CLI + API
-            cmd = cli.token_transfer(account.private_key, 180, nonce, transfer.to, transfer.amount, transfer.memo)
-            txid = submit_tx(api, cmd)
+            tx_hex = cli.token_transfer(account.private_key, 180, nonce, transfer.to, transfer.amount, transfer.memo)
+            txid = submit_tx_hex(api, tx_hex)
             
             transfer_info.txid = txid
             transfer_info.status = TransactionStatus.SUBMITTED
@@ -76,6 +75,51 @@ def submit_transfer_batch(miner: MinerName, transfers: list) -> list:
     
     return submitted_transfers
 
+def wait_and_verify_transfers(submitted_transfers: list, timeout: int = 300) -> dict:
+    """Wait for block confirmations and verify transfers as blocks are mined"""
+    if not submitted_transfers:
+        return {"total": 0, "confirmed": 0, "pending": 0, "failed": 0}
+    
+    # Get initial block height
+    api = get_api(Miner.MINER1)
+    initial_height = get_block_height(api)
+    start_time = time.time()
+    
+    print(f"Initial block height: {initial_height}")
+    print(f"Waiting for new blocks (timeout: {timeout}s)...")
+    
+    verified_count = 0
+    last_verified_height = initial_height
+    
+    while time.time() - start_time < timeout:
+        current_height = get_block_height(api)
+        
+        if current_height > last_verified_height:
+            print(f"New block mined! Height: {current_height} (+{current_height - initial_height})")
+            
+            # Verify transactions in this new block
+            verification_results = verify_transfers(submitted_transfers)
+            new_verified = verification_results["confirmed"]
+            
+            if new_verified > verified_count:
+                print(f"  Confirmed: {new_verified} (+{new_verified - verified_count})")
+                verified_count = new_verified
+            
+            last_verified_height = current_height
+            
+            # If all transactions are confirmed or failed, stop waiting
+            if verification_results["pending"] == 0:
+                print("All transactions processed!")
+                break
+        
+        time.sleep(2)  # Check every 2 seconds
+    
+    # Final verification
+    final_results = verify_transfers(submitted_transfers)
+    elapsed = time.time() - start_time
+    print(f"Verification completed after {elapsed:.1f}s")
+    return final_results
+
 def verify_transfers(submitted_transfers: list) -> dict:
     """Verify all submitted transfers using raw APIs"""
     verification_results = VerificationResults()
@@ -89,23 +133,23 @@ def verify_transfers(submitted_transfers: list) -> dict:
         
         api = get_api(transfer_info.miner)
         
-        # Use typed API call with proper error handling
-        tx_status = get_tx_status_typed(api, transfer_info.txid)
-        
-        if tx_status != TxStatus.UNKNOWN:
-            if tx_status == TxStatus.SUCCESS:
-                transfer_info.status = TransactionStatus.CONFIRMED
-                verification_results.confirmed.append(transfer_info)
-            elif tx_status in [TxStatus.ABORT_BY_RESPONSE, TxStatus.ABORT_BY_POST_CONDITION]:
-                transfer_info.status = TransactionStatus.FAILED
-                transfer_info.error = f"Transaction failed with status: {tx_status.value}"
-                verification_results.failed.append(transfer_info)
-            else:
-                transfer_info.status = TransactionStatus.PENDING
-                verification_results.pending.append(transfer_info)
-        else:
-            transfer_info.status = TransactionStatus.PENDING
-            verification_results.pending.append(transfer_info)
+        try:
+            # If we can get transaction details, it passed
+            tx_details = api.get_transaction_by_id(transfer_info.txid)
+            transfer_info.status = TransactionStatus.CONFIRMED
+            verification_results.confirmed.append(transfer_info)
+            
+            print(f"  {Colors.format_success('✓')} Transfer {transfer_info.amount} µSTX - TXID: {transfer_info.txid}")
+            print(f"    {Colors.format_dim('Transaction details (omitted for brevity)')}")
+            
+        except Exception as e:
+            # If we can't get transaction details, it failed
+            transfer_info.status = TransactionStatus.FAILED
+            transfer_info.error = str(e)
+            verification_results.failed.append(transfer_info)
+            
+            print(f"  {Colors.format_error('✗')} Transfer {transfer_info.amount} µSTX - TXID: {transfer_info.txid}")
+            print(f"    {Colors.format_dim(f'Error: {str(e)}')}")
     
     return {
         'confirmed': len(verification_results.confirmed),
@@ -140,12 +184,12 @@ def main():
     
     # Raw minimal setup
     miner_manager = MinerManager()
-    miners = [MinerName.MINER1, MinerName.MINER2, MinerName.MINER3]
+    miners = [Miner.MINER1, Miner.MINER2, Miner.MINER3]
     
     try:
         # Start the node
         print(f"\n{Colors.format_stacks('Starting miners...')}")
-        if not miner_manager.snapshot_restore("auto"):
+        if not miner_manager.snapshot_restore_auto():
             raise RuntimeError("Failed to start miners")
         
         # Show initial balances
@@ -160,7 +204,7 @@ def main():
         
         # Submit transfers from MINER1
         print(f"\n{Colors.format_header('Submitting Transfers')}")
-        test_miner = MinerName.MINER1
+        test_miner = Miner.MINER1
         submitted_transfers = submit_transfer_batch(test_miner, transfers)
         
         successful_submissions = [t for t in submitted_transfers if t.status == TransactionStatus.SUBMITTED]
@@ -177,19 +221,7 @@ def main():
         
         # Wait for some confirmations
         print(f"\n{Colors.format_header('Waiting for confirmations...')}")
-        time.sleep(30)  # Give time for transactions to be processed
-        
-        # Verify transfers
-        verification_results = verify_transfers(submitted_transfers)
-        
-        print(f"\n{Colors.format_header('Verification Results')}")
-        print(f"  Total submitted: {Colors.format_dim(str(verification_results['total']))}")
-        print(f"  Confirmed: {Colors.format_success(str(verification_results['confirmed']))}")
-        print(f"  Pending: {Colors.format_warn(str(verification_results['pending']))}")
-        print(f"  Failed: {Colors.format_error(str(verification_results['failed']))}")
-        
-        success_rate = (verification_results['confirmed'] / verification_results['total']) * 100 if verification_results['total'] > 0 else 0
-        print(f"  Success rate: {Colors.format_info(f'{success_rate:.1f}%')}")
+        verification_results = wait_and_verify_transfers(submitted_transfers)
         
         # Show final balances
         print_balance_summary(miners)

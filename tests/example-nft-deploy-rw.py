@@ -7,8 +7,8 @@ import json
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from utils.helpers import get_api, get_cli, submit_tx, get_nonce, get_block_height, wait_for_confirmation
-from utils.config import AccountManager, MinerName
+from utils.helpers import get_api, get_cli, submit_tx_hex, get_nonce, get_block_height, wait_for_confirmation
+from utils.config import AccountManager, Miner
 from utils.miners import MinerManager
 from utils.logger import Colors
 
@@ -20,14 +20,14 @@ def main():
     
     # Raw minimal setup
     miners = MinerManager()
-    api = get_api(MinerName.MINER1)
+    api = get_api(Miner.MINER1)
     cli = get_cli()
-    account = AccountManager.get(MinerName.MINER1)
+    account = AccountManager.get(Miner.MINER1)
     
     try:
         # Start the node
         print(f"\n{Colors.format_stacks('Starting miners...')}")
-        if not miners.snapshot_restore("auto"):
+        if not miners.snapshot_restore_auto():
             raise RuntimeError("Failed to start miners")
         
         # Step 1: Deploy cyberpunk NFT contract
@@ -38,9 +38,9 @@ def main():
         initial_nonce = get_nonce(api, account.address)
         initial_height = get_block_height(api)
         
-        cmd = cli.publish_contract(account.private_key, 50000, initial_nonce, "cyberpunk2140a", 
-                                 os.path.join(os.path.dirname(__file__), "..", "contracts/cyberpunk2140a.clar"))
-        deploy_txid = submit_tx(api, cmd)
+        tx_hex = cli.publish_contract(account.private_key, 50000, initial_nonce, "cyberpunk2140a", 
+                                    os.path.join(os.path.dirname(__file__), "..", "contracts/cyberpunk2140a.clar"))
+        deploy_txid = submit_tx_hex(api, tx_hex)
         print(f"{Colors.format_success('Contract deployed')}: {Colors.format_info(deploy_txid)}")
         
         if not wait_for_confirmation(api, account.address, initial_nonce, initial_height, timeout=120):
@@ -88,9 +88,9 @@ def main():
         initial_nonce = get_nonce(api, account.address)
         initial_height = get_block_height(api)
         
-        cmd = cli.call_contract(account.private_key, 5000, initial_nonce, account.address, "cyberpunk2140a", "set-token-uri", 
-                              ['"https://cyberpunk2140.com/metadata/{id}.json"'])
-        set_uri_txid = submit_tx(api, cmd)
+        tx_hex = cli.call_contract(account.private_key, 5000, initial_nonce, account.address, "cyberpunk2140a", "set-token-uri", 
+                                 ['"https://cyberpunk2140.com/metadata/{id}.json"'])
+        set_uri_txid = submit_tx_hex(api, tx_hex)
         print(f"{Colors.format_success('Contract call submitted')}: {Colors.format_info(set_uri_txid)}")
         
         if not wait_for_confirmation(api, account.address, initial_nonce, initial_height, timeout=120):
@@ -102,9 +102,9 @@ def main():
         initial_nonce = get_nonce(api, account.address)
         initial_height = get_block_height(api)
         
-        cmd = cli.call_contract(account.private_key, 5000, initial_nonce, account.address, "cyberpunk2140a", "set-collection-attribute", 
-                              ['u"Cyberpunk 2140 NFT Collection"'])
-        set_attr_txid = submit_tx(api, cmd)
+        tx_hex = cli.call_contract(account.private_key, 5000, initial_nonce, account.address, "cyberpunk2140a", "set-collection-attribute", 
+                                 ['u"Cyberpunk 2140 NFT Collection"'])
+        set_attr_txid = submit_tx_hex(api, tx_hex)
         print(f"{Colors.format_success('Contract call submitted')}: {Colors.format_info(set_attr_txid)}")
         
         if not wait_for_confirmation(api, account.address, initial_nonce, initial_height, timeout=120):
@@ -116,9 +116,9 @@ def main():
         initial_nonce = get_nonce(api, account.address)
         initial_height = get_block_height(api)
         
-        cmd = cli.call_contract(account.private_key, 5000, initial_nonce, account.address, "cyberpunk2140a", "set-collection-icon-data", 
-                              ["0x89504e470d0a1a0a0000000d49484452"])
-        set_icon_txid = submit_tx(api, cmd)
+        tx_hex = cli.call_contract(account.private_key, 5000, initial_nonce, account.address, "cyberpunk2140a", "set-collection-icon-data", 
+                                 ["0x89504e470d0a1a0a0000000d49484452"])
+        set_icon_txid = submit_tx_hex(api, tx_hex)
         print(f"{Colors.format_success('Contract call submitted')}: {Colors.format_info(set_icon_txid)}")
         
         if not wait_for_confirmation(api, account.address, initial_nonce, initial_height, timeout=120):
@@ -130,9 +130,9 @@ def main():
         initial_nonce = get_nonce(api, account.address)
         initial_height = get_block_height(api)
         
-        cmd = cli.call_contract(account.private_key, 5000, initial_nonce, account.address, "cyberpunk2140a", "set-tokens", 
+        tx_hex = cli.call_contract(account.private_key, 5000, initial_nonce, account.address, "cyberpunk2140a", "set-tokens", 
                               ['(list {id: u1, data: 0x89504e470d0a1a0a, attribute: u"First Token"} {id: u2, data: 0x89504e470d0a1a0b, attribute: u"Second Token"})'])
-        set_tokens_txid = submit_tx(api, cmd)
+        set_tokens_txid = submit_tx_hex(api, tx_hex)
         print(f"{Colors.format_success('Contract call submitted')}: {Colors.format_info(set_tokens_txid)}")
         
         if not wait_for_confirmation(api, account.address, initial_nonce, initial_height, timeout=120):
@@ -144,8 +144,8 @@ def main():
         initial_nonce = get_nonce(api, account.address)
         initial_height = get_block_height(api)
         
-        cmd = cli.call_contract(account.private_key, 5000, initial_nonce, account.address, "cyberpunk2140a", "mint", [])
-        mint_txid = submit_tx(api, cmd)
+        tx_hex = cli.call_contract(account.private_key, 5000, initial_nonce, account.address, "cyberpunk2140a", "mint", [])
+        mint_txid = submit_tx_hex(api, tx_hex)
         print(f"{Colors.format_success('Contract call submitted')}: {Colors.format_info(mint_txid)}")
         
         if not wait_for_confirmation(api, account.address, initial_nonce, initial_height, timeout=120):

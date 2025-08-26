@@ -5,7 +5,7 @@ import time
 import os
 from .logger import Colors, logger
 from .stacks_core_api import StacksCoreAPIWrapper
-from .config import ACCOUNTS, AccountManager
+from .config import ACCOUNTS, AccountManager, Miner, MiningMode
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PLAYBOOK_DIR = os.path.join(PROJECT_ROOT, "naka3", "playbooks", "three-miners")
@@ -20,40 +20,65 @@ class MinerManager:
         }
 
     def wait_for_miners_ready(self, timeout: int = 45) -> bool:
-        """Waits for all managed miner APIs to become responsive."""
+        """Waits for all managed miner APIs to become responsive with adaptive polling."""
         logger.info("Verifying all miner endpoints are ready...")
+        time.sleep(10)
+
         start_time = time.time()
         miners_to_check = list(self.apis.keys())
+        sleep_interval = 1  # Start with 1 second
         
         while time.time() - start_time < timeout:
             ready_miners = []
+            progress_made = False
+            
             for miner_name, api in self.apis.items():
                 try:
                     if api.get_info():
                         ready_miners.append(miner_name)
+                        if miner_name not in getattr(self, '_ready_miners', set()):
+                            progress_made = True
                 except Exception:
                     pass 
+            
+            # Track ready miners to detect progress
+            if not hasattr(self, '_ready_miners'):
+                self._ready_miners = set()
+            
+            if ready_miners:
+                new_ready = set(ready_miners) - self._ready_miners
+                if new_ready:
+                    progress_made = True
+                    for miner in new_ready:
+                        logger.info(f"Miner {miner} is now ready")
+                self._ready_miners.update(ready_miners)
             
             if len(ready_miners) == len(miners_to_check):
                 logger.info(Colors.format_stacks(f"All {len(miners_to_check)} miners are ready."))
                 return True
             
-            logger.debug(f"Miners ready: {len(ready_miners)}/{len(miners_to_check)}. Waiting...")
-            time.sleep(2)
+            # Adaptive polling: faster when making progress, slower when not
+            if progress_made:
+                sleep_interval = 1  # Reset to fast polling
+            else:
+                sleep_interval = min(sleep_interval * 1.2, 4)  # Gradual backoff, max 4s
+            
+            logger.debug(f"Miners ready: {len(ready_miners)}/{len(miners_to_check)}. Waiting {sleep_interval:.1f}s...")
+            time.sleep(sleep_interval)
             
         logger.error(Colors.format_fail(f"Timeout: Only {len(ready_miners)}/{len(miners_to_check)} miners became ready."))
         return False
 
-    def start(self, mode: str) -> bool:
+    def start(self, mode: MiningMode) -> bool:
         """Start in automatic or manual mining mode (required).
         
         Args:
             mode: Mining mode - 'auto' or 'manual' (required)
         """
-        if mode not in ["auto", "manual"]:
-            raise ValueError(f"Invalid mode '{mode}'. Use 'auto' or 'manual'")
+        if not isinstance(mode, MiningMode):
+            raise ValueError(f"Invalid mode '{mode}'. Use MiningMode.AUTO or MiningMode.MANUAL")
             
-        logger.info(Colors.format_stacks(f"Starting three miners in {mode} mode..."))
+        logger.info(Colors.format_stacks(f"Starting three miners in {mode.value} mode..."))
         return self.start_from_scratch(mode)
     
     
@@ -104,26 +129,26 @@ class MinerManager:
         except Exception as e:
             logger.error(Colors.format_fail(f"Failed to {action} miner{miner_id}", str(e)))
 
-    def stop_miner(self, miner_id: int):
-        """Stop specific miner (1, 2, or 3)."""
-        self._manage_miner("stop", miner_id)
+    def stop_miner(self, miner: Miner):
+        """Stop specific miner."""
+        self._manage_miner("stop", miner.value)
     
-    def resume_miner(self, miner_id: int):
-        """Resume specific miner (1, 2, or 3)."""
-        self._manage_miner("resume", miner_id)
+    def resume_miner(self, miner: Miner):
+        """Resume specific miner."""
+        self._manage_miner("resume", miner.value)
     
-    def start_from_scratch(self, mode: str):
+    def start_from_scratch(self, mode: MiningMode):
         """Start three miners from scratch in specified mode.
         
         Args:
-            mode: Mining mode - 'auto' or 'manual' (required)
+            mode: Mining mode - MiningMode.AUTO or MiningMode.MANUAL (required)
         """
-        if mode not in ["auto", "manual"]:
-            raise ValueError(f"Invalid mode '{mode}'. Use 'auto' or 'manual'")
+        if not isinstance(mode, MiningMode):
+            raise ValueError(f"Invalid mode '{mode}'. Use MiningMode.AUTO or MiningMode.MANUAL")
             
-        logger.info(Colors.format_stacks(f"Starting three miners from scratch in {mode} mode..."))
+        logger.info(Colors.format_stacks(f"Starting three miners from scratch in {mode.value} mode..."))
         try:
-            cmd = ["./three-miners.sh", "start", mode]
+            cmd = ["./three-miners.sh", "start", mode.value]
             
             self.miner_process = subprocess.Popen(
                 cmd,
@@ -134,13 +159,15 @@ class MinerManager:
             )
             self.running = True
             
-            time.sleep(5) 
+            # Wait for miners to be ready instead of fixed delay
+            if not self.wait_for_miners_ready(timeout=15):
+                logger.warning("Miners may not be fully ready yet")
             
             if self.miner_process.poll() is not None:
                 logger.error(Colors.format_fail("Miners process exited early."))
                 return False
                 
-            logger.info(Colors.format_stacks(f"Started from scratch in {mode} mode"))
+            logger.info(Colors.format_stacks(f"Started from scratch in {mode.value} mode"))
             
             if not self.wait_for_miners_ready():
                 raise RuntimeError("Not all miners became ready within the timeout period.")
@@ -209,15 +236,39 @@ class MinerManager:
         except Exception as e:
             logger.error(Colors.format_fail("Failed to create snapshot", str(e)))
     
-    def snapshot_restore(self, mode: str):
+    def start_auto(self) -> bool:
+        """Start miners in auto mining mode."""
+        return self.start(MiningMode.AUTO)
+    
+    def start_manual(self) -> bool:
+        """Start miners in manual mining mode."""
+        return self.start(MiningMode.MANUAL)
+    
+    def start_from_scratch_auto(self):
+        """Start miners from scratch in auto mining mode."""
+        return self.start_from_scratch(MiningMode.AUTO)
+    
+    def start_from_scratch_manual(self):
+        """Start miners from scratch in manual mining mode."""
+        return self.start_from_scratch(MiningMode.MANUAL)
+
+    def snapshot_restore_auto(self):
+        """Restore snapshot in auto mining mode."""
+        return self.snapshot_restore(MiningMode.AUTO)
+    
+    def snapshot_restore_manual(self):
+        """Restore snapshot in manual mining mode.""" 
+        return self.snapshot_restore(MiningMode.MANUAL)
+
+    def snapshot_restore(self, mode: MiningMode):
         """Restore snapshot in specified mode (required).
         
         Args:
-            mode: Mining mode - 'auto' (default) or 'manual'
+            mode: Mining mode - MiningMode.AUTO or MiningMode.MANUAL
         """
-        logger.info(Colors.format_stacks(f"Restoring snapshot in {mode} mode..."))
+        logger.info(Colors.format_stacks(f"Restoring snapshot in {mode.value} mode..."))
         try:
-            cmd = ["./three-miners.sh", "snapshot", "restore", mode]
+            cmd = ["./three-miners.sh", "snapshot", "restore", mode.value]
             
             self.miner_process = subprocess.Popen(
                 cmd,
@@ -228,7 +279,9 @@ class MinerManager:
             )
             self.running = True
             
-            time.sleep(5) 
+            # Wait for miners to be ready after snapshot restore
+            if not self.wait_for_miners_ready(timeout=15):
+                logger.warning("Miners may not be fully ready after snapshot restore") 
             
             if self.miner_process.poll() is not None:
                 logger.error(Colors.format_fail("Miners process exited early."))

@@ -14,11 +14,38 @@ class Account:
     def api_url(self) -> str:
         return f"http://localhost:{self.api_port}"
 
-class MinerName(Enum):
-    """Enum for type-safe miner name access."""
-    MINER1 = "miner1"
-    MINER2 = "miner2"
-    MINER3 = "miner3"
+ACCOUNTS = {
+    1: Account(
+        name="miner1",
+        address="STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6", 
+        private_key="cb3df38053d132895220b9ce471f6b676db5b9bf0b4adefb55f2118ece2478df01",
+        api_port=20443
+    ),
+    2: Account(
+        name="miner2",
+        address="ST11NJTTKGVT6D1HY4NJRVQWMQM7TVAR091EJ8P2Y", 
+        private_key="21d43d2ae0da1d9d04cfcaac7d397a33733881081f0b2cd038062cf0ccbb752601",
+        api_port=30443
+    ),
+    3: Account(
+        name="miner3",
+        address="ST3AM1A56AK2C1XAFJ4115ZSV26EB49BVQ10MGCS0", 
+        private_key="7036b29cb5e235e5fd9b09ae3e8eec4404e44906814d5d01cbca968a60ed4bfb01",
+        api_port=40443
+    )
+}
+
+class Miner(Enum):
+    """Enum for type-safe miner access."""
+    MINER1 = 1
+    MINER2 = 2
+    MINER3 = 3
+
+
+class MiningMode(Enum):
+    """Enum for mining mode selection."""
+    AUTO = "auto"
+    MANUAL = "manual"
 
 class TransactionStatus(Enum):
     """Enum for transaction status with IDE autocompletion."""
@@ -48,40 +75,18 @@ class ApiError(Enum):
     CONNECTION_ERROR = "Connection error"
     UNKNOWN_ERROR = "Unknown error"
 
-# The Single Source of Truth for all miner account information.
-ACCOUNTS = {
-    "miner1": Account(
-        name="miner1",
-        address="STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6", 
-        private_key="cb3df38053d132895220b9ce471f6b676db5b9bf0b4adefb55f2118ece2478df01",
-        api_port=20443
-    ),
-    "miner2": Account(
-        name="miner2",
-        address="ST11NJTTKGVT6D1HY4NJRVQWMQM7TVAR091EJ8P2Y", 
-        private_key="21d43d2ae0da1d9d04cfcaac7d397a33733881081f0b2cd038062cf0ccbb752601",
-        api_port=30443
-    ),
-    "miner3": Account(
-        name="miner3",
-        address="ST3AM1A56AK2C1XAFJ4115ZSV26EB49BVQ10MGCS0", 
-        private_key="7036b29cb5e235e5fd9b09ae3e8eec4404e44906814d5d01cbca968a60ed4bfb01",
-        api_port=40443
-    )
-}
-
 class AccountManager:
     """Type-safe account access."""
     
     @staticmethod
-    def get(miner: MinerName) -> Account:
+    def get(miner: Miner) -> Account:
         """Get account by enum with full IDE autocompletion support."""
         return ACCOUNTS[miner.value]
     
     @staticmethod
-    def all_miners() -> List[MinerName]:
+    def all_miners() -> List[Miner]:
         """Get all available miner enums."""
-        return list(MinerName)
+        return list(Miner)
     
     @staticmethod
     def all() -> Dict[str, Account]:
@@ -98,7 +103,7 @@ class TransferParams:
 @dataclass
 class TransferInfo:
     """Type-safe transfer information."""
-    miner: MinerName
+    miner: Miner
     to_address: str
     amount: int
     memo: str
@@ -110,7 +115,7 @@ class TransferInfo:
 @dataclass
 class DeploymentInfo:
     """Type-safe deployment information."""
-    miner: MinerName
+    miner: Miner
     contract_file: str
     contract_name: str
     nonce: int

@@ -46,24 +46,28 @@ class BlockstackCLIWrapper:
             logger.critical(f"An unexpected error occurred: {e}")
             return None, str(e), 1
 
-    def publish_contract(self, publisher_sk: str, fee_rate: int, nonce: int, contract_name: str, file_name: str, *, testnet: bool = True) -> List[str]:
-        """Build blockstack-cli publish command - returns command array for direct execution"""
-        cmd = ["blockstack-cli"]
-        if testnet:
-            cmd.append("--testnet")
-        cmd.extend(["publish", publisher_sk, str(fee_rate), str(nonce), contract_name, file_name])
-        return cmd
+    def publish_contract(self, publisher_sk: str, fee_rate: int, nonce: int, contract_name: str, file_name: str, *, testnet: bool = True) -> Optional[str]:
+        """Execute blockstack-cli publish command and return transaction hex"""
+        cmd = ["publish", publisher_sk, str(fee_rate), str(nonce), contract_name, file_name]
+        
+        stdout, stderr, returncode = self._run_command(cmd, testnet, None)
+        if returncode != 0 or not stdout:
+            logger.error(f"Contract publish failed: {stderr}")
+            return None
+        return stdout.strip()
 
-    def call_contract(self, origin_sk: str, fee_rate: int, nonce: int, contract_address: str, contract_name: str, function_name: str, args: Optional[List[str]] = None, *, testnet: bool = True) -> List[str]:
-        """Build blockstack-cli contract-call command - returns command array for direct execution"""
-        cmd = ["blockstack-cli"]
-        if testnet:
-            cmd.append("--testnet")
-        cmd.extend(["contract-call", origin_sk, str(fee_rate), str(nonce), contract_address, contract_name, function_name])
+    def call_contract(self, origin_sk: str, fee_rate: int, nonce: int, contract_address: str, contract_name: str, function_name: str, args: Optional[List[str]] = None, *, testnet: bool = True) -> Optional[str]:
+        """Execute blockstack-cli contract-call command and return transaction ID"""
+        cmd = ["contract-call", origin_sk, str(fee_rate), str(nonce), contract_address, contract_name, function_name]
         if args:
             for arg in args:
                 cmd.extend(["-e", arg])
-        return cmd
+        
+        stdout, stderr, returncode = self._run_command(cmd, testnet, None)
+        if returncode != 0 or not stdout:
+            logger.error(f"Contract call failed: {stderr}")
+            return None
+        return stdout.strip()
 
     def generate_sk(self, *, testnet: bool = False, chain_id: Optional[str] = None) -> Optional[Dict[str, str]]:
         """USAGE: blockstack-cli generate-sk"""
@@ -72,15 +76,17 @@ class BlockstackCLIWrapper:
         if retcode == 0 and stdout: return json.loads(stdout)
         return None
 
-    def token_transfer(self, origin_sk: str, fee_rate: int, nonce: int, recipient_address: str, amount: int, memo: Optional[str] = None, *, testnet: bool = True) -> List[str]:
-        """Build blockstack-cli token-transfer command - returns command array for direct execution"""
-        cmd = ["blockstack-cli"]
-        if testnet:
-            cmd.append("--testnet")
-        cmd.extend(["token-transfer", origin_sk, str(fee_rate), str(nonce), recipient_address, str(amount)])
+    def token_transfer(self, origin_sk: str, fee_rate: int, nonce: int, recipient_address: str, amount: int, memo: Optional[str] = None, *, testnet: bool = True) -> Optional[str]:
+        """Execute blockstack-cli token-transfer command and return transaction ID"""
+        cmd = ["token-transfer", origin_sk, str(fee_rate), str(nonce), recipient_address, str(amount)]
         if memo:
             cmd.append(memo)
-        return cmd
+        
+        stdout, stderr, returncode = self._run_command(cmd, testnet, None)
+        if returncode != 0 or not stdout:
+            logger.error(f"Token transfer failed: {stderr}")
+            return None
+        return stdout.strip()
 
     def get_addresses(self, secret_key: str, *, testnet: bool = False, chain_id: Optional[str] = None) -> Optional[Dict[str, str]]:
         """USAGE: blockstack-cli addresses [secret-key-hex]"""

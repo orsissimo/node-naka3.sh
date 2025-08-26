@@ -8,12 +8,12 @@ import json
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from utils.helpers import get_api, get_cli, submit_tx, get_nonce, get_block_height, wait_for_confirmation
-from utils.config import AccountManager, MinerName
+from utils.helpers import get_api, get_cli, submit_tx_hex, get_nonce, get_block_height, wait_for_confirmation
+from utils.config import AccountManager, Miner
 from utils.miners import MinerManager
 from utils.logger import Colors
 
-def try_deploy_contract(miner: MinerName, contract_file: str, contract_name: str) -> dict:
+def try_deploy_contract(miner: Miner, contract_file: str, contract_name: str) -> dict:
     """Try to deploy contract and return detailed result"""
     api = get_api(miner)
     cli = get_cli()
@@ -66,9 +66,9 @@ def try_deploy_contract(miner: MinerName, contract_file: str, contract_name: str
         print(f"{Colors.format_info('Using fee')}: {Colors.format_dim(f'{fee} µSTX')}")
         
         # Deploy using raw APIs + helpers
-        cmd = cli.publish_contract(account.private_key, fee, initial_nonce, contract_name, contract_path)
+        tx_hex = cli.publish_contract(account.private_key, fee, initial_nonce, contract_name, contract_path)
         print(f"{Colors.format_info('Deploying contract using minimal helpers...')}")
-        txid = submit_tx(api, cmd)
+        txid = submit_tx_hex(api, tx_hex)
         result['txid'] = txid
         
         print(f"{Colors.format_success(f'Contract deployment submitted')}: {Colors.format_info(txid)}")
@@ -178,7 +178,7 @@ def main():
     try:
         # Start the node
         print(f"\n{Colors.format_stacks('Starting miners...')}")
-        if not miners.snapshot_restore("auto"):
+        if not miners.snapshot_restore_auto():
             raise RuntimeError("Failed to start miners")
         
         print(f"\n{Colors.format_header('Testing contract deployment size limits')}")
@@ -186,7 +186,7 @@ def main():
         
         # Test each contract
         results = []
-        test_miner = MinerName.MINER1  # Use only the first miner
+        test_miner = Miner.MINER1  # Use only the first miner
         
         for i, contract_file in enumerate(contract_files):
             miner = test_miner  # Always use miner1
@@ -256,8 +256,8 @@ def main():
             print(f"Contract: {smallest_working['contract_name']} ({smallest_working['size_kb']:.1f}KB)")
             
             try:
-                api = get_api(MinerName.MINER1)
-                account = AccountManager.get(MinerName.MINER1)
+                api = get_api(Miner.MINER1)
+                account = AccountManager.get(Miner.MINER1)
                 
                 # Try to call a function (first try without arguments)
                 function_name = "calc-function-0001"
