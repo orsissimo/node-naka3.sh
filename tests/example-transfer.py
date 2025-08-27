@@ -7,12 +7,12 @@ import json
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from utils.helpers import get_account_info_typed, get_block_height, wait_for_confirmation
+from utils.helpers import get_block_height, wait_for_confirmation
 from utils.config import AccountManager, Miner
 from utils.miners import MinerManager
 from utils.logger import Colors
 from utils.blockstack_cli import BlockstackCLIWrapper
-from utils.stacks_core_api import StacksCoreAPIWrapper
+from utils.stacks_core_api import StacksCoreAPI
 
 def main():
     """Execute STX token transfer test"""
@@ -21,10 +21,11 @@ def main():
     print(f"{Colors.format_dim('=' * 60)}")
     
     # Raw minimal setup
+    # FIXME: (LATER): Potrei creare un type "Setup" che ha cli, api, minermanager, ...
     miners = MinerManager()
     sender_account = AccountManager.get(Miner.MINER1)
     recipient_account = AccountManager.get(Miner.MINER2)
-    api = StacksCoreAPIWrapper(base_url=sender_account.api_url)
+    api = StacksCoreAPI(base_url=sender_account.api_url)
     cli = BlockstackCLIWrapper()
     
     try:
@@ -35,11 +36,14 @@ def main():
         
         # Step 1: Check initial balances
         print(f"\n{Colors.format_header('Step 1: Check initial balances')}")
-        sender_account_info = get_account_info_typed(api, sender_account.address)
+        # FIXME: Deve diventare una cosa tipo: logger.header('Step 1: Check initial balances')
+        # FIXME: Poi separo logger.info, logger.error, logger.success, logger.warn, logger.dim, logger.subheader, logger.stacks da quello logger.custom (come cose piu "print" style)
+        sender_account_info = api.get_account_info(sender_account.address)
         sender_initial_balance = sender_account_info.balance
-        recipient_account_info = get_account_info_typed(api, recipient_account.address)
+        recipient_account_info = api.get_account_info(recipient_account.address)
         recipient_initial_balance = recipient_account_info.balance
-        
+
+        # FIXME: In generale il dev non deve occuparsi dei colori, deve essere tipo logger.formar_response ecc ecc ecc...
         print(f"{Colors.format_info('Sender address')}: {Colors.format_dim(sender_account.address)}")
         print(f"{Colors.format_info('Sender initial balance')}: {Colors.format_dim(f'{sender_initial_balance:,} µSTX')}")
         print(f"{Colors.format_info('Recipient address')}: {Colors.format_dim(recipient_account.address)}")
@@ -51,7 +55,7 @@ def main():
         transfer_memo = "Test transfer from example"
         fee = 180  # Transaction fee in µSTX
         
-        sender_account_info = get_account_info_typed(api, sender_account.address)
+        sender_account_info = api.get_account_info(sender_account.address)
         initial_nonce = sender_account_info.nonce
         initial_height = get_block_height(api)
         
@@ -82,9 +86,9 @@ def main():
         
         # Step 5: Verify final balances
         print(f"\n{Colors.format_header('Step 5: Verify final balances')}")
-        sender_account_info = get_account_info_typed(api, sender_account.address)
+        sender_account_info = api.get_account_info(sender_account.address)
         sender_final_balance = sender_account_info.balance
-        recipient_account_info = get_account_info_typed(api, recipient_account.address)
+        recipient_account_info = api.get_account_info(recipient_account.address)
         recipient_final_balance = recipient_account_info.balance
         
         sender_change = sender_final_balance - sender_initial_balance
@@ -122,7 +126,7 @@ def main():
             small_amount = 1000 * (i + 1)  # 1000, 2000, 3000 µSTX
             small_memo = f"Small transfer #{i+1}"
             
-            sender_account_info = get_account_info_typed(api, sender_account.address)
+            sender_account_info = api.get_account_info(sender_account.address)
             current_nonce = sender_account_info.nonce
             current_height = get_block_height(api)
             
@@ -148,9 +152,9 @@ def main():
         print(f"{Colors.format_header('FINAL RESULT')}")
         print(f"{Colors.format_dim('=' * 60)}")
         
-        sender_account_info = get_account_info_typed(api, sender_account.address)
+        sender_account_info = api.get_account_info(sender_account.address)
         final_sender_balance = sender_account_info.balance
-        recipient_account_info = get_account_info_typed(api, recipient_account.address)
+        recipient_account_info = api.get_account_info(recipient_account.address)
         final_recipient_balance = recipient_account_info.balance
         total_sender_change = final_sender_balance - sender_initial_balance
         total_recipient_change = final_recipient_balance - recipient_initial_balance
@@ -162,6 +166,7 @@ def main():
         
         return True
         
+    # FIXME: Tenere try catch finale ma gli faccio risalire le eccezioni dai livelli piu bassi, eccetto eccezioni come socket IO per esempio, che "blocco" in componenti piu bassi (in /utils)
     except Exception as e:
         print(f"\n{Colors.format_error('TEST FAILED')}: {Colors.format_error(str(e))}")
         return False

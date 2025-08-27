@@ -7,7 +7,7 @@ import time
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from utils.helpers import get_account_info_typed, get_block_height, wait_for_confirmation, get_tx_status_typed
+from utils.helpers import get_account_info_typed, get_block_height, wait_for_confirmation
 from utils.config import AccountManager, Miner, TransferParams, TransferInfo, VerificationResults, TransactionStatus, TxStatus, VerificationSummary
 from utils.blockstack_cli import BlockstackCLIWrapper
 from utils.stacks_core_api import StacksCoreAPIWrapper

@@ -2,14 +2,17 @@
 
 import requests
 import json
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union
+from dataclasses import dataclass
 from .logger import Colors, logger
+from .config import AccountInfo, TxStatus, ApiResult, ApiError
 
-class StacksCoreAPIWrapper:
+class StacksCoreAPI:
     """
-    A comprehensive Python wrapper for the Stacks 3.0+ RPC API, covering all
-    endpoints from the provided OpenAPI specification and correcting for
-    discrepancies between the spec and actual server behavior.
+    A 1:1 Python port of the Stacks 3.0+ RPC API, covering all endpoints from 
+    the provided OpenAPI specification with automatic JSON→object parsing and 
+    centralized error handling. This class provides direct access to all API 
+    endpoints without additional abstraction layers.
     """
     def __init__(self, base_url: str = "http://localhost:20443", auth_token: Optional[str] = None):
         self.base_url = base_url
@@ -57,28 +60,107 @@ class StacksCoreAPIWrapper:
             return response.content
         else:
             return response.text.strip('"')
+    
+    def _parse_hex_balance(self, balance_hex: str) -> int:
+        """Convert hex balance string to integer."""
+        if balance_hex.startswith('0x'):
+            return int(balance_hex, 16)
+        return int(balance_hex)
 
     # --- V2 Transactions, Accounts, and Info ---
-    def get_info(self) -> Optional[Dict]:
-        """GET /v2/info - Get Core API information."""
+    def get_info(self) -> 'NodeInfo':
+        """GET /v2/info - Get Core API information as typed object."""
         response = self._make_request('GET', '/v2/info')
-        return self.handle_api_response(response)
+        data = self.handle_api_response(response)
+        return NodeInfo(
+            peer_version=data['peer_version'],
+            pox_consensus=data['pox_consensus'], 
+            burn_block_height=data['burn_block_height'],
+            stable_pox_consensus=data['stable_pox_consensus'],
+            stable_burn_block_height=data['stable_burn_block_height'],
+            server_version=data['server_version'],
+            network_id=data['network_id'],
+            parent_network_id=data['parent_network_id'],
+            stacks_tip_height=data['stacks_tip_height'],
+            stacks_tip=data['stacks_tip'],
+            stacks_tip_consensus_hash=data['stacks_tip_consensus_hash'],
+            genesis_chainstate_hash=data['genesis_chainstate_hash'],
+            unanchored_tip=data.get('unanchored_tip'),
+            unanchored_seq=data.get('unanchored_seq'),
+            tenure_height=data['tenure_height'],
+            exit_at_block_height=data.get('exit_at_block_height'),
+            is_fully_synced=data['is_fully_synced'],
+            node_public_key=data.get('node_public_key'),
+            node_public_key_hash=data.get('node_public_key_hash'),
+            affirmations=data.get('affirmations'),
+            last_pox_anchor=data.get('last_pox_anchor'),
+            stackerdbs=data.get('stackerdbs')
+        )
 
     def post_raw_transaction(self, raw_tx_bytes: bytes) -> Optional[str]:
         """POST /v2/transactions - Broadcast a raw transaction."""
         response = self._make_request('POST', '/v2/transactions', data=raw_tx_bytes, headers={'Content-Type': 'application/octet-stream'})
         return self.handle_api_response(response)
 
-    def get_account_info(self, principal: str, *, proof: Optional[int] = None, tip: Optional[str] = None) -> Optional[Dict]:
-        """GET /v2/accounts/{principal} - Get account information."""
+    def get_account_info(self, principal: str, *, proof: Optional[int] = None, tip: Optional[str] = None) -> AccountInfo:
+        """GET /v2/accounts/{principal} - Get account information as typed object."""
         params = {k: v for k, v in {'proof': proof, 'tip': tip}.items() if v is not None}
         response = self._make_request('GET', f'/v2/accounts/{principal}', params=params)
-        return self.handle_api_response(response)
+        data = self.handle_api_response(response)
         
-    def get_pox_info(self, *, tip: Optional[str] = None) -> Optional[Dict]:
-        """GET /v2/pox - Get Proof of Transfer (PoX) information."""
+        # Parse balance from hex to int
+        balance = self._parse_hex_balance(data.get('balance', '0x0'))
+        
+        return AccountInfo(
+            address=principal,
+            balance=balance,
+            nonce=data['nonce']
+        )
+        
+    def get_pox_info(self, *, tip: Optional[str] = None) -> 'PoxInfo':
+        """GET /v2/pox - Get Proof of Transfer (PoX) information as typed object."""
         response = self._make_request('GET', '/v2/pox', params={'tip': tip} if tip else {})
-        return self.handle_api_response(response)
+        data = self.handle_api_response(response)
+        
+        # Parse current and next cycles
+        current_cycle_data = data['current_cycle']
+        next_cycle_data = data['next_cycle']
+        
+        current_cycle = PoxCycle(
+            id=current_cycle_data['id'],
+            min_threshold_ustx=current_cycle_data['min_threshold_ustx'],
+            stacked_ustx=current_cycle_data['stacked_ustx'],
+            is_pox_active=current_cycle_data['is_pox_active']
+        )
+        
+        next_cycle = PoxCycle(
+            id=next_cycle_data['id'],
+            min_threshold_ustx=next_cycle_data['min_threshold_ustx'],
+            stacked_ustx=next_cycle_data['stacked_ustx'],
+            is_pox_active=next_cycle_data['is_pox_active']
+        )
+        
+        return PoxInfo(
+            contract_id=data['contract_id'],
+            pox_activation_threshold_ustx=data['pox_activation_threshold_ustx'],
+            first_burnchain_block_height=data['first_burnchain_block_height'],
+            current_burnchain_block_height=data['current_burnchain_block_height'],
+            prepare_phase_block_length=data['prepare_phase_block_length'],
+            reward_phase_block_length=data['reward_phase_block_length'],
+            reward_slots=data['reward_slots'],
+            rejection_fraction=data.get('rejection_fraction'),
+            total_liquid_supply_ustx=data['total_liquid_supply_ustx'],
+            current_cycle=current_cycle,
+            next_cycle=next_cycle,
+            epochs=data['epochs'],
+            min_amount_ustx=data['min_amount_ustx'],
+            prepare_cycle_length=data['prepare_cycle_length'],
+            reward_cycle_id=data['reward_cycle_id'],
+            reward_cycle_length=data['reward_cycle_length'],
+            rejection_votes_left_required=data.get('rejection_votes_left_required'),
+            next_reward_cycle_in=data['next_reward_cycle_in'],
+            contract_versions=data['contract_versions']
+        )
 
     # --- V2 Smart Contracts and Clarity ---
     def call_read_only_function(self, contract_address: str, contract_name: str, function_name: str, sender: str, arguments: List[str], *, tip: Optional[str] = None) -> Optional[Dict]:
@@ -153,13 +235,21 @@ class StacksCoreAPIWrapper:
         response = self._make_request('GET', f'/v3/blocks/height/{block_height}', params={'tip': tip} if tip else {})
         return self.handle_api_response(response)
         
-    def get_transaction_by_id(self, txid: str) -> Optional[Dict]:
-        """GET /v3/transaction/{txid} - Retrieve transaction details.
+    def get_transaction_by_id(self, txid: str) -> 'TransactionDetails':
+        """GET /v3/transaction/{txid} - Retrieve transaction details as typed object.
         NOTE: The OpenAPI spec incorrectly lists this as a POST endpoint. Real-world
         testing shows it is a GET endpoint. This implementation uses GET.
         """
         response = self._make_request('GET', f'/v3/transaction/{txid}')
-        return self.handle_api_response(response)
+        data = self.handle_api_response(response)
+        
+        return TransactionDetails(
+            txid=data.get('txid', txid),
+            tx_status=data.get('tx_status', 'unknown'),
+            tx_type=data.get('tx_type', 'unknown'),
+            receipt_time=data.get('receipt_time'),
+            receipt_time_iso=data.get('receipt_time_iso')
+        )
         
     def get_tenure_info(self) -> Optional[Dict]:
         """GET /v3/tenures/info - Fetch metadata about the ongoing Nakamoto tenure."""
@@ -197,3 +287,164 @@ class StacksCoreAPIWrapper:
         response = self._make_request('GET', f'/v3/signer/{signer_pubkey}/{cycle_number}')
         resp = self.handle_api_response(response)
         return int(resp) if resp and isinstance(resp, str) and resp.isdigit() else None
+
+@dataclass
+class NodeInfo:
+    """Typed node information from /v2/info endpoint."""
+    peer_version: int
+    pox_consensus: str
+    burn_block_height: int
+    stable_pox_consensus: str
+    stable_burn_block_height: int
+    server_version: str
+    network_id: int
+    parent_network_id: int
+    stacks_tip_height: int
+    stacks_tip: str
+    stacks_tip_consensus_hash: str
+    genesis_chainstate_hash: str
+    unanchored_tip: Optional[str]
+    unanchored_seq: Optional[int]
+    tenure_height: int
+    exit_at_block_height: Optional[int]
+    is_fully_synced: bool
+    node_public_key: Optional[str]
+    node_public_key_hash: Optional[str]
+    affirmations: Optional[Dict]
+    last_pox_anchor: Optional[Dict]
+    stackerdbs: Optional[List]
+
+@dataclass
+class PoxCycle:
+    """PoX cycle information."""
+    id: int
+    min_threshold_ustx: int
+    stacked_ustx: int
+    is_pox_active: bool
+
+@dataclass
+class PoxInfo:
+    """Typed PoX information from /v2/pox endpoint."""
+    contract_id: str
+    pox_activation_threshold_ustx: int
+    first_burnchain_block_height: int
+    current_burnchain_block_height: int
+    prepare_phase_block_length: int
+    reward_phase_block_length: int
+    reward_slots: int
+    rejection_fraction: Optional[int]
+    total_liquid_supply_ustx: int
+    current_cycle: PoxCycle
+    next_cycle: PoxCycle
+    epochs: List[Dict]  # Can be further typed if needed
+    min_amount_ustx: int
+    prepare_cycle_length: int
+    reward_cycle_id: int
+    reward_cycle_length: int
+    rejection_votes_left_required: Optional[int]
+    next_reward_cycle_in: int
+    contract_versions: List[Dict]  # Can be further typed if needed
+
+@dataclass
+class TransactionDetails:
+    """Transaction details from /v3/transaction endpoint."""
+    txid: str
+    tx_status: str  # Raw string from API
+    tx_type: str
+    receipt_time: Optional[int] = None
+    receipt_time_iso: Optional[str] = None
+    
+    @property
+    def status(self) -> TxStatus:
+        """Get transaction status as typed enum with IDE autocompletion."""
+        if self.tx_status == 'success':
+            return TxStatus.SUCCESS
+        elif self.tx_status == 'abort_by_response':
+            return TxStatus.ABORT_BY_RESPONSE
+        elif self.tx_status == 'abort_by_post_condition':
+            return TxStatus.ABORT_BY_POST_CONDITION
+        elif self.tx_status == 'pending':
+            return TxStatus.PENDING
+        else:
+            return TxStatus.UNKNOWN
+    # Additional fields can be added as needed
+
+@dataclass
+class StackerSet:
+    """Stacker set information from /v3/stacker_set endpoint."""
+    cycle_number: int
+    # Additional fields based on actual response structure
+
+@dataclass
+class TenureInfo:
+    """Tenure information from /v3/tenures/info endpoint."""
+    consensus_hash: str
+    tenure_start_block_id: str
+    # Additional fields based on actual response structure
+
+
+class StacksCoreAPIWrapper:
+    """
+    High-level wrapper around StacksCoreAPI providing convenient methods,
+    error handling, and abstraction for common operations. This class provides
+    the wrapper functionality mentioned in the FIXME comment.
+    """
+    
+    def __init__(self, api: Optional['StacksCoreAPI'] = None):
+        self.api = api or StacksCoreAPI()
+    
+    
+    def get_account_info_result(self, address: str) -> ApiResult:
+        """Get account info with typed error handling and result wrapper."""
+        try:
+            account_info = self.api.get_account_info(address)
+            return ApiResult(success=True, data=account_info)
+        except Exception as e:
+            error_msg = str(e)
+            if "404" in error_msg:
+                return ApiResult(success=False, error=ApiError.NOT_FOUND, error_message=error_msg)
+            elif "timeout" in error_msg.lower():
+                return ApiResult(success=False, error=ApiError.TIMEOUT, error_message=error_msg)
+            elif "connection" in error_msg.lower():
+                return ApiResult(success=False, error=ApiError.CONNECTION_ERROR, error_message=error_msg)
+            else:
+                return ApiResult(success=False, error=ApiError.UNKNOWN_ERROR, error_message=error_msg)
+    
+    def wait_for_tx_confirmation(self, txid: str, timeout: int = 60) -> bool:
+        """Wait for transaction confirmation with smart polling."""
+        import time
+        start_time = time.time()
+        
+        while time.time() - start_time < timeout:
+            try:
+                tx_details = self.api.get_transaction_by_id(txid)
+                # Use typed enum with full IDE autocompletion
+                if tx_details.status in [TxStatus.SUCCESS, TxStatus.ABORT_BY_RESPONSE, TxStatus.ABORT_BY_POST_CONDITION]:
+                    return tx_details.status == TxStatus.SUCCESS
+                time.sleep(2)
+            except Exception:
+                time.sleep(3)
+        
+        return False
+    
+    def get_balance_in_stx(self, address: str) -> float:
+        """Get account balance converted to STX (from microSTX)."""
+        account_info = self.api.get_account_info(address)
+        return account_info.balance / 1_000_000  # Convert microSTX to STX
+    
+    # NOTE: UNUSED
+    def safe_api_call(self, func, *args, **kwargs) -> ApiResult:
+        """Safely call any API function and return typed result with error handling."""
+        try:
+            result = func(*args, **kwargs)
+            return ApiResult(success=True, data=result)
+        except Exception as e:
+            error_msg = str(e)
+            if "404" in error_msg:
+                return ApiResult(success=False, error=ApiError.NOT_FOUND, error_message=error_msg)
+            elif "timeout" in error_msg.lower():
+                return ApiResult(success=False, error=ApiError.TIMEOUT, error_message=error_msg)
+            elif "connection" in error_msg.lower():
+                return ApiResult(success=False, error=ApiError.CONNECTION_ERROR, error_message=error_msg)
+            else:
+                return ApiResult(success=False, error=ApiError.UNKNOWN_ERROR, error_message=error_msg)
