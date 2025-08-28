@@ -8,10 +8,10 @@ import json
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from utils.helpers import get_account_info_typed, get_block_height, wait_for_confirmation
+from utils.helpers import get_block_height, wait_for_confirmation
 from utils.config import AccountManager, Miner
 from utils.miners import MinerManager
-from utils.logger import Colors
+from utils.logger import logger
 from utils.blockstack_cli import BlockstackCLIWrapper
 from utils.stacks_core_api import StacksCoreAPIWrapper
 
@@ -52,29 +52,30 @@ def try_deploy_contract(miner: Miner, contract_file: str, contract_name: str) ->
     
     try:
         # Get initial state
-        account_info = get_account_info_typed(api, account.address)
+        account_info = api.get_account_info(account.address)
         initial_nonce = account_info.nonce
         initial_height = get_block_height(api)
         
         size_kb = result['size_kb']
-        print(f"\n{Colors.format_subheader(f'--- Deploying {contract_name} ({size_kb:.1f}KB) ---')}")
-        print(f"{Colors.format_info('File')}: {Colors.format_dim(contract_path)}")
-        print(f"{Colors.format_info('Account')}: {Colors.format_dim(account.address)}")
-        print(f"{Colors.format_info('Using nonce')}: {Colors.format_dim(str(initial_nonce))}")
+        logger.header(f'--- Deploying {contract_name} ({size_kb:.1f}KB) ---')
+        logger.standard('File', contract_path)
+        logger.standard('Account', account.address)
+        logger.standard('Using nonce', str(initial_nonce))
         
         # Calculate fee based on contract size
         contract_size = len(contract_code)
         base_fee = max(contract_size, 10000)
         fee = int(base_fee * 1.1)
-        print(f"{Colors.format_info('Using fee')}: {Colors.format_dim(f'{fee} µSTX')}")
+        logger.standard('Using fee', f'{fee} µSTX')
         
         # Deploy using raw APIs + helpers
         tx_hex = cli.publish_contract(account.private_key, fee, initial_nonce, contract_name, contract_path)
-        print(f"{Colors.format_info('Deploying contract using minimal helpers...')}")
+        logger.standard('Deploying contract using minimal helpers', '')
         txid = api.post_raw_transaction(bytes.fromhex(tx_hex))
         result['txid'] = txid
         
-        print(f"{Colors.format_success(f'Contract deployment submitted')}: {Colors.format_info(txid)}")
+        logger.standard('Contract deployment submitted', txid)
+        logger.success('Contract deployment submitted')
         
         # Wait for confirmation
         if wait_for_confirmation(api, account.address, initial_nonce, initial_height, timeout=30):
@@ -82,19 +83,19 @@ def try_deploy_contract(miner: Miner, contract_file: str, contract_name: str) ->
             
             # Get transaction details from v3 API after confirmation
             try:
-                print(f"{Colors.format_info('Fetching confirmed transaction details from v3 API...')}")
+                logger.standard('Fetching confirmed transaction details from v3 API', '')
                 tx_details = api.get_transaction_by_id(txid)
-                print(f"{Colors.format_info('V3 API Response')}: {Colors.format_dim(json.dumps(tx_details, indent=2))}")
+                logger.standard('V3 API Response', json.dumps(tx_details, indent=2))
             except Exception as api_error:
-                print(f"{Colors.format_warn('Could not fetch v3 API details')}: {Colors.format_dim(str(api_error))}")
-            print(f"{Colors.format_success(f'{contract_name} deployed successfully!')}")
+                logger.error(f'Could not fetch v3 API details: {str(api_error)}')
+            logger.success(f'{contract_name} deployed successfully!')
         else:
             result['error'] = "Confirmation timeout"
-            print(f"{Colors.format_error(f'✗ {contract_name} confirmation timeout')}")
+            logger.error(f'✗ {contract_name} confirmation timeout')
             
     except Exception as e:
         result['error'] = str(e)
-        print(f"{Colors.format_error(f'{contract_name} deployment failed')}: {Colors.format_error(str(e))}")
+        logger.error(f'{contract_name} deployment failed: {str(e)}')
     
     return result
 
@@ -142,9 +143,9 @@ def analyze_results(results: list) -> dict:
 
 def main():
     """Execute the size limit test"""
-    print(f"{Colors.format_dim('=' * 80)}")
-    print(f"{Colors.format_header('STACKS CONTRACT DEPLOYMENT SIZE LIMIT TEST')}")
-    print(f"{Colors.format_dim('=' * 80)}")
+    logger.dim('=' * 80)
+    logger.header('STACKS CONTRACT DEPLOYMENT SIZE LIMIT TEST')
+    logger.dim('=' * 80)
     
     # Raw minimal setup
     miners = MinerManager()
@@ -180,12 +181,12 @@ def main():
     
     try:
         # Start the node
-        print(f"\n{Colors.format_stacks('Starting miners...')}")
+        logger.stacks('Starting miners...')
         if not miners.snapshot_restore_auto():
             raise RuntimeError("Failed to start miners")
         
-        print(f"\n{Colors.format_header('Testing contract deployment size limits')}")
-        print(f"{Colors.format_info('Total contracts to test')}: {Colors.format_dim(str(len(contract_files)))}")
+        logger.header('Testing contract deployment size limits')
+        logger.standard('Total contracts to test', str(len(contract_files)))
         
         # Test each contract
         results = []
@@ -205,58 +206,61 @@ def main():
         # Analyze results
         analysis = analyze_results(results)
         
-        print(f"\n{Colors.format_dim('=' * 80)}")
-        print(f"{Colors.format_header('SIZE LIMIT ANALYSIS')}")
-        print(f"{Colors.format_dim('=' * 80)}")
+        logger.dim('=' * 80)
+        logger.header('SIZE LIMIT ANALYSIS')
+        logger.dim('=' * 80)
         
-        print(f"\n{Colors.format_info('Summary')}:")
-        print(f"  Total contracts tested: {Colors.format_dim(str(analysis['total_tested']))}")
-        print(f"  Successful deployments: {Colors.format_success(str(analysis['successful_count']))}")
-        print(f"  Failed deployments: {Colors.format_error(str(analysis['failed_count']))}")
+        logger.header('Summary')
+        logger.standard('Total contracts tested', str(analysis['total_tested']))
+        logger.success(f"Successful deployments: {str(analysis['successful_count'])}")
+        logger.error(f"Failed deployments: {str(analysis['failed_count'])}")
         
         if analysis['largest_successful']:
             largest = analysis['largest_successful']
             largest_size = largest['size_kb']
-            print(f"  Largest successful: {Colors.format_success(f'{largest_size:.1f}KB')} ({largest['contract_name']})")
+            logger.success(f"Largest successful: {largest_size:.1f}KB ({largest['contract_name']})")
         
         if analysis['smallest_failed']:
             smallest = analysis['smallest_failed']
             smallest_size = smallest['size_kb']
-            print(f"  Smallest failed: {Colors.format_error(f'{smallest_size:.1f}KB')} ({smallest['contract_name']})")
-            print(f"  Failure reason: {Colors.format_dim(smallest['error'])}")
+            logger.error(f"Smallest failed: {smallest_size:.1f}KB ({smallest['contract_name']})")
+            logger.standard('Failure reason', smallest['error'])
         
         if analysis['limit_found']:
             range_start, range_end = analysis['limit_range']
-            print(f"\n{Colors.format_success('SIZE LIMIT FOUND!')}")
-            print(f"  The deployment size limit is between {Colors.format_info(f'{range_start:.1f}KB')} and {Colors.format_info(f'{range_end:.1f}KB')}")
+            logger.success('SIZE LIMIT FOUND!')
+            logger.standard('Size limit range', f"between {range_start:.1f}KB and {range_end:.1f}KB")
         else:
-            print(f"\n{Colors.format_warn('Size limit boundary not clearly identified')}")
+            logger.error('Size limit boundary not clearly identified')
             if analysis['successful_count'] == analysis['total_tested']:
-                print(f"  All contracts deployed successfully - need to test larger contracts")
+                logger.standard('Result', 'All contracts deployed successfully - need to test larger contracts')
             elif analysis['failed_count'] == analysis['total_tested']:
-                print(f"  All contracts failed - need to test smaller contracts")
+                logger.standard('Result', 'All contracts failed - need to test smaller contracts')
             else:
-                print(f"  Results are mixed - may need more targeted testing")
+                logger.standard('Result', 'Results are mixed - may need more targeted testing')
         
         # Detailed results
-        print(f"\n{Colors.format_header('Detailed Results')}:")
+        logger.header('Detailed Results')
         for i, result in enumerate(results, 1):
-            status = Colors.format_success('SUCCESS') if result['success'] else Colors.format_error('FAILED')
+            status = 'SUCCESS' if result['success'] else 'FAILED'
             size_info = f"{result['size_kb']:.1f}KB"
-            print(f"  {i:2d}. {result['contract_name']:20} ({size_info:>8}): {status}")
+            if result['success']:
+                logger.success(f"{i:2d}. {result['contract_name']:20} ({size_info:>8}): {status}")
+            else:
+                logger.error(f"{i:2d}. {result['contract_name']:20} ({size_info:>8}): {status}")
             if not result['success'] and result['error']:
                 error_preview = result['error'][:80] + "..." if len(result['error']) > 80 else result['error']
-                print(f"      {Colors.format_dim(error_preview)}")
+                logger.dim(f"      {error_preview}")
         
         # Test some working contracts
         working_contracts = [r for r in results if r['success']]
         if len(working_contracts) >= 2:
-            print(f"\n{Colors.format_header('Testing deployed contract functionality')}")
+            logger.header('Testing deployed contract functionality')
             
             # Test smallest successful contract
             smallest_working = min(working_contracts, key=lambda x: x['size_kb'])
-            print(f"\n{Colors.format_subheader('Testing smallest working contract')}")
-            print(f"Contract: {smallest_working['contract_name']} ({smallest_working['size_kb']:.1f}KB)")
+            logger.header('Testing smallest working contract')
+            logger.standard('Contract', f"{smallest_working['contract_name']} ({smallest_working['size_kb']:.1f}KB)")
             
             try:
                 account = AccountManager.get(Miner.MINER1)
@@ -274,7 +278,7 @@ def main():
                     )
                 except Exception as no_args_error:
                     # If no-args version fails, try with properly hex-encoded argument
-                    print(f"{Colors.format_info('Retrying with hex-encoded argument...')}")
+                    logger.standard('Retrying with hex-encoded argument', '')
                     # u12345 in hex is 0x0100000000000000000000000000003039 (uint 12345)
                     result = api.call_read_only_function(
                         account.address, 
@@ -283,21 +287,21 @@ def main():
                         account.address, 
                         ["0x0100000000000000000000000000003039"]
                     )
-                print(f"{Colors.format_success('Contract function call successful')}")
-                print(f"Function: {function_name}, Result: {Colors.format_dim(json.dumps(result))}")
+                logger.success('Contract function call successful')
+                logger.standard(f'Function: {function_name}, Result', json.dumps(result))
                 
             except Exception as e:
-                print(f"{Colors.format_warn('Contract function test failed')}: {Colors.format_dim(str(e))}")
+                logger.error(f'Contract function test failed: {str(e)}')
         
         return analysis['limit_found'] or analysis['successful_count'] > 0
         
     except Exception as e:
-        print(f"\n{Colors.format_error('TEST FAILED')}: {Colors.format_error(str(e))}")
+        logger.error(f'TEST FAILED: {str(e)}')
         return False
         
     finally:
         # Cleanup
-        print(f"\n{Colors.format_header('Cleaning up...')}")
+        logger.header('Cleaning up...')
         miners.stop()
         miners.cleanup()
 

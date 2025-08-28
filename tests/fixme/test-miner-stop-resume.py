@@ -7,10 +7,9 @@ import time
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from utils.helpers import get_account_info_typed
 from utils.config import Miner, AccountManager
 from utils.miners import MinerManager
-from utils.logger import Colors
+from utils.logger import logger
 from utils.stacks_core_api import StacksCoreAPIWrapper
 
 def check_miner_connectivity(miner: Miner) -> dict:
@@ -22,7 +21,7 @@ def check_miner_connectivity(miner: Miner) -> dict:
         api = StacksCoreAPIWrapper(base_url=account.api_url)
         
         # Try to get account info
-        account_info = get_account_info_typed(api, account.address)
+        account_info = api.get_account_info(account.address)
         nonce = account_info.nonce
         
         # Try to get node info
@@ -41,20 +40,20 @@ def check_miner_connectivity(miner: Miner) -> dict:
 
 def print_connectivity_status(miners: list):
     """Print connectivity status for all miners"""
-    print(f"\n{Colors.format_header('Miner Connectivity Status')}")
+    logger.header('Miner Connectivity Status')
     
     for miner in miners:
         status = check_miner_connectivity(miner)
         if status['connected']:
-            print(f"  {miner.value}: {Colors.format_success('CONNECTED')} - Height: {status['height']}, Nonce: {status['nonce']}")
+            logger.success(f"{miner.value}: CONNECTED - Height: {status['height']}, Nonce: {status['nonce']}")
         else:
-            print(f"  {miner.value}: {Colors.format_error('DISCONNECTED')} - Error: {status['error']}")
+            logger.error(f"{miner.value}: DISCONNECTED - Error: {status['error']}")
 
 def main():
     """Execute the miner stop/resume test"""
-    print(f"{Colors.format_dim('=' * 80)}")
-    print(f"{Colors.format_header('MINER STOP/RESUME TEST')}")
-    print(f"{Colors.format_dim('=' * 80)}")
+    logger.dim('=' * 80)
+    logger.header('MINER STOP/RESUME TEST')
+    logger.dim('=' * 80)
     
     # Raw minimal setup
     miner_manager = MinerManager()
@@ -62,61 +61,61 @@ def main():
     
     try:
         # Start all miners
-        print(f"\n{Colors.format_stacks('Starting all miners...')}")
+        logger.stacks('Starting all miners...')
         if not miner_manager.snapshot_restore_auto():
             raise RuntimeError("Failed to start miners")
         
         # Initial connectivity check
-        print(f"\n{Colors.format_header('Step 1: Initial connectivity check')}")
+        logger.header('Step 1: Initial connectivity check')
         print_connectivity_status(miners)
         
         # Stop miner2
-        print(f"\n{Colors.format_header('Step 2: Stopping miner2')}")
+        logger.header('Step 2: Stopping miner2')
         miner_manager.stop_miner(Miner.MINER2)
         time.sleep(5)  # Give time for miner to stop
         
-        print(f"\n{Colors.format_subheader('Connectivity after stopping miner2:')}")
+        logger.header('Connectivity after stopping miner2:')
         print_connectivity_status(miners)
         
         # Verify miner1 and miner3 still work
-        print(f"\n{Colors.format_header('Step 3: Testing remaining miners')}")
+        logger.header('Step 3: Testing remaining miners')
         for miner in [Miner.MINER1, Miner.MINER3]:
             try:
                 account = AccountManager.get(miner)
                 api = StacksCoreAPIWrapper(base_url=account.api_url)
-                account_info = get_account_info_typed(api, account.address)
+                account_info = api.get_account_info(account.address)
                 balance = account_info.balance
                 nonce = account_info.nonce
-                print(f"  {miner.value}: Balance: {balance:,} µSTX, Nonce: {nonce}")
+                logger.standard(f"{miner.value}", f"Balance: {balance:,} µSTX, Nonce: {nonce}")
             except Exception as e:
-                print(f"  {miner.value}: {Colors.format_error('ERROR')} - {e}")
+                logger.error(f"{miner.value}: ERROR - {e}")
         
         # Stop miner3
-        print(f"\n{Colors.format_header('Step 4: Stopping miner3')}")
+        logger.header('Step 4: Stopping miner3')
         miner_manager.stop_miner(Miner.MINER3)
         time.sleep(5)  # Give time for miner to stop
         
-        print(f"\n{Colors.format_subheader('Connectivity after stopping miner3:')}")
+        logger.header('Connectivity after stopping miner3:')
         print_connectivity_status(miners)
         
         # Resume miner2
-        print(f"\n{Colors.format_header('Step 5: Resuming miner2')}")
+        logger.header('Step 5: Resuming miner2')
         miner_manager.resume_miner(Miner.MINER2)
         time.sleep(10)  # Give time for miner to start
         
-        print(f"\n{Colors.format_subheader('Connectivity after resuming miner2:')}")
+        logger.header('Connectivity after resuming miner2:')
         print_connectivity_status(miners)
         
         # Resume miner3
-        print(f"\n{Colors.format_header('Step 6: Resuming miner3')}")
+        logger.header('Step 6: Resuming miner3')
         miner_manager.resume_miner(Miner.MINER3)
         time.sleep(10)  # Give time for miner to start
         
-        print(f"\n{Colors.format_subheader('Connectivity after resuming miner3:')}")
+        logger.header('Connectivity after resuming miner3:')
         print_connectivity_status(miners)
         
         # Final connectivity check
-        print(f"\n{Colors.format_header('Step 7: Final connectivity check')}")
+        logger.header('Step 7: Final connectivity check')
         print_connectivity_status(miners)
         
         # Count working miners
@@ -127,26 +126,26 @@ def main():
                 working_miners += 1
         
         # Test summary
-        print(f"\n{Colors.format_dim('=' * 80)}")
-        print(f"{Colors.format_header('TEST SUMMARY')}")
-        print(f"{Colors.format_dim('=' * 80)}")
+        logger.dim('=' * 80)
+        logger.header('TEST SUMMARY')
+        logger.dim('=' * 80)
         
-        print(f"{Colors.format_info('Working miners')}: {Colors.format_dim(f'{working_miners}/3')}")
+        logger.standard('Working miners', f'{working_miners}/3')
         
         if working_miners == 3:
-            print(f"{Colors.format_success('✓ All miners working - stop/resume test PASSED')}")
+            logger.success('✓ All miners working - stop/resume test PASSED')
             return True
         else:
-            print(f"{Colors.format_error('✗ Some miners not working - stop/resume test FAILED')}")
+            logger.error('✗ Some miners not working - stop/resume test FAILED')
             return False
         
     except Exception as e:
-        print(f"\n{Colors.format_error('TEST FAILED')}: {Colors.format_error(str(e))}")
+        logger.error(f'TEST FAILED: {str(e)}')
         return False
         
     finally:
         # Cleanup
-        print(f"\n{Colors.format_header('Cleaning up...')}")
+        logger.header('Cleaning up...')
         miner_manager.stop()
         miner_manager.cleanup()
 

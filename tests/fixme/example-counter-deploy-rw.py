@@ -37,7 +37,7 @@ def main():
         print(f"{Colors.format_info('Contract')}: {Colors.format_dim('mycontract')}")
         print(f"{Colors.format_info('File')}: {Colors.format_dim('contracts/contract-counter.clar')}")
         
-        account_info = get_account_info_typed(api, account.address)
+        account_info = api.get_account_info(account.address)
         initial_nonce = account_info.nonce
         initial_height = get_block_height(api)
         
@@ -48,90 +48,90 @@ def main():
         
         if not wait_for_confirmation(api, account.address, initial_nonce, initial_height, timeout=120):
             raise RuntimeError("Contract deployment confirmation timeout")
-        print(f"{Colors.format_success('Contract mycontract deployment confirmed!')}")
+        logger.success('Contract mycontract deployment confirmed!')
         
         # Step 2: Read initial counter value  
-        print(f"\n{Colors.format_header('Step 2: Read initial counter')}")
+        logger.header('Step 2: Read initial counter')
         initial_counter = api.call_read_only_function(account.address, "mycontract", "get-counter", account.address, [])
-        print(f"{Colors.format_success('Read-only call successful')}")
-        print(f"{Colors.format_info('Response')}: {Colors.format_dim(json.dumps(initial_counter, indent=2))}")
+        logger.success('Read-only call successful')
+        logger.standard('Response', json.dumps(initial_counter, indent=2))
         
         # Step 3: Read initial last caller
-        print(f"\n{Colors.format_header('Step 3: Read initial last caller')}")
+        logger.header('Step 3: Read initial last caller')
         initial_caller = api.call_read_only_function(account.address, "mycontract", "get-last-caller", account.address, [])
-        print(f"{Colors.format_success('Read-only call successful')}")
-        print(f"{Colors.format_info('Response')}: {Colors.format_dim(json.dumps(initial_caller, indent=2))}")
+        logger.success('Read-only call successful')
+        logger.standard('Response', json.dumps(initial_caller, indent=2))
         
         # Step 4: Increment counter
-        print(f"\n{Colors.format_header('Step 4: Increment counter')}")
-        account_info = get_account_info_typed(api, account.address)
+        logger.header('Step 4: Increment counter')
+        account_info = api.get_account_info(account.address)
         initial_nonce = account_info.nonce
         initial_height = get_block_height(api)
         
         tx_hex = cli.call_contract(account.private_key, 5000, initial_nonce, account.address, "mycontract", "increment", [])
         increment_txid = api.post_raw_transaction(bytes.fromhex(tx_hex))
-        print(f"{Colors.format_success('Contract call submitted')}: {Colors.format_info(increment_txid)}")
+        logger.success(f"Contract call submitted: {increment_txid}")
         
         if not wait_for_confirmation(api, account.address, initial_nonce, initial_height, timeout=120):
             raise RuntimeError("Contract call confirmation timeout")
-        print(f"{Colors.format_success('increment call confirmed!')}")
+        logger.success('increment call confirmed!')
         
         # Step 5: Read counter after increment
-        print(f"\n{Colors.format_header('Step 5: Read counter after increment')}")
+        logger.header('Step 5: Read counter after increment')
         after_increment_counter = api.call_read_only_function(account.address, "mycontract", "get-counter", account.address, [])
-        print(f"{Colors.format_success('Read-only call successful')}")
-        print(f"{Colors.format_info('Response')}: {Colors.format_dim(json.dumps(after_increment_counter, indent=2))}")
+        logger.success('Read-only call successful')
+        logger.standard('Response', json.dumps(after_increment_counter, indent=2))
         
         # Step 6: Read last caller after increment
-        print(f"\n{Colors.format_header('Step 6: Read last caller after increment')}")
+        logger.header('Step 6: Read last caller after increment')
         after_increment_caller = api.call_read_only_function(account.address, "mycontract", "get-last-caller", account.address, [])
-        print(f"{Colors.format_success('Read-only call successful')}")
-        print(f"{Colors.format_info('Response')}: {Colors.format_dim(json.dumps(after_increment_caller, indent=2))}")
+        logger.success('Read-only call successful')
+        logger.standard('Response', json.dumps(after_increment_caller, indent=2))
         
         # Step 7: Reset counter
-        print(f"\n{Colors.format_header('Step 7: Reset counter')}")
-        account_info = get_account_info_typed(api, account.address)
+        logger.header('Step 7: Reset counter')
+        account_info = api.get_account_info(account.address)
         initial_nonce = account_info.nonce
         initial_height = get_block_height(api)
         
         tx_hex = cli.call_contract(account.private_key, 5000, initial_nonce, account.address, "mycontract", "reset", [])
         reset_txid = api.post_raw_transaction(bytes.fromhex(tx_hex))
-        print(f"{Colors.format_success('Contract call submitted')}: {Colors.format_info(reset_txid)}")
+        logger.success(f"Contract call submitted: {reset_txid}")
         
         if not wait_for_confirmation(api, account.address, initial_nonce, initial_height, timeout=120):
             raise RuntimeError("Contract call confirmation timeout")
-        print(f"{Colors.format_success('reset call confirmed!')}")
+        logger.success('reset call confirmed!')
         
         # Step 8: Read counter after reset
-        print(f"\n{Colors.format_header('Step 8: Read counter after reset')}")
+        logger.header('Step 8: Read counter after reset')
         after_reset_counter = api.call_read_only_function(account.address, "mycontract", "get-counter", account.address, [])
-        print(f"{Colors.format_success('Read-only call successful')}")
-        print(f"{Colors.format_info('Response')}: {Colors.format_dim(json.dumps(after_reset_counter, indent=2))}")
+        logger.success('Read-only call successful')
+        logger.standard('Response', json.dumps(after_reset_counter, indent=2))
         
         # Step 9: Read last caller after reset
-        print(f"\n{Colors.format_header('Step 9: Read last caller after reset')}")
+        logger.header('Step 9: Read last caller after reset')
         after_reset_caller = api.call_read_only_function(account.address, "mycontract", "get-last-caller", account.address, [])
-        print(f"{Colors.format_success('Read-only call successful')}")
-        print(f"{Colors.format_info('Response')}: {Colors.format_dim(json.dumps(after_reset_caller, indent=2))}")
+        logger.success('Read-only call successful')
+        logger.standard('Response', json.dumps(after_reset_caller, indent=2))
         
         # Final summary
-        print(f"\n{Colors.format_dim('=' * 60)}")
-        print(f"{Colors.format_header('FINAL RESULT')}")
-        print(f"{Colors.format_dim('=' * 60)}")
+        logger.dim('=' * 60)
+        logger.header('FINAL RESULT')
+        logger.dim('=' * 60)
         
-        print(f"{Colors.format_info('Deploy TXID')}: {Colors.format_dim(deploy_txid)}")
-        print(f"{Colors.format_info('Increment TXID')}: {Colors.format_dim(increment_txid)}")
-        print(f"{Colors.format_info('Reset TXID')}: {Colors.format_dim(reset_txid)}")
+        logger.standard('Deploy TXID', deploy_txid)
+        logger.standard('Increment TXID', increment_txid)
+        logger.standard('Reset TXID', reset_txid)
         
         return True
         
     except Exception as e:
-        print(f"\n{Colors.format_error('TEST FAILED')}: {Colors.format_error(str(e))}")
+        logger.error(f'TEST FAILED: {str(e)}')
         return False
         
     finally:
         # Cleanup
-        print(f"\n{Colors.format_header('Cleaning up...')}")
+        logger.header('Cleaning up...')
         miners.stop()
         miners.cleanup()
 

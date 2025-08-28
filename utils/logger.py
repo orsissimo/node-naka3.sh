@@ -1,4 +1,6 @@
 import logging
+from typing import Optional, Any
+from enum import Enum
 
 class Colors:
     """A simple utility class for adding color to terminal output."""
@@ -14,76 +16,127 @@ class Colors:
     BOLD = '\033[1m'
     DIM = '\033[2m'
 
-    @staticmethod
-    def format_header(text: str) -> str:
-        return f"{Colors.BLUE}{text}{Colors.RESET}"
-
-    @staticmethod
-    def format_grey(text: str) -> str:
-        return f"{Colors.GREY}{text}{Colors.RESET}"
-
-    @staticmethod
-    def format_success(text: str) -> str:
-        return f"{Colors.GREEN}✓ {Colors.WHITE}{text}{Colors.RESET}"
-
-    @staticmethod
-    def format_fail(text: str, error_msg: str = "") -> str:
-        error_part = f": {Colors.RED}{error_msg}{Colors.RESET}" if error_msg else ""
-        return f"{Colors.RED}✗ {Colors.WHITE}{text}{error_part}"
-
-    @staticmethod
-    def format_warn(text: str) -> str:
-        return f"{Colors.YELLOW}⚠ {text}{Colors.RESET}"
+class Logger:
+    """Clean logger with semantic methods and optional color overrides."""
     
-    @staticmethod
-    def format_info(text: str) -> str:
-        return f"{Colors.WHITE}{text}{Colors.RESET}"
+    def __init__(self):
+        pass
     
-    @staticmethod
-    def format_error(text: str) -> str:
-        return f"{Colors.RED}✗ {text}{Colors.RESET}"
+    def _get_color_code(self, color: str) -> str:
+        """Get ANSI color code directly from Colors class."""
+        return color
     
-    @staticmethod
-    def format_dim(text: str) -> str:
-        return f"{Colors.DIM}{text}{Colors.RESET}"
+    def _format_with_color(self, text: str, color: Optional[str]) -> str:
+        """Apply color formatting to text."""
+        if color:
+            return f"{color}{text}{Colors.RESET}"
+        return text
     
-    @staticmethod
-    def format_subheader(text: str) -> str:
-        return f"{Colors.CYAN}{text}{Colors.RESET}"
+    def _get_timestamp(self) -> str:
+        """Get current timestamp in HH:MM:SS format."""
+        import datetime
+        return datetime.datetime.now().strftime('%H:%M:%S')
+    
+    def header(self, text: str, color: Optional[str] = None) -> None:
+        """Log a step header with automatic spacing."""
+        formatted = self._format_with_color(text, color or Colors.BLUE)
+        print(f"{'=' * 60}")
+        print(formatted)
+        print(f"{'=' * 60}")
+    
+    def standard(self, key: str, value: Any, unit: Optional[str] = None, color: Optional[str] = None) -> None:
+        """Log key-value pairs with smart formatting."""
+        timestamp = self._get_timestamp()
+        # Smart value formatting
+        if isinstance(value, int) and abs(value) > 1000:
+            formatted_value = f"{value:,}"
+        else:
+            formatted_value = str(value)
+        
+        if unit:
+            formatted_value += f" {unit}"
+        
+        # Auto-detect addresses and dim them
+        if isinstance(value, str) and value.startswith('ST'):
+            value_color = color or Colors.DIM
+        else:
+            value_color = color or Colors.WHITE
+        
+        key_part = self._format_with_color(key, Colors.WHITE)
+        value_part = self._format_with_color(formatted_value, value_color)
+        print(f"{timestamp} - {key_part}: {value_part}")
+    
+    def info(self, text: str, color: Optional[str] = None) -> None:
+        """Log general information."""
+        timestamp = self._get_timestamp()
+        formatted = self._format_with_color(text, color or Colors.WHITE)
+        print(f"{timestamp} - {formatted}")
+    
+    def success(self, text: str, color: Optional[str] = None) -> None:
+        """Log success message."""
+        timestamp = self._get_timestamp()
+        default_color = color or Colors.GREEN
+        formatted = self._format_with_color(f"✓ {text}", default_color)
+        print(f"{timestamp} - {formatted}")
+    
+    def error(self, text: str, color: Optional[str] = None) -> None:
+        """Log error message."""
+        timestamp = self._get_timestamp()
+        default_color = color or Colors.RED
+        formatted = self._format_with_color(f"✗ {text}", default_color)
+        print(f"{timestamp} - {formatted}")
+    
+    def warn(self, text: str, color: Optional[str] = None) -> None:
+        """Log warning message.""" 
+        timestamp = self._get_timestamp()
+        default_color = color or Colors.YELLOW
+        formatted = self._format_with_color(f"⚠ {text}", default_color)
+        print(f"{timestamp} - {formatted}")
+    
+    def warning(self, text: str, color: Optional[str] = None) -> None:
+        """Log warning message (alias for warn)."""
+        self.warn(text, color)
+    
+    def dim(self, text: str, color: Optional[str] = None) -> None:
+        """Log dimmed/secondary text."""
+        timestamp = self._get_timestamp()
+        formatted = self._format_with_color(text, color or Colors.DIM)
+        print(f"{timestamp} - {formatted}")
+    
+    def subheader(self, text: str, color: Optional[str] = None) -> None:
+        """Log sub-section header."""
+        timestamp = self._get_timestamp()
+        formatted = self._format_with_color(text, color or Colors.CYAN)
+        print(f"{timestamp} - {formatted}")
+    
+    def stacks(self, text: str, color: Optional[str] = None) -> None:
+        """Log Stacks-specific data (default orange)."""
+        timestamp = self._get_timestamp()
+        formatted = self._format_with_color(text, color or Colors.ORANGE)
+        print(f"{timestamp} - {formatted}")
+    
+    def custom(self, text: str, color: str) -> None:
+        """Log with custom color (always requires color)."""
+        timestamp = self._get_timestamp()
+        formatted = self._format_with_color(text, color)
+        print(f"{timestamp} - {formatted}")
+    
+    # Debug and critical methods with simple colored output
+    def debug(self, msg: str) -> None:
+        """Log debug message with timestamp."""
+        timestamp = self._get_timestamp()
+        formatted_msg = f"{Colors.GREY}{timestamp} - DEBUG - {msg}{Colors.RESET}"
+        print(formatted_msg)
+    
+    def critical(self, msg: str) -> None:
+        """Log critical message with timestamp."""
+        timestamp = self._get_timestamp()
+        formatted_msg = f"{Colors.BOLD}{Colors.RED}{timestamp} - CRITICAL - {msg}{Colors.RESET}"
+        print(formatted_msg)
 
-    @staticmethod
-    def format_stacks(text: str) -> str:
-        return f"{Colors.ORANGE}{text}{Colors.RESET}"
 
-class ColorizingFormatter(logging.Formatter):
-    """A logging formatter that adds color based on the log level."""
-    LEVEL_COLORS = {
-        logging.DEBUG: Colors.GREY,
-        logging.INFO: Colors.GREEN,
-        logging.WARNING: Colors.YELLOW,
-        logging.ERROR: Colors.RED,
-        logging.CRITICAL: f"{Colors.BOLD}{Colors.RED}",
-    }
+# Create simple logger instance
+logger = Logger()
 
-    def format(self, record):
-        # Override the levelname with a colored version
-        color = self.LEVEL_COLORS.get(record.levelno, Colors.RESET)
-        record.levelname = f"{color}{record.levelname:<8}{Colors.RESET}"
-        # Make the timestamp grey
-        record.asctime = f"{Colors.GREY}{self.formatTime(record, self.datefmt)}{Colors.RESET}"
-        return super().format(record)
-
-# --- Initialize Logger ---
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO) # Set default level
-
-# Prevent duplicate handlers if this module is imported multiple times
-if not logger.handlers:
-    handler = logging.StreamHandler()
-    # Use a format that doesn't hardcode colors, as the formatter handles them
-    formatter = ColorizingFormatter(
-        "%(asctime)s - %(levelname)s - %(message)s",
-        datefmt='%H:%M:%S'
-    )
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
+# Export for easy access
+__all__ = ['logger', 'Colors']

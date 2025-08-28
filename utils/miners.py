@@ -3,8 +3,8 @@
 import subprocess
 import time
 import os
-from .logger import Colors, logger
-from .stacks_core_api import StacksCoreAPIWrapper
+from .logger import logger
+from .stacks_core_api import StacksCoreAPI, StacksCoreAPIWrapper
 from .config import ACCOUNTS, AccountManager, Miner, MiningMode
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -15,7 +15,7 @@ class MinerManager:
         self.miner_process = None
         self.running = False
         self.apis = {
-            name: StacksCoreAPIWrapper(base_url=account.api_url)
+            name: StacksCoreAPIWrapper(StacksCoreAPI(base_url=account.api_url))
             for name, account in AccountManager.all().items()
         }
 
@@ -54,7 +54,7 @@ class MinerManager:
                 self._ready_miners.update(ready_miners)
             
             if len(ready_miners) == len(miners_to_check):
-                logger.info(Colors.format_stacks(f"All {len(miners_to_check)} miners are ready."))
+                logger.stacks(f"All {len(miners_to_check)} miners are ready.")
                 return True
             
             # Adaptive polling: faster when making progress, slower when not
@@ -66,7 +66,7 @@ class MinerManager:
             logger.debug(f"Miners ready: {len(ready_miners)}/{len(miners_to_check)}. Waiting {sleep_interval:.1f}s...")
             time.sleep(sleep_interval)
             
-        logger.error(Colors.format_fail(f"Timeout: Only {len(ready_miners)}/{len(miners_to_check)} miners became ready."))
+        logger.error(f"Timeout: Only {len(ready_miners)}/{len(miners_to_check)} miners became ready.")
         return False
 
     def start(self, mode: MiningMode) -> bool:
@@ -78,7 +78,7 @@ class MinerManager:
         if not isinstance(mode, MiningMode):
             raise ValueError(f"Invalid mode '{mode}'. Use MiningMode.AUTO or MiningMode.MANUAL")
             
-        logger.info(Colors.format_stacks(f"Starting three miners from scratch in {mode.value} mode..."))
+        logger.stacks(f"Starting three miners from scratch in {mode.value} mode...")
         try:
             cmd = ["./three-miners.sh", "start", mode.value]
             
@@ -92,14 +92,14 @@ class MinerManager:
             self.running = True
             
             if self.wait_for_miners_ready():
-                logger.info(Colors.format_success("All 3 miners are ready."))
+                logger.success("All 3 miners are ready.")
                 return True
             else:
-                logger.error(Colors.format_fail("Timeout waiting for miners to start."))
+                logger.error("Timeout waiting for miners to start.")
                 return False
                 
         except Exception as e:
-            logger.error(Colors.format_fail("Failed to start from scratch", str(e)))
+            logger.error(f"Failed to start from scratch: {str(e)}")
             if self.miner_process and self.miner_process.poll() is None:
                 self.miner_process.terminate()
             return False
@@ -114,7 +114,7 @@ class MinerManager:
     
     def stop(self):
         """Stop the three miners."""
-        logger.info(Colors.format_stacks("Stopping miners..."))
+        logger.stacks("Stopping miners...")
         try:
             subprocess.run(
                 ["./three-miners.sh", "stop"],
@@ -122,14 +122,14 @@ class MinerManager:
                 check=True,
                 capture_output=True
             )
-            logger.info(Colors.format_stacks("Miners stopped"))
+            logger.stacks("Miners stopped")
         except Exception as e:
-            logger.error(Colors.format_fail("Failed to stop miners", str(e)))
+            logger.error(f"Failed to stop miners: {str(e)}")
     
     
     def resume(self):
         """Resume the three miners."""
-        logger.info(Colors.format_stacks("Resuming three miners..."))
+        logger.stacks("Resuming three miners...")
         try:
             subprocess.run(
                 ["./three-miners.sh", "resume"],
@@ -137,9 +137,9 @@ class MinerManager:
                 check=True,
                 capture_output=True
             )
-            logger.info(Colors.format_stacks("Miners resumed"))
+            logger.stacks("Miners resumed")
         except Exception as e:
-            logger.error(Colors.format_fail("Failed to resume miners", str(e)))
+            logger.error(f"Failed to resume miners: {str(e)}")
     
     
     def _manage_miner(self, action: str, miner_id: int):
@@ -147,7 +147,7 @@ class MinerManager:
         action_gerund = "Stopping" if action == "stop" else "Resuming"
         action_past = "stopped" if action == "stop" else "resumed"
 
-        logger.info(Colors.format_stacks(f"{action_gerund} miner{miner_id}..."))
+        logger.stacks(f"{action_gerund} miner{miner_id}...")
         try:
             cmd = ["../../naka3.sh", "-c", f"./config-miner-{miner_id}.sh", "node", str(miner_id), action]
             subprocess.run(cmd, 
@@ -155,9 +155,9 @@ class MinerManager:
                 check=True, 
                 capture_output=True
             )
-            logger.info(Colors.format_stacks(f"Miner{miner_id} {action_past}"))
+            logger.stacks(f"Miner{miner_id} {action_past}")
         except Exception as e:
-            logger.error(Colors.format_fail(f"Failed to {action} miner{miner_id}", str(e)))
+            logger.error(f"Failed to {action} miner{miner_id}: {str(e)}")
 
     def stop_miner(self, miner: Miner):
         """Stop specific miner."""
@@ -171,7 +171,7 @@ class MinerManager:
     
     def btc_auto(self):
         """Switch to automatic mining mode."""
-        logger.info(Colors.format_stacks("Switching to automatic mining..."))
+        logger.stacks("Switching to automatic mining...")
         try:
             subprocess.run(
                 ["./three-miners.sh", "btc_auto"],
@@ -179,13 +179,13 @@ class MinerManager:
                 check=True,
                 capture_output=True
             )
-            logger.info(Colors.format_stacks("Switched to automatic mining"))
+            logger.stacks("Switched to automatic mining")
         except Exception as e:
-            logger.error(Colors.format_fail("Failed to switch to automatic mining", str(e)))
+            logger.error(f"Failed to switch to automatic mining: {str(e)}")
     
     def btc_manual(self):
         """Switch to manual mining mode."""
-        logger.info(Colors.format_stacks("Switching to manual mining..."))
+        logger.stacks("Switching to manual mining...")
         try:
             subprocess.run(
                 ["./three-miners.sh", "btc_manual"],
@@ -193,13 +193,13 @@ class MinerManager:
                 check=True,
                 capture_output=True
             )
-            logger.info(Colors.format_stacks("Switched to manual mining"))
+            logger.stacks("Switched to manual mining")
         except Exception as e:
-            logger.error(Colors.format_fail("Failed to switch to manual mining", str(e)))
+            logger.error(f"Failed to switch to manual mining: {str(e)}")
     
     def btc_mine(self):
         """Mine single block (manual mode only)."""
-        logger.info(Colors.format_stacks("Mining single BTC block..."))
+        logger.stacks("Mining single BTC block...")
         try:
             subprocess.run(
                 ["./three-miners.sh", "btc_mine"],
@@ -207,13 +207,13 @@ class MinerManager:
                 check=True,
                 capture_output=True
             )
-            logger.info(Colors.format_stacks("Block mined"))
+            logger.stacks("Block mined")
         except Exception as e:
-            logger.error(Colors.format_fail("Failed to mine block", str(e)))
+            logger.error(f"Failed to mine block: {str(e)}")
     
     def snapshot_create(self):
         """Create generic snapshot."""
-        logger.info(Colors.format_stacks("Creating snapshot..."))
+        logger.stacks("Creating snapshot...")
         try:
             subprocess.run(
                 ["./three-miners.sh", "snapshot", "create"],
@@ -221,9 +221,9 @@ class MinerManager:
                 check=True,
                 capture_output=True
             )
-            logger.info(Colors.format_stacks("Snapshot created"))
+            logger.stacks("Snapshot created")
         except Exception as e:
-            logger.error(Colors.format_fail("Failed to create snapshot", str(e)))
+            logger.error(f"Failed to create snapshot: {str(e)}")
 
     def snapshot_restore(self, mode: MiningMode):
         """Restore snapshot in specified mode (required).
@@ -231,7 +231,7 @@ class MinerManager:
         Args:
             mode: Mining mode - MiningMode.AUTO or MiningMode.MANUAL
         """
-        logger.info(Colors.format_stacks(f"Restoring snapshot in {mode.value} mode..."))
+        logger.stacks(f"Restoring snapshot in {mode.value} mode...")
         try:
             cmd = ["./three-miners.sh", "snapshot", "restore", mode.value]
             
@@ -249,17 +249,17 @@ class MinerManager:
                 logger.warning("Miners may not be fully ready after snapshot restore") 
             
             if self.miner_process.poll() is not None:
-                logger.error(Colors.format_fail("Miners process exited early."))
+                logger.error("Miners process exited early.")
                 return False
                 
-            logger.info(Colors.format_stacks("Snapshot restored"))
+            logger.stacks("Snapshot restored")
             
             if not self.wait_for_miners_ready():
                 raise RuntimeError("Not all miners became ready within the timeout period.")
                 
             return True
         except Exception as e:
-            logger.error(Colors.format_fail("Failed to restore snapshot", str(e)))
+            logger.error(f"Failed to restore snapshot: {str(e)}")
             if self.miner_process and self.miner_process.poll() is None:
                 self.miner_process.terminate()
             return False
@@ -274,7 +274,7 @@ class MinerManager:
     
     def info(self):
         """Show status information."""
-        logger.info(Colors.format_stacks("Getting mining info..."))
+        logger.stacks("Getting mining info...")
         try:
             result = subprocess.run(
                 ["./three-miners.sh", "info"],
@@ -283,16 +283,16 @@ class MinerManager:
                 capture_output=True,
                 text=True
             )
-            logger.info(Colors.format_stacks("Mining info retrieved"))
+            logger.stacks("Mining info retrieved")
             return result.stdout
         except Exception as e:
-            logger.error(Colors.format_fail("Failed to get mining info", str(e)))
+            logger.error(f"Failed to get mining info: {str(e)}")
             return None
 
     def cleanup(self):
         """Clean up the miner process if it's running."""
         if self.miner_process and self.running:
-            logger.info(Colors.format_grey("Cleaning up background miner process..."))
+            logger.dim("Cleaning up background miner process...")
             self.miner_process.terminate()
             try:
                 self.miner_process.wait(timeout=5)
@@ -301,4 +301,4 @@ class MinerManager:
                 self.miner_process.kill()
                 self.miner_process.wait()
             self.running = False
-            logger.info(Colors.format_stacks("Cleanup complete"))
+            logger.stacks("Cleanup complete")

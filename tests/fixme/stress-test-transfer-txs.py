@@ -7,13 +7,13 @@ import time
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from utils.helpers import get_account_info_typed, get_block_height, wait_for_confirmation
+from utils.helpers import get_block_height, wait_for_confirmation
 from utils.config import AccountManager, Miner, TransferParams, TransferInfo, VerificationResults, TransactionStatus, TxStatus, VerificationSummary
 from utils.blockstack_cli import BlockstackCLIWrapper
 from utils.stacks_core_api import StacksCoreAPIWrapper
 from typing import List
 from utils.miners import MinerManager
-from utils.logger import Colors, logger
+from utils.logger import logger
 
 def generate_transfers(count: int, base_amount: int = 100) -> List[TransferParams]:
     """Generate list of transfer parameters"""
@@ -38,11 +38,11 @@ def submit_transfer_batch(miner: Miner, transfers: list) -> list:
     submitted_transfers = []
     
     # Get initial nonce and manage it manually for batch submission
-    account_info = get_account_info_typed(api, account.address)
+    account_info = api.get_account_info(account.address)
     current_nonce = account_info.nonce
     
-    print(f"\n{Colors.format_info('Submitting batch of transfers...')}")
-    print(f"{Colors.format_info('Starting nonce')}: {Colors.format_dim(str(current_nonce))}")
+    logger.header('Submitting batch of transfers...')
+    logger.standard('Starting nonce', str(current_nonce))
     
     for i, transfer in enumerate(transfers):
         try:
@@ -65,7 +65,7 @@ def submit_transfer_batch(miner: Miner, transfers: list) -> list:
             transfer_info.status = TransactionStatus.SUBMITTED
             submitted_transfers.append(transfer_info)
             
-            print(f"  {i+1:3d}/{len(transfers)} - TX: {txid[:8]}... - Amount: {transfer.amount} - Nonce: {nonce} - Memo: {transfer.memo}")
+            logger.standard(f"{i+1:3d}/{len(transfers)}", f"TX: {txid[:8]}... - Amount: {transfer.amount} - Nonce: {nonce} - Memo: {transfer.memo}")
             
             # Small delay to avoid overwhelming the network
             time.sleep(0.1)
@@ -74,7 +74,7 @@ def submit_transfer_batch(miner: Miner, transfers: list) -> list:
             transfer_info.status = TransactionStatus.FAILED
             transfer_info.error = str(e)
             submitted_transfers.append(transfer_info)
-            print(f"  {i+1:3d}/{len(transfers)} - FAILED: {str(e)}")
+            logger.error(f"{i+1:3d}/{len(transfers)} - FAILED: {str(e)}")
     
     return submitted_transfers
 
@@ -128,7 +128,7 @@ def verify_transfers(submitted_transfers: list) -> dict:
     """Verify all submitted transfers using raw APIs"""
     verification_results = VerificationResults()
     
-    print(f"\n{Colors.format_info('Verifying transfers...')}")
+    logger.header('Verifying transfers...')
     
     for transfer_info in submitted_transfers:
         if transfer_info.status != TransactionStatus.SUBMITTED:
@@ -144,8 +144,8 @@ def verify_transfers(submitted_transfers: list) -> dict:
             transfer_info.status = TransactionStatus.CONFIRMED
             verification_results.confirmed.append(transfer_info)
             
-            print(f"  {Colors.format_success('✓')} Transfer {transfer_info.amount} µSTX - TXID: {transfer_info.txid}")
-            print(f"    {Colors.format_dim('Transaction details (omitted for brevity)')}")
+            logger.success(f"✓ Transfer {transfer_info.amount} µSTX - TXID: {transfer_info.txid}")
+            logger.dim('    Transaction details (omitted for brevity)')
             
         except Exception as e:
             # If we can't get transaction details, it failed
@@ -153,8 +153,8 @@ def verify_transfers(submitted_transfers: list) -> dict:
             transfer_info.error = str(e)
             verification_results.failed.append(transfer_info)
             
-            print(f"  {Colors.format_error('✗')} Transfer {transfer_info.amount} µSTX - TXID: {transfer_info.txid}")
-            print(f"    {Colors.format_dim(f'Error: {str(e)}')}")
+            logger.error(f"✗ Transfer {transfer_info.amount} µSTX - TXID: {transfer_info.txid}")
+            logger.dim(f'    Error: {str(e)}')
     
     return {
         'confirmed': len(verification_results.confirmed),
@@ -166,22 +166,22 @@ def verify_transfers(submitted_transfers: list) -> dict:
 
 def print_balance_summary(miners: list):
     """Print balance summary for all miners"""
-    print(f"\n{Colors.format_header('Balance Summary')}")
+    logger.header('Balance Summary')
     for miner in miners:
         try:
             account = AccountManager.get(miner)
             api = StacksCoreAPIWrapper(base_url=account.api_url)
-            account_info = get_account_info_typed(api, account.address)
+            account_info = api.get_account_info(account.address)
             balance = account_info.balance
-            print(f"  {miner.value}: {balance:,} µSTX ({account.address})")
+            logger.standard(f"{miner.value}", f"{balance:,} µSTX ({account.address})")
         except Exception as e:
-            print(f"  {miner.value}: Error getting balance - {e}")
+            logger.error(f"{miner.value}: Error getting balance - {e}")
 
 def main():
     """Execute the transfer stress test"""
-    print(f"{Colors.format_dim('=' * 80)}")
-    print(f"{Colors.format_header('STACKS TRANSFER STRESS TEST')}")
-    print(f"{Colors.format_dim('=' * 80)}")
+    logger.dim('=' * 80)
+    logger.header('STACKS TRANSFER STRESS TEST')
+    logger.dim('=' * 80)
     
     # Configuration
     NUM_TRANSFERS = 30  # Test up to 30 transfers to properly stress test
@@ -193,7 +193,7 @@ def main():
     
     try:
         # Start the node
-        print(f"\n{Colors.format_stacks('Starting miners...')}")
+        logger.stacks('Starting miners...')
         if not miner_manager.snapshot_restore_auto():
             raise RuntimeError("Failed to start miners")
         
@@ -201,31 +201,31 @@ def main():
         print_balance_summary(miners)
         
         # Generate transfers
-        print(f"\n{Colors.format_header('Generating Transfer Transactions')}")
-        print(f"{Colors.format_info('Number of transfers')}: {Colors.format_dim(str(NUM_TRANSFERS))}")
-        print(f"{Colors.format_info('Base amount')}: {Colors.format_dim(f'{BASE_AMOUNT} µSTX')}")
+        logger.header('Generating Transfer Transactions')
+        logger.standard('Number of transfers', str(NUM_TRANSFERS))
+        logger.standard('Base amount', f'{BASE_AMOUNT} µSTX')
         
         transfers = generate_transfers(NUM_TRANSFERS, BASE_AMOUNT)
         
         # Submit transfers from MINER1
-        print(f"\n{Colors.format_header('Submitting Transfers')}")
+        logger.header('Submitting Transfers')
         test_miner = Miner.MINER1
         submitted_transfers = submit_transfer_batch(test_miner, transfers)
         
         successful_submissions = [t for t in submitted_transfers if t.status == TransactionStatus.SUBMITTED]
         failed_submissions = [t for t in submitted_transfers if t.status == TransactionStatus.FAILED]
         
-        print(f"\n{Colors.format_info('Submission Results')}:")
-        print(f"  Successful: {Colors.format_success(str(len(successful_submissions)))}")
-        print(f"  Failed: {Colors.format_error(str(len(failed_submissions)))}")
+        logger.header('Submission Results')
+        logger.success(f"Successful: {str(len(successful_submissions))}")
+        logger.error(f"Failed: {str(len(failed_submissions))}")
         
         if failed_submissions:
-            print(f"\n{Colors.format_header('Failed Submissions')}:")
+            logger.header('Failed Submissions')
             for transfer in failed_submissions[:5]:  # Show first 5 failures
-                print(f"  Amount: {transfer.amount}, Error: {transfer.error}")
+                logger.error(f"Amount: {transfer.amount}, Error: {transfer.error}")
         
         # Wait for some confirmations
-        print(f"\n{Colors.format_header('Waiting for confirmations...')}")
+        logger.header('Waiting for confirmations...')
         verification_results = wait_and_verify_transfers(submitted_transfers)
         
         # Show final balances
@@ -233,22 +233,22 @@ def main():
         
         # Show some transaction details
         if verification_results['confirmed'] > 0:
-            print(f"\n{Colors.format_header('Sample Confirmed Transactions')}")
+            logger.header('Sample Confirmed Transactions')
             confirmed_transfers = verification_results['details'].confirmed[:3]  # Show first 3
             for transfer in confirmed_transfers:
-                print(f"  TXID: {transfer.txid}")
-                print(f"    Amount: {transfer.amount} µSTX, Memo: {transfer.memo}")
-                print(f"    To: {transfer.to_address}")
+                logger.standard('TXID', transfer.txid)
+                logger.standard('Amount', f"{transfer.amount} µSTX, Memo: {transfer.memo}")
+                logger.standard('To', transfer.to_address)
         
         return verification_results['confirmed'] > 0
         
     except Exception as e:
-        print(f"\n{Colors.format_error('TEST FAILED')}: {Colors.format_error(str(e))}")
+        logger.error(f'TEST FAILED: {str(e)}')
         return False
         
     finally:
         # Cleanup
-        print(f"\n{Colors.format_header('Cleaning up...')}")
+        logger.header('Cleaning up...')
         miner_manager.stop()
         miner_manager.cleanup()
 

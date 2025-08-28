@@ -60,12 +60,12 @@ class BlockstackCLI:
             if process.returncode != 0:
                 logger.error(f"Command failed with exit code {process.returncode}")
                 if stderr:
-                    logger.error(f"STDERR: {Colors.format_fail(stderr)}")
+                    logger.error(f"STDERR: {stderr}")
                 return None, stderr, process.returncode
             
             logger.debug(f"Return Code: {process.returncode}")
             if stdout: logger.debug(f"STDOUT:\n{stdout}")
-            if stderr: logger.warning(f"STDERR:\n{stderr}")
+            if stderr: logger.warn(f"STDERR:\n{stderr}")
                 
             return stdout, stderr, process.returncode
         except FileNotFoundError:
@@ -199,18 +199,16 @@ class BlockstackCLIWrapper:
         except Exception as e:
             return CLIResult(success=False, error_message=str(e))
     
-    def transfer_tokens(self, origin_sk: str, recipient: str, amount_stx: float, memo: str = "", testnet: bool = True) -> CLIResult:
+    def transfer_tokens(self, origin_sk: str, recipient: str, amount_stx: float, memo: str = "", nonce: int = 0, fee_rate: int = 1000, testnet: bool = True) -> CLIResult:
         """Transfer STX tokens with error handling and STX→microSTX conversion."""
         try:
             # Convert STX to microSTX (1 STX = 1,000,000 microSTX)
             amount_microstx = int(amount_stx * 1_000_000)
             
-            # For this we need nonce and fee rate - this would typically come from the API
-            # This is a simplified version
             result = self.cli.token_transfer(
                 origin_sk=origin_sk,
-                fee_rate=1000,  # Default fee rate
-                nonce=0,        # This should be fetched from API in real use
+                fee_rate=fee_rate,
+                nonce=nonce,
                 recipient_address=recipient,
                 amount=amount_microstx,
                 memo=memo if memo else None,

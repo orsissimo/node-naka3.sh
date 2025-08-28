@@ -4,7 +4,7 @@ import requests
 import json
 from typing import List, Optional, Dict, Any, Union
 from dataclasses import dataclass
-from .logger import Colors, logger
+from .logger import logger
 from .config import AccountInfo, TxStatus, ApiResult, ApiError
 
 class StacksCoreAPI:
@@ -23,15 +23,29 @@ class StacksCoreAPI:
     def _make_request(self, method: str, endpoint: str, **kwargs) -> requests.Response:
         """Make raw API request and return response object for centralized handling"""
         url = f"{self.base_url}{endpoint}"
-        logger.debug(f"-> {Colors.format_header(method)} {Colors.format_grey(url)}")
+        logger.debug(f"-> {method} {url}")
         
         try:
             response = self.session.request(method, url, **kwargs, timeout=20)
-            status_color_fn = Colors.format_success if 200 <= response.status_code < 300 else Colors.format_warn if response.status_code < 500 else Colors.format_fail
-            logger.debug(f"<- Status: {status_color_fn(str(response.status_code))}")
+            # Add visual indicator based on status code with colors
+            if 200 <= response.status_code < 300:
+                from .logger import Colors
+                indicator = f"{Colors.GREEN}✓{Colors.RESET}"
+            elif 400 <= response.status_code < 500:
+                from .logger import Colors
+                indicator = f"{Colors.RED}✗{Colors.RESET}"
+            elif 500 <= response.status_code < 600:
+                from .logger import Colors
+                indicator = f"{Colors.RED}✗{Colors.RESET}"
+            else:
+                from .logger import Colors
+                indicator = f"{Colors.YELLOW}?{Colors.RESET}"
+            
+            from .logger import Colors
+            logger.debug(f"<- Status: {response.status_code} {indicator}")
             return response
         except requests.exceptions.RequestException as e:
-            logger.critical(f"An HTTP request error occurred: {Colors.format_fail(str(e))}")
+            logger.critical(f"An HTTP request error occurred: {str(e)}")
             raise e
     
     def handle_api_response(self, response: requests.Response) -> Any:
@@ -49,7 +63,7 @@ class StacksCoreAPI:
             except json.JSONDecodeError:
                 error_message = f"API Error ({response.status_code}): {response.text}"
             
-            logger.error(f"API call failed: {Colors.format_fail(error_message)}")
+            logger.error(f"API call failed: {error_message}")
             raise RuntimeError(error_message)
 
         # Handle successful responses
@@ -431,6 +445,14 @@ class StacksCoreAPIWrapper:
         """Get account balance converted to STX (from microSTX)."""
         account_info = self.api.get_account_info(address)
         return account_info.balance / 1_000_000  # Convert microSTX to STX
+    
+    def get_block_height(self) -> int:
+        """Get current block height from the Stacks API."""
+        return self.api.get_info().stacks_tip_height
+    
+    def get_info(self) -> 'NodeInfo':
+        """Get Core API information as typed object."""
+        return self.api.get_info()
     
     # NOTE: UNUSED
     def safe_api_call(self, func, *args, **kwargs) -> ApiResult:
