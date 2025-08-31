@@ -4,7 +4,7 @@ import json
 from typing import List, Optional, Tuple, Dict, Any, TypeVar, Type
 from pydantic import BaseModel, Field, ValidationError
 from .logger import Colors, logger
-from .config import MICROSTX_PER_STX
+from .config import MICROSTX_PER_STX, StacksCLIException, StacksValidationException
 
 T = TypeVar('T', bound=BaseModel)
 
@@ -47,14 +47,13 @@ class BlockstackCLI:
     def __init__(self, cli_path: str = "blockstack-cli"):
         self.cli_path = cli_path
     
-    def _parse_json_response(self, stdout: str, response_type: Type[T]) -> Optional[T]:
+    def _parse_json_response(self, stdout: str, response_type: Type[T]) -> T:
         """
         Bulletproof automatic JSON→typed object parsing.
-        Handles malformed JSON, missing fields, and type validation automatically.
+        Raises exceptions instead of returning None for better error handling.
         """
         if not stdout or not stdout.strip():
-            logger.warning(f"Empty or None stdout for {response_type.__name__}")
-            return None
+            raise StacksValidationException(f"Empty or None stdout for {response_type.__name__}")
             
         try:
             # Parse JSON from stdout
@@ -69,14 +68,14 @@ class BlockstackCLI:
         except json.JSONDecodeError as e:
             logger.error(f"JSON decode error for {response_type.__name__}: {e}")
             logger.error(f"Raw stdout: {repr(stdout)}")
-            return None
+            raise StacksValidationException(f"JSON decode error for {response_type.__name__}: {e}") from e
         except ValidationError as e:
             logger.error(f"Pydantic validation error for {response_type.__name__}: {e}")
             logger.error(f"JSON data: {json_data if 'json_data' in locals() else 'N/A'}")
-            return None
+            raise StacksValidationException(f"Validation failed for {response_type.__name__}: {e}") from e
         except Exception as e:
             logger.error(f"Unexpected error parsing {response_type.__name__}: {e}")
-            return None
+            raise StacksCLIException(f"Unexpected error parsing {response_type.__name__}: {e}") from e
 
     def _run_command(self, command_parts: List[str], testnet: bool, chain_id: Optional[str]) -> Tuple[Optional[str], Optional[str], int]:
         """Internal helper to construct and execute the final command."""
@@ -97,101 +96,98 @@ class BlockstackCLI:
                 logger.error(f"Command failed with exit code {process.returncode}")
                 if stderr:
                     logger.error(f"STDERR: {stderr}")
-                return None, stderr, process.returncode
+                raise StacksCLIException(f"CLI command failed: {command_str}", return_code=process.returncode, stderr=stderr)
             
             logger.debug(f"Return Code: {process.returncode}")
             if stdout: logger.debug(f"STDOUT:\n{stdout}")
             if stderr: logger.warn(f"STDERR:\n{stderr}")
                 
             return stdout, stderr, process.returncode
-        except FileNotFoundError:
+        except FileNotFoundError as e:
             logger.critical(f"Executable not found at '{self.cli_path}'. Please ensure it is installed and in your PATH.")
-            return None, f"Executable not found at '{self.cli_path}'", 1
+            raise StacksCLIException(f"Executable not found at '{self.cli_path}'", return_code=1) from e
         except Exception as e:
             logger.critical(f"An unexpected error occurred: {e}")
-            return None, str(e), 1
+            raise StacksCLIException(f"An unexpected error occurred: {e}", return_code=1) from e
 
-    def publish_contract(self, publisher_sk: str, fee_rate: int, nonce: int, contract_name: str, file_name: str, *, testnet: bool = True) -> Optional[str]:
+    def publish_contract(self, publisher_sk: str, fee_rate: int, nonce: int, contract_name: str, file_name: str, *, testnet: bool = True) -> str:
         """Execute blockstack-cli publish command and return transaction hex"""
         cmd = ["publish", publisher_sk, str(fee_rate), str(nonce), contract_name, file_name]
         
         stdout, stderr, returncode = self._run_command(cmd, testnet, None)
-        if returncode != 0 or not stdout:
-            logger.error(f"Contract publish failed: {stderr}")
-            return None
+        if not stdout:
+            raise StacksCLIException("Contract publish returned empty output")
         return stdout.strip()
 
-    def call_contract(self, origin_sk: str, fee_rate: int, nonce: int, contract_address: str, contract_name: str, function_name: str, args: Optional[List[str]] = None, *, testnet: bool = True) -> Optional[str]:
-        """Execute blockstack-cli contract-call command and return transaction ID"""
+    def call_contract(self, origin_sk: str, fee_rate: int, nonce: int, contract_address: str, contract_name: str, function_name: str, args: Optional[List[str]] = None, *, testnet: bool = True) -> str:
+        """Execute blockstack-cli contract-call command and return transaction hex"""
         cmd = ["contract-call", origin_sk, str(fee_rate), str(nonce), contract_address, contract_name, function_name]
         if args:
             for arg in args:
                 cmd.extend(["-e", arg])
         
         stdout, stderr, returncode = self._run_command(cmd, testnet, None)
-        if returncode != 0 or not stdout:
-            logger.error(f"Contract call failed: {stderr}")
-            return None
+        if not stdout:
+            raise StacksCLIException("Contract call returned empty output")
         return stdout.strip()
 
-    def generate_sk(self, *, testnet: bool = False, chain_id: Optional[str] = None) -> Optional[SecretKeyInfo]:
+    def generate_sk(self, *, testnet: bool = False, chain_id: Optional[str] = None) -> SecretKeyInfo:
         """Generate a new secret key as typed object."""
         cmd = ["generate-sk"]
         stdout, _, retcode = self._run_command(cmd, testnet, chain_id)
-        if retcode == 0 and stdout:
-            return self._parse_json_response(stdout, SecretKeyInfo)
-        return None
+        if not stdout:
+            raise StacksCLIException("generate-sk returned empty output")
+        return self._parse_json_response(stdout, SecretKeyInfo)
 
-    def token_transfer(self, origin_sk: str, fee_rate: int, nonce: int, recipient_address: str, amount: int, memo: Optional[str] = None, *, testnet: bool = True) -> Optional[str]:
-        """Execute blockstack-cli token-transfer command and return transaction ID"""
+    def token_transfer(self, origin_sk: str, fee_rate: int, nonce: int, recipient_address: str, amount: int, memo: Optional[str] = None, *, testnet: bool = True) -> str:
+        """Execute blockstack-cli token-transfer command and return transaction hex"""
         cmd = ["token-transfer", origin_sk, str(fee_rate), str(nonce), recipient_address, str(amount)]
         if memo:
             cmd.append(memo)
         
         stdout, stderr, returncode = self._run_command(cmd, testnet, None)
-        if returncode != 0 or not stdout:
-            logger.error(f"Token transfer failed: {stderr}")
-            return None
+        if not stdout:
+            raise StacksCLIException("Token transfer returned empty output")
         return stdout.strip()
 
-    def get_addresses(self, secret_key: str, *, testnet: bool = False, chain_id: Optional[str] = None) -> Optional[AddressInfo]:
+    def get_addresses(self, secret_key: str, *, testnet: bool = False, chain_id: Optional[str] = None) -> AddressInfo:
         """Get addresses from secret key as typed object."""
         cmd = ["addresses", secret_key]
         stdout, _, retcode = self._run_command(cmd, testnet, chain_id)
-        if retcode == 0 and stdout:
-            return self._parse_json_response(stdout, AddressInfo)
-        return None
+        if not stdout:
+            raise StacksCLIException("addresses command returned empty output")
+        return self._parse_json_response(stdout, AddressInfo)
 
-    def _decode_helper(self, command: str, hex_data: str, *, testnet: bool, chain_id: Optional[str]) -> Optional[Dict[str, Any]]:
+    def _decode_helper(self, command: str, hex_data: str, *, testnet: bool, chain_id: Optional[str]) -> Dict[str, Any]:
         """Internal helper for all decode commands - returns raw dict for decode operations."""
         cmd = [command, hex_data]
         stdout, _, retcode = self._run_command(cmd, testnet, chain_id)
-        if retcode == 0 and stdout:
-            try: 
-                return json.loads(stdout)
-            except json.JSONDecodeError as e:
-                logger.error(f"Failed to decode JSON from stdout for command '{command}': {e}")
-                logger.error(f"Raw stdout: {repr(stdout)}")
-                return None
-        return None
+        if not stdout:
+            raise StacksCLIException(f"{command} command returned empty output")
+        try: 
+            return json.loads(stdout)
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to decode JSON from stdout for command '{command}': {e}")
+            logger.error(f"Raw stdout: {repr(stdout)}")
+            raise StacksValidationException(f"JSON decode error for {command}: {e}") from e
 
-    def decode_tx(self, tx_hex: str, *, testnet: bool = False, chain_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    def decode_tx(self, tx_hex: str, *, testnet: bool = False, chain_id: Optional[str] = None) -> Dict[str, Any]:
         """Usage: blockstack-cli decode-tx [transaction-hex-or-stdin]"""
         return self._decode_helper("decode-tx", tx_hex, testnet=testnet, chain_id=chain_id)
 
-    def decode_header(self, header_hex: str, *, testnet: bool = False, chain_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    def decode_header(self, header_hex: str, *, testnet: bool = False, chain_id: Optional[str] = None) -> Dict[str, Any]:
         """Usage: blockstack-cli decode-header [block-path-or-stdin]"""
         return self._decode_helper("decode-header", header_hex, testnet=testnet, chain_id=chain_id)
 
-    def decode_block(self, block_hex: str, *, testnet: bool = False, chain_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    def decode_block(self, block_hex: str, *, testnet: bool = False, chain_id: Optional[str] = None) -> Dict[str, Any]:
         """Usage: blockstack-cli decode-block [block-path-or-stdin]"""
         return self._decode_helper("decode-block", block_hex, testnet=testnet, chain_id=chain_id)
 
-    def decode_microblock(self, microblock_hex: str, *, testnet: bool = False, chain_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    def decode_microblock(self, microblock_hex: str, *, testnet: bool = False, chain_id: Optional[str] = None) -> Dict[str, Any]:
         """Usage: blockstack-cli decode-microblock [microblock-path-or-stdin]"""
         return self._decode_helper("decode-microblock", microblock_hex, testnet=testnet, chain_id=chain_id)
         
-    def decode_microblocks(self, microblocks_hex: str, *, testnet: bool = False, chain_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    def decode_microblocks(self, microblocks_hex: str, *, testnet: bool = False, chain_id: Optional[str] = None) -> Dict[str, Any]:
         """Usage: blockstack-cli decode-microblocks [microblocks-path-or-stdin]"""
         return self._decode_helper("decode-microblocks", microblocks_hex, testnet=testnet, chain_id=chain_id)
 
@@ -267,8 +263,6 @@ class BlockstackCLIWrapper:
                 testnet=testnet
             )
             
-            if result:
-                return TransactionResult(tx_hex=result, success=True)
-            return None
+            return TransactionResult(tx_hex=result, success=True)
             
         return self._safe_execute("transfer_tokens", _execute_transfer)

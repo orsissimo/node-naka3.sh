@@ -5,7 +5,7 @@ import json
 from typing import List, Optional, Dict, Any, Union, TypeVar, Type
 from pydantic import BaseModel, Field, ValidationError
 from .logger import logger
-from .config import AccountInfo, TxStatus, ApiResult, ApiError, MICROSTX_PER_STX
+from .config import AccountInfo, TxStatus, ApiResult, ApiError, MICROSTX_PER_STX, StacksAPIException, StacksValidationException, StacksNetworkException, StacksTimeoutException
 
 T = TypeVar('T', bound=BaseModel)
 
@@ -22,14 +22,13 @@ class StacksCoreAPI:
         if auth_token:
             self.session.headers.update({'Authorization': f'Basic {auth_token}'})
     
-    def _parse_json_response(self, data: Dict[str, Any], response_type: Type[T]) -> Optional[T]:
+    def _parse_json_response(self, data: Dict[str, Any], response_type: Type[T]) -> T:
         """
         Bulletproof automatic JSON→typed object parsing for Stacks Core API.
-        Handles malformed data, missing fields, and type validation automatically.
+        Raises exceptions instead of returning None for better error handling.
         """
         if not data:
-            logger.warning(f"Empty or None data for {response_type.__name__}")
-            return None
+            raise StacksValidationException(f"Empty or None data for {response_type.__name__}")
             
         try:
             logger.debug(f"Parsing JSON data for {response_type.__name__}: {data}")
@@ -42,10 +41,10 @@ class StacksCoreAPI:
         except ValidationError as e:
             logger.error(f"Pydantic validation error for {response_type.__name__}: {e}")
             logger.error(f"JSON data: {data}")
-            return None
+            raise StacksValidationException(f"Validation failed for {response_type.__name__}: {e}") from e
         except Exception as e:
             logger.error(f"Unexpected error parsing {response_type.__name__}: {e}")
-            return None
+            raise StacksAPIException(f"Unexpected error parsing {response_type.__name__}: {e}") from e
 
     def _make_request(self, method: str, endpoint: str, **kwargs) -> requests.Response:
         """Make raw API request and return response object for centralized handling"""
@@ -71,15 +70,21 @@ class StacksCoreAPI:
             from .logger import Colors
             logger.debug(f"<- Status: {response.status_code} {indicator}")
             return response
+        except requests.exceptions.Timeout as e:
+            logger.critical(f"Request timeout occurred: {str(e)}")
+            raise StacksTimeoutException(f"Request timeout for {method} {url}") from e
+        except requests.exceptions.ConnectionError as e:
+            logger.critical(f"Connection error occurred: {str(e)}")
+            raise StacksNetworkException(f"Connection error for {method} {url}") from e
         except requests.exceptions.RequestException as e:
             logger.critical(f"An HTTP request error occurred: {str(e)}")
-            raise e
+            raise StacksNetworkException(f"Request failed for {method} {url}: {str(e)}") from e
     
     def handle_api_response(self, response: requests.Response) -> Any:
         """
-        Centralized handler for all API responses - matches ignore-this pattern.
+        Centralized handler for all API responses.
         On success (200), intelligently parses and returns the body content.
-        On failure, parses detailed JSON error and raises descriptive RuntimeError.
+        On failure, raises appropriate StacksAPIException with details.
         """
         if response.status_code != 200:
             try:
@@ -91,7 +96,7 @@ class StacksCoreAPI:
                 error_message = f"API Error ({response.status_code}): {response.text}"
             
             logger.error(f"API call failed: {error_message}")
-            raise RuntimeError(error_message)
+            raise StacksAPIException(error_message, status_code=response.status_code, error_details=error_details if 'error_details' in locals() else {})
 
         # Handle successful responses
         content_type = response.headers.get('Content-Type', '')
@@ -109,13 +114,13 @@ class StacksCoreAPI:
         return int(balance_hex)
 
     # --- V2 Transactions, Accounts, and Info ---
-    def get_info(self) -> Optional['NodeInfo']:
+    def get_info(self) -> 'NodeInfo':
         """GET /v2/info - Get Core API information as typed object."""
         response = self._make_request('GET', '/v2/info')
         data = self.handle_api_response(response)
         return self._parse_json_response(data, NodeInfo)
 
-    def post_raw_transaction(self, raw_tx_bytes: bytes) -> Optional[str]:
+    def post_raw_transaction(self, raw_tx_bytes: bytes) -> str:
         """POST /v2/transactions - Broadcast a raw transaction."""
         response = self._make_request('POST', '/v2/transactions', data=raw_tx_bytes, headers={'Content-Type': 'application/octet-stream'})
         return self.handle_api_response(response)
@@ -138,28 +143,28 @@ class StacksCoreAPI:
             nonce=data['nonce']
         )
         
-    def get_pox_info(self, *, tip: Optional[str] = None) -> Optional['PoxInfo']:
+    def get_pox_info(self, *, tip: Optional[str] = None) -> 'PoxInfo':
         """GET /v2/pox - Get Proof of Transfer (PoX) information as typed object."""
         response = self._make_request('GET', '/v2/pox', params={'tip': tip} if tip else {})
         data = self.handle_api_response(response)
         return self._parse_json_response(data, PoxInfo)
 
     # --- V2 Smart Contracts and Clarity ---
-    def call_read_only_function(self, contract_address: str, contract_name: str, function_name: str, sender: str, arguments: List[str], *, tip: Optional[str] = None) -> Optional['ReadOnlyFunctionResult']:
+    def call_read_only_function(self, contract_address: str, contract_name: str, function_name: str, sender: str, arguments: List[str], *, tip: Optional[str] = None) -> 'ReadOnlyFunctionResult':
         """POST /v2/contracts/call-read/{...} - Call a read-only function."""
         endpoint = f'/v2/contracts/call-read/{contract_address}/{contract_name}/{function_name}'
         response = self._make_request('POST', endpoint, json={'sender': sender, 'arguments': arguments}, params={'tip': tip} if tip else {})
         data = self.handle_api_response(response)
         return self._parse_json_response(data, ReadOnlyFunctionResult)
 
-    def get_contract_source(self, contract_address: str, contract_name: str, *, proof: Optional[int] = None, tip: Optional[str] = None) -> Optional['ContractSource']:
+    def get_contract_source(self, contract_address: str, contract_name: str, *, proof: Optional[int] = None, tip: Optional[str] = None) -> 'ContractSource':
         """GET /v2/contracts/source/{...} - Get contract source code."""
         params = {k: v for k, v in {'proof': proof, 'tip': tip}.items() if v is not None}
         response = self._make_request('GET', f'/v2/contracts/source/{contract_address}/{contract_name}', params=params)
         data = self.handle_api_response(response)
         return self._parse_json_response(data, ContractSource)
 
-    def get_contract_interface(self, contract_address: str, contract_name: str, *, tip: Optional[str] = None) -> Optional['ContractInterface']:
+    def get_contract_interface(self, contract_address: str, contract_name: str, *, tip: Optional[str] = None) -> 'ContractInterface':
         """GET /v2/contracts/interface/{...} - Get contract interface."""
         response = self._make_request('GET', f'/v2/contracts/interface/{contract_address}/{contract_name}', params={'tip': tip} if tip else {})
         data = self.handle_api_response(response)
@@ -197,13 +202,13 @@ class StacksCoreAPI:
         return self.handle_api_response(response)
 
     # --- V2 Fees ---
-    def get_fee_rate_for_transfer(self) -> Optional['FeeEstimate']:
+    def get_fee_rate_for_transfer(self) -> 'FeeEstimate':
         """GET /v2/fees/transfer - Get estimated fee rate for STX transfers."""
         response = self._make_request('GET', '/v2/fees/transfer')
         data = self.handle_api_response(response)
         return self._parse_json_response(data, FeeEstimate)
         
-    def get_fee_estimate_for_transaction(self, transaction_payload_hex: str, *, estimated_len: Optional[int] = None) -> Optional['FeeEstimate']:
+    def get_fee_estimate_for_transaction(self, transaction_payload_hex: str, *, estimated_len: Optional[int] = None) -> 'FeeEstimate':
         """POST /v2/fees/transaction - Get an estimated fee for a given transaction payload."""
         payload = {'transaction_payload': transaction_payload_hex}
         if estimated_len is not None: payload['estimated_len'] = estimated_len
@@ -212,17 +217,17 @@ class StacksCoreAPI:
         return self._parse_json_response(data, FeeEstimate)
     
     # --- V3 Blocks, Tenures, and Transactions ---
-    def get_block_by_id(self, block_id: str) -> Optional[bytes]:
+    def get_block_by_id(self, block_id: str) -> bytes:
         """GET /v3/blocks/{block_id} - Fetch a Nakamoto block by its ID hash."""
         response = self._make_request('GET', f'/v3/blocks/{block_id}')
         return self.handle_api_response(response)
 
-    def get_block_by_height(self, block_height: int, *, tip: Optional[str] = None) -> Optional[bytes]:
+    def get_block_by_height(self, block_height: int, *, tip: Optional[str] = None) -> bytes:
         """GET /v3/blocks/height/{block_height} - Fetch a Nakamoto block by height."""
         response = self._make_request('GET', f'/v3/blocks/height/{block_height}', params={'tip': tip} if tip else {})
         return self.handle_api_response(response)
         
-    def get_transaction_by_id(self, txid: str) -> Optional['TransactionDetails']:
+    def get_transaction_by_id(self, txid: str) -> 'TransactionDetails':
         """GET /v3/transaction/{txid} - Retrieve transaction details as typed object.
         NOTE: The OpenAPI spec incorrectly lists this as a POST endpoint. Real-world
         testing shows it is a GET endpoint. This implementation uses GET.
@@ -243,7 +248,7 @@ class StacksCoreAPI:
         data = self.handle_api_response(response)
         return self._parse_json_response(data, TenureInfo)
 
-    def get_tenure_blocks(self, block_id: str, *, stop: Optional[str] = None) -> Optional[bytes]:
+    def get_tenure_blocks(self, block_id: str, *, stop: Optional[str] = None) -> bytes:
         """GET /v3/tenures/{block_id} - Fetch a sequence of Nakamoto blocks in a tenure."""
         response = self._make_request('GET', f'/v3/tenures/{block_id}', params={'stop': stop} if stop else {})
         return self.handle_api_response(response)
@@ -264,7 +269,7 @@ class StacksCoreAPI:
         response = self._make_request('POST', '/v3/block_proposal', json=block_proposal_data)
         return self.handle_api_response(response)
         
-    def get_stacker_set(self, cycle_number: int) -> Optional['StackerSet']:
+    def get_stacker_set(self, cycle_number: int) -> 'StackerSet':
         """GET /v3/stacker_set/{cycle_number} - Fetch stacker set info for a cycle."""
         response = self._make_request('GET', f'/v3/stacker_set/{cycle_number}')
         data = self.handle_api_response(response)
@@ -273,11 +278,13 @@ class StacksCoreAPI:
             data['cycle_number'] = cycle_number
         return self._parse_json_response(data, StackerSet)
         
-    def get_signer_block_count(self, signer_pubkey: str, cycle_number: int) -> Optional[int]:
+    def get_signer_block_count(self, signer_pubkey: str, cycle_number: int) -> int:
         """GET /v3/signer/{signer}/{cycle_number} - Get number of blocks signed by a signer in a cycle."""
         response = self._make_request('GET', f'/v3/signer/{signer_pubkey}/{cycle_number}')
         resp = self.handle_api_response(response)
-        return int(resp) if resp and isinstance(resp, str) and resp.isdigit() else None
+        if not resp or not isinstance(resp, str) or not resp.isdigit():
+            raise StacksAPIException(f"Invalid signer block count response: {resp}")
+        return int(resp)
 
 class NodeInfo(BaseModel):
     """Typed node information from /v2/info endpoint."""
@@ -491,30 +498,52 @@ class StacksCoreAPIWrapper:
                 if tx_details.status in [TxStatus.SUCCESS, TxStatus.ABORT_BY_RESPONSE, TxStatus.ABORT_BY_POST_CONDITION]:
                     return tx_details.status == TxStatus.SUCCESS
                 time.sleep(2)
-            except Exception:
+            except (StacksNetworkException, StacksTimeoutException, StacksAPIException) as e:
+                logger.warning(f"Error during transaction confirmation wait: {e}")
+                time.sleep(3)
+            except Exception as e:
+                logger.error(f"Unexpected error during transaction confirmation wait: {e}")
                 time.sleep(3)
         
         return False
     
-    def get_balance_in_stx(self, address: str) -> Optional[float]:
-        """Get account balance converted to STX (from microSTX) with bulletproof error handling."""
+    def get_balance_in_stx(self, address: str) -> float:
+        """Get account balance converted to STX (from microSTX) - raises exceptions instead of returning None."""
         result = self._safe_execute(
             "get_balance_in_stx",
             lambda: self.api.get_account_info(address)
         )
         if result.success and result.data:
             return result.data.balance / MICROSTX_PER_STX  # Convert microSTX to STX
-        return None
+        
+        # Don't swallow the exception - propagate it properly
+        if result.error == ApiError.NOT_FOUND:
+            raise StacksAPIException(f"Account not found: {address}")
+        elif result.error == ApiError.TIMEOUT:
+            raise StacksTimeoutException(result.error_message or "API timeout")
+        elif result.error == ApiError.CONNECTION_ERROR:
+            raise StacksNetworkException(result.error_message or "Connection error")
+        else:
+            raise StacksAPIException(result.error_message or "Unknown API error")
     
-    def get_block_height(self) -> Optional[int]:
-        """Get current block height from the Stacks API with bulletproof error handling."""
+    def get_block_height(self) -> int:
+        """Get current block height from the Stacks API - raises exceptions instead of returning None."""
         result = self._safe_execute(
             "get_block_height",
             lambda: self.api.get_info()
         )
         if result.success and result.data:
             return result.data.stacks_tip_height
-        return None
+        
+        # Don't swallow the exception - propagate it properly
+        if result.error == ApiError.NOT_FOUND:
+            raise StacksAPIException("Node info not found")
+        elif result.error == ApiError.TIMEOUT:
+            raise StacksTimeoutException(result.error_message or "API timeout")
+        elif result.error == ApiError.CONNECTION_ERROR:
+            raise StacksNetworkException(result.error_message or "Connection error")
+        else:
+            raise StacksAPIException(result.error_message or "Unknown API error")
     
     def get_info_safe(self) -> ApiResult:
         """Get Core API information with bulletproof error handling."""

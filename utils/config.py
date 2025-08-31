@@ -85,6 +85,37 @@ class ApiError(Enum):
     CONNECTION_ERROR = "Connection error"
     UNKNOWN_ERROR = "Unknown error"
 
+# Custom Exception Classes for better error handling
+class StacksException(Exception):
+    """Base exception for all Stacks-related errors."""
+    pass
+
+class StacksAPIException(StacksException):
+    """API-related exceptions."""
+    def __init__(self, message: str, status_code: Optional[int] = None, error_details: Optional[Dict[str, Any]] = None):
+        self.status_code = status_code
+        self.error_details = error_details or {}
+        super().__init__(message)
+
+class StacksCLIException(StacksException):
+    """CLI-related exceptions."""
+    def __init__(self, message: str, return_code: Optional[int] = None, stderr: Optional[str] = None):
+        self.return_code = return_code
+        self.stderr = stderr
+        super().__init__(message)
+
+class StacksValidationException(StacksException):
+    """Data validation exceptions."""
+    pass
+
+class StacksNetworkException(StacksException):
+    """Network/connection related exceptions."""
+    pass
+
+class StacksTimeoutException(StacksNetworkException):
+    """Timeout-specific exceptions."""
+    pass
+
 class AccountManager:
     """Type-safe account access."""
     

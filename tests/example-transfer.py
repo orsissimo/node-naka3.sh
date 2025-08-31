@@ -8,7 +8,7 @@ import json
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from utils.helpers import wait_for_confirmation
-from utils.config import AccountManager, Miner
+from utils.config import AccountManager, Miner, StacksException, StacksAPIException, StacksCLIException, StacksValidationException, StacksNetworkException, StacksTimeoutException
 from utils.miners import MinerManager
 from utils.logger import logger
 from utils.blockstack_cli import BlockstackCLIWrapper
@@ -31,7 +31,7 @@ def main():
         # Start the node
         logger.stacks('Starting miners...')
         if not miners.snapshot_restore_auto():
-            raise RuntimeError("Failed to start miners")
+            raise StacksException("Failed to start miners")
         
         # Step 1: Check initial balances
         logger.header('Step 1: Check initial balances')
@@ -72,7 +72,7 @@ def main():
         )
         
         if not cli_result.success:
-            raise RuntimeError(f"Token transfer failed: {cli_result.error}")
+            raise StacksCLIException(f"Token transfer failed: {cli_result.error_message}")
         tx_hex = cli_result.data.tx_hex
         
         transfer_txid = api.post_raw_transaction(bytes.fromhex(tx_hex))
@@ -81,7 +81,7 @@ def main():
         # Step 4: Wait for confirmation
         logger.header('Step 4: Wait for confirmation')
         if not wait_for_confirmation(api, sender_account.address, initial_nonce, initial_height, timeout=120):
-            raise RuntimeError("Transfer confirmation timeout")
+            raise StacksTimeoutException("Transfer confirmation timeout")
         logger.success('Transfer confirmed!')
         
         # Step 5: Verify final balances
@@ -169,9 +169,31 @@ def main():
         
         return True
         
-    # FIXME: Tenere try catch finale ma gli faccio risalire le eccezioni dai livelli piu bassi, eccetto eccezioni come socket IO per esempio, che "blocco" in componenti piu bassi (in /utils)
+    except StacksTimeoutException as e:
+        logger.error(f'TEST FAILED - Timeout: {str(e)}')
+        return False
+    except StacksNetworkException as e:
+        logger.error(f'TEST FAILED - Network Error: {str(e)}')
+        return False  
+    except StacksAPIException as e:
+        logger.error(f'TEST FAILED - API Error ({e.status_code}): {str(e)}')
+        if e.error_details:
+            logger.error(f'Error details: {e.error_details}')
+        return False
+    except StacksCLIException as e:
+        logger.error(f'TEST FAILED - CLI Error (exit {e.return_code}): {str(e)}')
+        if e.stderr:
+            logger.error(f'CLI stderr: {e.stderr}')
+        return False
+    except StacksValidationException as e:
+        logger.error(f'TEST FAILED - Validation Error: {str(e)}')
+        return False
+    except StacksException as e:
+        logger.error(f'TEST FAILED - Stacks Error: {str(e)}')
+        return False
     except Exception as e:
-        logger.error(f'TEST FAILED: {str(e)}')
+        logger.error(f'TEST FAILED - Unexpected Error: {str(e)}')
+        logger.error(f'Error type: {type(e).__name__}')
         return False
         
     finally:

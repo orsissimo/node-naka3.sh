@@ -5,7 +5,7 @@ import time
 import os
 from .logger import logger
 from .stacks_core_api import StacksCoreAPI, StacksCoreAPIWrapper
-from .config import ACCOUNTS, AccountManager, Miner, MiningMode
+from .config import ACCOUNTS, AccountManager, Miner, MiningMode, StacksException, StacksNetworkException, StacksTimeoutException, StacksAPIException
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PLAYBOOK_DIR = os.path.join(PROJECT_ROOT, "naka3", "playbooks", "three-miners")
@@ -38,7 +38,8 @@ class MinerManager:
                         ready_miners.append(miner_name)
                         if miner_name not in getattr(self, '_ready_miners', set()):
                             progress_made = True
-                except Exception:
+                except (StacksNetworkException, StacksTimeoutException, StacksAPIException):
+                    # Ignore transient API failures during readiness check
                     pass 
             
             # Track ready miners to detect progress
@@ -125,8 +126,9 @@ class MinerManager:
             logger.stacks("Snapshot created")
         except Exception as e:
             logger.error(f"Failed to create snapshot: {str(e)}")
+            raise StacksException(f"Failed to create snapshot: {str(e)}") from e
 
-    def snapshot_restore(self, mode: MiningMode):
+    def snapshot_restore(self, mode: MiningMode) -> bool:
         """Restore snapshot in specified mode (required).
         
         Args:
@@ -156,24 +158,24 @@ class MinerManager:
             logger.stacks("Snapshot restored")
             
             if not self.wait_for_miners_ready():
-                raise RuntimeError("Not all miners became ready within the timeout period.")
+                raise StacksException("Not all miners became ready within the timeout period.")
                 
             return True
         except Exception as e:
             logger.error(f"Failed to restore snapshot: {str(e)}")
             if self.miner_process and self.miner_process.poll() is None:
                 self.miner_process.terminate()
-            return False
+            raise StacksException(f"Failed to restore snapshot: {str(e)}") from e
 
-    def snapshot_restore_auto(self):
+    def snapshot_restore_auto(self) -> bool:
         """Restore snapshot in auto mining mode."""
         return self.snapshot_restore(MiningMode.AUTO)
     
-    def snapshot_restore_manual(self):
+    def snapshot_restore_manual(self) -> bool:
         """Restore snapshot in manual mining mode.""" 
         return self.snapshot_restore(MiningMode.MANUAL)
     
-    def info(self):
+    def info(self) -> str:
         """Show status information."""
         logger.stacks("Getting mining info...")
         try:
@@ -186,9 +188,12 @@ class MinerManager:
             )
             logger.stacks("Mining info retrieved")
             return result.stdout
-        except Exception as e:
+        except subprocess.CalledProcessError as e:
             logger.error(f"Failed to get mining info: {str(e)}")
-            return None
+            raise StacksException(f"Failed to get mining info: {str(e)}") from e
+        except Exception as e:
+            logger.error(f"Unexpected error getting mining info: {str(e)}")
+            raise StacksException(f"Unexpected error getting mining info: {str(e)}") from e
     
     def stop(self):
         """Stop the three miners."""
