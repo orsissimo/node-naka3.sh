@@ -1,32 +1,37 @@
 import subprocess
 import shlex
 import json
-from typing import List, Optional, Tuple, Dict, Any
-from dataclasses import dataclass
+from typing import List, Optional, Tuple, Dict, Any, TypeVar, Type
+from pydantic import BaseModel, Field, ValidationError
 from .logger import Colors, logger
+from .config import MICROSTX_PER_STX
 
-@dataclass
-class SecretKeyInfo:
+T = TypeVar('T', bound=BaseModel)
+
+class SecretKeyInfo(BaseModel):
     """Typed response from generate-sk command."""
-    secret_key: str
-    public_key: str
-    stacks_address: str
+    secret_key: str = Field(alias="secretKey")
+    public_key: str = Field(alias="publicKey")
+    stacks_address: str = Field(alias="stacksAddress")
+    
+    class Config:
+        populate_by_name = True
 
-@dataclass 
-class AddressInfo:
+class AddressInfo(BaseModel):
     """Typed response from addresses command."""
-    stx_address: str
-    btc_address: str
+    stx_address: str = Field(alias="STX")
+    btc_address: str = Field(alias="BTC")
+    
+    class Config:
+        populate_by_name = True
 
-@dataclass
-class TransactionResult:
+class TransactionResult(BaseModel):
     """Typed result for transaction commands."""
     tx_hex: str
     success: bool
     error_message: Optional[str] = None
 
-@dataclass
-class CLIResult:
+class CLIResult(BaseModel):
     """Generic typed result for CLI commands."""
     success: bool
     data: Optional[Any] = None
@@ -41,6 +46,37 @@ class BlockstackCLI:
     """
     def __init__(self, cli_path: str = "blockstack-cli"):
         self.cli_path = cli_path
+    
+    def _parse_json_response(self, stdout: str, response_type: Type[T]) -> Optional[T]:
+        """
+        Bulletproof automatic JSON→typed object parsing.
+        Handles malformed JSON, missing fields, and type validation automatically.
+        """
+        if not stdout or not stdout.strip():
+            logger.warning(f"Empty or None stdout for {response_type.__name__}")
+            return None
+            
+        try:
+            # Parse JSON from stdout
+            json_data = json.loads(stdout.strip())
+            logger.debug(f"Parsed JSON data: {json_data}")
+            
+            # Automatic validation and object creation via Pydantic
+            parsed_object = response_type.parse_obj(json_data)
+            logger.debug(f"Successfully created {response_type.__name__} object")
+            return parsed_object
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON decode error for {response_type.__name__}: {e}")
+            logger.error(f"Raw stdout: {repr(stdout)}")
+            return None
+        except ValidationError as e:
+            logger.error(f"Pydantic validation error for {response_type.__name__}: {e}")
+            logger.error(f"JSON data: {json_data if 'json_data' in locals() else 'N/A'}")
+            return None
+        except Exception as e:
+            logger.error(f"Unexpected error parsing {response_type.__name__}: {e}")
+            return None
 
     def _run_command(self, command_parts: List[str], testnet: bool, chain_id: Optional[str]) -> Tuple[Optional[str], Optional[str], int]:
         """Internal helper to construct and execute the final command."""
@@ -103,12 +139,7 @@ class BlockstackCLI:
         cmd = ["generate-sk"]
         stdout, _, retcode = self._run_command(cmd, testnet, chain_id)
         if retcode == 0 and stdout:
-            data = json.loads(stdout)
-            return SecretKeyInfo(
-                secret_key=data["secretKey"],
-                public_key=data["publicKey"],
-                stacks_address=data["stacksAddress"]
-            )
+            return self._parse_json_response(stdout, SecretKeyInfo)
         return None
 
     def token_transfer(self, origin_sk: str, fee_rate: int, nonce: int, recipient_address: str, amount: int, memo: Optional[str] = None, *, testnet: bool = True) -> Optional[str]:
@@ -128,21 +159,19 @@ class BlockstackCLI:
         cmd = ["addresses", secret_key]
         stdout, _, retcode = self._run_command(cmd, testnet, chain_id)
         if retcode == 0 and stdout:
-            data = json.loads(stdout)
-            return AddressInfo(
-                stx_address=data["STX"],
-                btc_address=data["BTC"]
-            )
+            return self._parse_json_response(stdout, AddressInfo)
         return None
 
     def _decode_helper(self, command: str, hex_data: str, *, testnet: bool, chain_id: Optional[str]) -> Optional[Dict[str, Any]]:
-        """Internal helper for all decode commands."""
+        """Internal helper for all decode commands - returns raw dict for decode operations."""
         cmd = [command, hex_data]
         stdout, _, retcode = self._run_command(cmd, testnet, chain_id)
         if retcode == 0 and stdout:
-            try: return json.loads(stdout)
-            except json.JSONDecodeError:
-                logger.error(f"Failed to decode JSON from stdout for command '{command}'.")
+            try: 
+                return json.loads(stdout)
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to decode JSON from stdout for command '{command}': {e}")
+                logger.error(f"Raw stdout: {repr(stdout)}")
                 return None
         return None
 
@@ -170,40 +199,63 @@ class BlockstackCLI:
 class BlockstackCLIWrapper:
     """
     High-level wrapper around BlockstackCLI providing convenient methods,
-    error handling, and abstraction for common operations. This class provides
-    the wrapper functionality for the CLI.
+    error handling, and abstraction for common operations. This safe layer
+    protects against API changes and provides graceful degradation.
     """
     
     def __init__(self, cli: Optional['BlockstackCLI'] = None):
         self.cli = cli or BlockstackCLI()
     
-    def create_new_account(self, testnet: bool = True) -> CLIResult:
-        """Create a new account with safe error handling."""
+    def _safe_execute(self, operation_name: str, operation_func) -> CLIResult:
+        """
+        Safe execution wrapper that handles all possible failure modes:
+        - CLI execution failures
+        - JSON parsing errors  
+        - Validation errors
+        - Future API changes
+        - Network/system issues
+        """
         try:
-            sk_info = self.cli.generate_sk(testnet=testnet)
-            if sk_info:
-                return CLIResult(success=True, data=sk_info)
+            result = operation_func()
+            if result is not None:
+                return CLIResult(success=True, data=result)
             else:
-                return CLIResult(success=False, error_message="Failed to generate secret key")
+                return CLIResult(
+                    success=False, 
+                    error_message=f"{operation_name} returned None - possible CLI format change or execution failure"
+                )
+        except ValidationError as e:
+            logger.warning(f"API format may have changed for {operation_name}: {e}")
+            return CLIResult(
+                success=False,
+                error_message=f"API format validation failed for {operation_name}. This may indicate a CLI version change."
+            )
         except Exception as e:
-            return CLIResult(success=False, error_message=str(e))
+            logger.error(f"Unexpected error in {operation_name}: {e}")
+            return CLIResult(
+                success=False,
+                error_message=f"Unexpected error in {operation_name}: {str(e)}"
+            )
+    
+    def create_new_account(self, testnet: bool = True) -> CLIResult:
+        """Create a new account with bulletproof error handling."""
+        return self._safe_execute(
+            "create_new_account",
+            lambda: self.cli.generate_sk(testnet=testnet)
+        )
     
     def get_account_addresses(self, secret_key: str, testnet: bool = True) -> CLIResult:
-        """Get addresses with error handling."""
-        try:
-            addresses = self.cli.get_addresses(secret_key, testnet=testnet)
-            if addresses:
-                return CLIResult(success=True, data=addresses)
-            else:
-                return CLIResult(success=False, error_message="Failed to get addresses")
-        except Exception as e:
-            return CLIResult(success=False, error_message=str(e))
+        """Get addresses with bulletproof error handling."""
+        return self._safe_execute(
+            "get_account_addresses",
+            lambda: self.cli.get_addresses(secret_key, testnet=testnet)
+        )
     
     def transfer_tokens(self, origin_sk: str, recipient: str, amount_stx: float, memo: str = "", nonce: int = 0, fee_rate: int = 1000, testnet: bool = True) -> CLIResult:
-        """Transfer STX tokens with error handling and STX→microSTX conversion."""
-        try:
+        """Transfer STX tokens with bulletproof error handling and STX→microSTX conversion."""
+        def _execute_transfer():
             # Convert STX to microSTX (1 STX = 1,000,000 microSTX)
-            amount_microstx = int(amount_stx * 1_000_000)
+            amount_microstx = int(amount_stx * MICROSTX_PER_STX)
             
             result = self.cli.token_transfer(
                 origin_sk=origin_sk,
@@ -216,12 +268,7 @@ class BlockstackCLIWrapper:
             )
             
             if result:
-                return CLIResult(success=True, data=TransactionResult(tx_hex=result, success=True))
-            else:
-                return CLIResult(success=False, error_message="Token transfer failed")
-        except Exception as e:
-            return CLIResult(success=False, error_message=str(e))
-
-
-# Note: BlockstackCLIWrapper is now the high-level wrapper class
-# BlockstackCLI is the 1:1 CLI executor with typed responses
+                return TransactionResult(tx_hex=result, success=True)
+            return None
+            
+        return self._safe_execute("transfer_tokens", _execute_transfer)

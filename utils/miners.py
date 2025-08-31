@@ -15,7 +15,7 @@ class MinerManager:
         self.miner_process = None
         self.running = False
         self.apis = {
-            name: StacksCoreAPIWrapper(StacksCoreAPI(base_url=account.api_url))
+            name: StacksCoreAPI(base_url=account.api_url)
             for name, account in AccountManager.all().items()
         }
 
@@ -111,106 +111,7 @@ class MinerManager:
     def start_manual(self) -> bool:
         """Start miners in manual mining mode."""
         return self.start(MiningMode.MANUAL)
-    
-    def stop(self):
-        """Stop the three miners."""
-        logger.stacks("Stopping miners...")
-        try:
-            subprocess.run(
-                ["./three-miners.sh", "stop"],
-                cwd=PLAYBOOK_DIR,
-                check=True,
-                capture_output=True
-            )
-            logger.stacks("Miners stopped")
-        except Exception as e:
-            logger.error(f"Failed to stop miners: {str(e)}")
-    
-    
-    def resume(self):
-        """Resume the three miners."""
-        logger.stacks("Resuming three miners...")
-        try:
-            subprocess.run(
-                ["./three-miners.sh", "resume"],
-                cwd=PLAYBOOK_DIR,
-                check=True,
-                capture_output=True
-            )
-            logger.stacks("Miners resumed")
-        except Exception as e:
-            logger.error(f"Failed to resume miners: {str(e)}")
-    
-    
-    def _manage_miner(self, action: str, miner_id: int):
-        """Internal helper to stop or resume a specific miner."""
-        action_gerund = "Stopping" if action == "stop" else "Resuming"
-        action_past = "stopped" if action == "stop" else "resumed"
 
-        logger.stacks(f"{action_gerund} miner{miner_id}...")
-        try:
-            cmd = ["../../naka3.sh", "-c", f"./config-miner-{miner_id}.sh", "node", str(miner_id), action]
-            subprocess.run(cmd, 
-                cwd=PLAYBOOK_DIR, 
-                check=True, 
-                capture_output=True
-            )
-            logger.stacks(f"Miner{miner_id} {action_past}")
-        except Exception as e:
-            logger.error(f"Failed to {action} miner{miner_id}: {str(e)}")
-
-    def stop_miner(self, miner: Miner):
-        """Stop specific miner."""
-        self._manage_miner("stop", miner.value)
-    
-    def resume_miner(self, miner: Miner):
-        """Resume specific miner."""
-        self._manage_miner("resume", miner.value)
-    
-    
-    
-    def btc_auto(self):
-        """Switch to automatic mining mode."""
-        logger.stacks("Switching to automatic mining...")
-        try:
-            subprocess.run(
-                ["./three-miners.sh", "btc_auto"],
-                cwd=PLAYBOOK_DIR,
-                check=True,
-                capture_output=True
-            )
-            logger.stacks("Switched to automatic mining")
-        except Exception as e:
-            logger.error(f"Failed to switch to automatic mining: {str(e)}")
-    
-    def btc_manual(self):
-        """Switch to manual mining mode."""
-        logger.stacks("Switching to manual mining...")
-        try:
-            subprocess.run(
-                ["./three-miners.sh", "btc_manual"],
-                cwd=PLAYBOOK_DIR,
-                check=True,
-                capture_output=True
-            )
-            logger.stacks("Switched to manual mining")
-        except Exception as e:
-            logger.error(f"Failed to switch to manual mining: {str(e)}")
-    
-    def btc_mine(self):
-        """Mine single block (manual mode only)."""
-        logger.stacks("Mining single BTC block...")
-        try:
-            subprocess.run(
-                ["./three-miners.sh", "btc_mine"],
-                cwd=PLAYBOOK_DIR,
-                check=True,
-                capture_output=True
-            )
-            logger.stacks("Block mined")
-        except Exception as e:
-            logger.error(f"Failed to mine block: {str(e)}")
-    
     def snapshot_create(self):
         """Create generic snapshot."""
         logger.stacks("Creating snapshot...")
@@ -288,6 +189,103 @@ class MinerManager:
         except Exception as e:
             logger.error(f"Failed to get mining info: {str(e)}")
             return None
+    
+    def stop(self):
+        """Stop the three miners."""
+        logger.stacks("Stopping miners...")
+        try:
+            subprocess.run(
+                ["./three-miners.sh", "stop"],
+                cwd=PLAYBOOK_DIR,
+                check=True,
+                capture_output=True
+            )
+            logger.stacks("Miners stopped")
+        except Exception as e:
+            logger.error(f"Failed to stop miners: {str(e)}")
+    
+    
+    def resume(self):
+        """Resume the three miners."""
+        logger.stacks("Resuming three miners...")
+        try:
+            subprocess.run(
+                ["./three-miners.sh", "resume"],
+                cwd=PLAYBOOK_DIR,
+                check=True,
+                capture_output=True
+            )
+            logger.stacks("Miners resumed")
+        except Exception as e:
+            logger.error(f"Failed to resume miners: {str(e)}")
+    
+    
+    def _manage_miner(self, action: str, miner_id: int):
+        """Internal helper to stop or resume a specific miner."""
+        action_gerund = "Stopping" if action == "stop" else "Resuming"
+        action_past = "stopped" if action == "stop" else "resumed"
+
+        logger.stacks(f"{action_gerund} miner{miner_id}...")
+        try:
+            cmd = ["../../naka3.sh", "-c", f"./config-miner-{miner_id}.sh", "node", str(miner_id), action]
+            subprocess.run(cmd, 
+                cwd=PLAYBOOK_DIR, 
+                check=True, 
+                capture_output=True
+            )
+            logger.stacks(f"Miner{miner_id} {action_past}")
+        except Exception as e:
+            logger.error(f"Failed to {action} miner{miner_id}: {str(e)}")
+
+    def stop_miner(self, miner: Miner):
+        """Stop specific miner."""
+        self._manage_miner("stop", miner.value)
+    
+    def resume_miner(self, miner: Miner):
+        """Resume specific miner."""
+        self._manage_miner("resume", miner.value)
+    
+    def btc_auto(self):
+        """Switch to automatic mining mode."""
+        logger.stacks("Switching to automatic mining...")
+        try:
+            subprocess.run(
+                ["./three-miners.sh", "btc_auto"],
+                cwd=PLAYBOOK_DIR,
+                check=True,
+                capture_output=True
+            )
+            logger.stacks("Switched to automatic mining")
+        except Exception as e:
+            logger.error(f"Failed to switch to automatic mining: {str(e)}")
+    
+    def btc_manual(self):
+        """Switch to manual mining mode."""
+        logger.stacks("Switching to manual mining...")
+        try:
+            subprocess.run(
+                ["./three-miners.sh", "btc_manual"],
+                cwd=PLAYBOOK_DIR,
+                check=True,
+                capture_output=True
+            )
+            logger.stacks("Switched to manual mining")
+        except Exception as e:
+            logger.error(f"Failed to switch to manual mining: {str(e)}")
+    
+    def btc_mine(self):
+        """Mine single block (manual mode only)."""
+        logger.stacks("Mining single BTC block...")
+        try:
+            subprocess.run(
+                ["./three-miners.sh", "btc_mine"],
+                cwd=PLAYBOOK_DIR,
+                check=True,
+                capture_output=True
+            )
+            logger.stacks("Block mined")
+        except Exception as e:
+            logger.error(f"Failed to mine block: {str(e)}")
 
     def cleanup(self):
         """Clean up the miner process if it's running."""

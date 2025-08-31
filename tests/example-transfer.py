@@ -145,7 +145,7 @@ def main():
             tx_hex = cli_result.data.tx_hex
             
             small_txid = api.post_raw_transaction(bytes.fromhex(tx_hex))
-            logger.success(f"Transfer #{i+1} submitted: {small_txid} - {small_amount:,} µSTX")
+            logger.success(f"Transfer #{i+1} submitted: {small_txid}")
             
             if not wait_for_confirmation(api, sender_account.address, current_nonce, current_height, timeout=120):
                 logger.error(f'Transfer #{i+1} confirmation timeout')
