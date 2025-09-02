@@ -7,7 +7,7 @@ import time
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from utils.helpers import get_block_height, wait_for_confirmation
+from utils.helpers import get_block_height, wait_for_tx_confirmation
 from utils.config import (
     AccountManager,
     Miner,

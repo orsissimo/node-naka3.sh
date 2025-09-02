@@ -8,7 +8,7 @@ import json
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from utils.helpers import get_block_height, wait_for_confirmation
+from utils.helpers import get_block_height, wait_for_tx_confirmation
 from utils.config import AccountManager, Miner
 from utils.miners import MinerManager
 from utils.logger import logger
@@ -81,7 +81,7 @@ def try_deploy_contract(miner: Miner, contract_file: str, contract_name: str) ->
         logger.success("Contract deployment submitted")
 
         # Wait for confirmation
-        if wait_for_confirmation(
+        if wait_for_tx_confirmation(
             api, account.address, initial_nonce, initial_height, timeout=30
         ):
             result["success"] = True

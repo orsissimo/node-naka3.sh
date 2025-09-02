@@ -7,7 +7,6 @@ import json
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from utils.helpers import wait_for_confirmation
 from utils.config import (
     AccountManager,
     Miner,
@@ -92,8 +91,8 @@ def main():
 
         # Step 4: Wait for confirmation
         logger.header("Step 4: Wait for confirmation")
-        wait_for_confirmation(
-            api, sender_account.address, initial_nonce, initial_height, timeout=120
+        api.wait_for_tx_confirmation(
+            transfer_txid, sender_account.address, initial_nonce, initial_height, timeout=120
         )
         logger.success("Transfer confirmed!")
 
@@ -165,8 +164,8 @@ def main():
             logger.success(f"Transfer #{i+1} submitted: {small_txid}")
 
             try:
-                wait_for_confirmation(
-                    api,
+                api.wait_for_tx_confirmation(
+                    small_txid,
                     sender_account.address,
                     current_nonce,
                     current_height,

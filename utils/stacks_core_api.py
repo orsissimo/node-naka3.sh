@@ -430,6 +430,94 @@ class StacksCoreAPI:
             raise StacksAPIException(f"Invalid signer block count response: {resp}")
         return int(resp)
 
+    def wait_for_tx_confirmation(
+        self,
+        txid: str,
+        account_address: str,
+        initial_nonce: int,
+        initial_height: int,
+        timeout: int = 60,
+    ) -> bool:
+        """Wait for transaction confirmation using smart block-based polling with detailed API response parsing"""
+        import time
+
+        start_time = time.time()
+        last_checked_height = initial_height
+        consecutive_failures = 0
+        max_consecutive_failures = 5
+
+        while time.time() - start_time < timeout:
+            try:
+                # Get current node info with parsed response logging
+                response = self._make_request("GET", "/v2/info")
+                info_data = self.handle_api_response(response)
+                node_info = self._parse_json_response(info_data, NodeInfo)
+                current_height = node_info.stacks_tip_height
+
+                # Only check transaction when block height increases (more efficient)
+                if current_height > last_checked_height:
+                    try:
+                        # Check transaction result via v3/transaction endpoint with parsed response logging
+                        response = self._make_request("GET", f"/v3/transaction/{txid}")
+                        tx_data = self.handle_api_response(response)
+                        
+                        # Parse transaction details through _parse_json_response
+                        tx_details = self._parse_json_response(tx_data, TransactionDetails)
+                        
+                        # Check if transaction has result field with '(ok true)'
+                        if tx_details.result == '(ok true)':
+                            logger.debug(f"Transaction {txid} successful with result: '(ok true)'")
+                            return True
+                        elif tx_details.result:
+                            logger.debug(f"Transaction {txid} completed with result: {tx_details.result}")
+                            return False  # Transaction completed but not successful
+                            
+                    except StacksAPIException as e:
+                        # Transaction not found yet
+                        if "404" in str(e):
+                            logger.debug(f"Transaction {txid} not found yet in block {current_height}")
+                        else:
+                            raise  # Re-raise non-404 errors
+
+                    last_checked_height = current_height
+                    # Short sleep after block change
+                    time.sleep(1)
+                else:
+                    # Longer sleep when no new blocks (more efficient)
+                    time.sleep(3)
+
+                # Reset failure counter on success
+                consecutive_failures = 0
+
+            except (StacksNetworkException, StacksTimeoutException) as e:
+                consecutive_failures += 1
+                logger.warning(
+                    f"Network error during confirmation wait ({consecutive_failures}/{max_consecutive_failures}): {e}"
+                )
+
+                if consecutive_failures >= max_consecutive_failures:
+                    raise StacksNetworkException(
+                        f"Too many consecutive network failures during confirmation wait: {e}"
+                    ) from e
+
+                time.sleep(2)
+            except StacksAPIException as e:
+                consecutive_failures += 1
+                logger.warning(
+                    f"API error during confirmation wait ({consecutive_failures}/{max_consecutive_failures}): {e}"
+                )
+
+                if consecutive_failures >= max_consecutive_failures:
+                    raise StacksAPIException(
+                        f"Too many consecutive API failures during confirmation wait: {e}"
+                    ) from e
+
+                time.sleep(2)
+
+        raise StacksTimeoutException(
+            f"Transaction confirmation timeout after {timeout}s for account {account_address}"
+        )
+
 
 class NodeInfo(BaseModel):
     """Typed node information from /v2/info endpoint."""
@@ -503,9 +591,12 @@ class PoxInfo(BaseModel):
 class TransactionDetails(BaseModel):
     """Transaction details from /v3/transaction endpoint."""
 
-    txid: str
-    tx_status: str  # Raw string from API
-    tx_type: str
+    index_block_hash: Optional[str] = None
+    tx: Optional[str] = None  # Raw transaction hex
+    result: Optional[str] = None  # Contract call result like '(ok true)'
+    txid: Optional[str] = None  # Added manually by our code
+    tx_status: Optional[str] = None  # Added manually by our code  
+    tx_type: Optional[str] = None  # Added manually by our code
     receipt_time: Optional[int] = None
     receipt_time_iso: Optional[str] = None
 

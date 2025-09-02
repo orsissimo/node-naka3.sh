@@ -46,7 +46,7 @@ Exception
 pip packages
 
 Pydantic is a Python library for data validation and parsing using type hints. We're using it for:
-  1. Type-safe data models - All your classes like Account, TransferInfo, DeploymentInfo inherit from BaseModel
+  1. Type-safe data models - All classes like Account, TransferInfo, DeploymentInfo inherit from BaseModel
   2. Automatic validation - Ensures data types are correct when creating objects
   3. IDE autocompletion - Provides full IntelliSense support
   4. JSON serialization/deserialization - Easy conversion to/from JSON

@@ -7,11 +7,6 @@ import json
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from utils.helpers import (
-    get_account_info_typed,
-    get_block_height,
-    wait_for_confirmation,
-)
 from utils.config import AccountManager, Miner
 from utils.miners import MinerManager
 from utils.logger import Colors
@@ -64,7 +59,7 @@ def main():
             f"{Colors.format_success('Contract deployed')}: {Colors.format_info(deploy_txid)}"
         )
 
-        if not wait_for_confirmation(
+        if not wait_for_tx_confirmation(
             api, account.address, initial_nonce, initial_height, timeout=120
         ):
             raise RuntimeError("Contract deployment confirmation timeout")
@@ -104,7 +99,7 @@ def main():
         increment_txid = api.post_raw_transaction(bytes.fromhex(tx_hex))
         logger.success(f"Contract call submitted: {increment_txid}")
 
-        if not wait_for_confirmation(
+        if not wait_for_tx_confirmation(
             api, account.address, initial_nonce, initial_height, timeout=120
         ):
             raise RuntimeError("Contract call confirmation timeout")
@@ -144,7 +139,7 @@ def main():
         reset_txid = api.post_raw_transaction(bytes.fromhex(tx_hex))
         logger.success(f"Contract call submitted: {reset_txid}")
 
-        if not wait_for_confirmation(
+        if not wait_for_tx_confirmation(
             api, account.address, initial_nonce, initial_height, timeout=120
         ):
             raise RuntimeError("Contract call confirmation timeout")

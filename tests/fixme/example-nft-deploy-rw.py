@@ -7,7 +7,7 @@ import json
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from utils.helpers import get_block_height, wait_for_confirmation
+from utils.helpers import get_block_height, wait_for_tx_confirmation
 from utils.config import AccountManager, Miner
 from utils.miners import MinerManager
 from utils.logger import logger
@@ -55,7 +55,7 @@ def main():
         logger.standard("Contract deployed", deploy_txid)
         logger.success("Contract deployed successfully")
 
-        if not wait_for_confirmation(
+        if not wait_for_tx_confirmation(
             api, account.address, initial_nonce, initial_height, timeout=120
         ):
             raise RuntimeError("Contract deployment confirmation timeout")
@@ -139,7 +139,7 @@ def main():
         set_uri_txid = api.post_raw_transaction(bytes.fromhex(tx_hex))
         logger.standard("Contract call submitted", set_uri_txid)
 
-        if not wait_for_confirmation(
+        if not wait_for_tx_confirmation(
             api, account.address, initial_nonce, initial_height, timeout=120
         ):
             raise RuntimeError("Contract call confirmation timeout")
@@ -163,7 +163,7 @@ def main():
         set_attr_txid = api.post_raw_transaction(bytes.fromhex(tx_hex))
         logger.standard("Contract call submitted", set_attr_txid)
 
-        if not wait_for_confirmation(
+        if not wait_for_tx_confirmation(
             api, account.address, initial_nonce, initial_height, timeout=120
         ):
             raise RuntimeError("Contract call confirmation timeout")
@@ -187,7 +187,7 @@ def main():
         set_icon_txid = api.post_raw_transaction(bytes.fromhex(tx_hex))
         logger.standard("Contract call submitted", set_icon_txid)
 
-        if not wait_for_confirmation(
+        if not wait_for_tx_confirmation(
             api, account.address, initial_nonce, initial_height, timeout=120
         ):
             raise RuntimeError("Contract call confirmation timeout")
@@ -213,7 +213,7 @@ def main():
         set_tokens_txid = api.post_raw_transaction(bytes.fromhex(tx_hex))
         logger.standard("Contract call submitted", set_tokens_txid)
 
-        if not wait_for_confirmation(
+        if not wait_for_tx_confirmation(
             api, account.address, initial_nonce, initial_height, timeout=120
         ):
             raise RuntimeError("Contract call confirmation timeout")
@@ -237,7 +237,7 @@ def main():
         mint_txid = api.post_raw_transaction(bytes.fromhex(tx_hex))
         logger.standard("Contract call submitted", mint_txid)
 
-        if not wait_for_confirmation(
+        if not wait_for_tx_confirmation(
             api, account.address, initial_nonce, initial_height, timeout=120
         ):
             raise RuntimeError("Contract call confirmation timeout")

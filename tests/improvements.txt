@@ -1,7 +1,7 @@
 PRIMARY:
 - Fixare test-miner-stop-resume in modo che usi tutti i miner in modo intelligente ---> Pre resume tutti usano miner2 come endpoint di verifica + ensure its working fine
     - Si è rotto miners stop resume completamente.
-- Dobbiamo usare def wait_for_confirmation(api: StacksCoreAPIWrapper, account_address: str, initial_nonce: int, initial_height: int, timeout: int = 60) -> bool: in helpers.py nei /test
+- Dobbiamo usare def wait_for_tx_confirmation(api: StacksCoreAPIWrapper, account_address: str, initial_nonce: int, initial_height: int, timeout: int = 60) -> bool: in helpers.py nei /test
 - Dobbiamo mostrare la response anche nelle write functions:
     ANCHE IN:
         - Step 7: Check collection data frozen

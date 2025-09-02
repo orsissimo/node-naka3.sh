@@ -1,4 +1,4 @@
-# Test Suite
+# Test Suite (Must be updated for the new, updated, structure)
 
 This directory contains the test suite for the Stacks blockchain project. Tests are written in Python and focus on contract deployment, interaction, and blockchain functionality.
 
@@ -25,7 +25,7 @@ import json
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from utils.helpers import get_account_info_typed, wait_for_confirmation
+from utils.helpers import get_account_info_typed, wait_for_tx_confirmation
 from utils.config import AccountManager, Miner, MiningMode
 from utils.miners import MinerManager
 from utils.logger import Colors
@@ -82,7 +82,7 @@ if __name__ == "__main__":
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 # Import required modules
-from utils.helpers import get_account_info_typed, get_block_height, wait_for_confirmation
+from utils.helpers import get_account_info_typed, get_block_height, wait_for_tx_confirmation
 from utils.config import AccountManager, Miner, MiningMode
 from utils.miners import MinerManager
 from utils.logger import Colors
@@ -134,7 +134,7 @@ tx_hex = cli.publish_contract(
 
 # Submit and wait for confirmation
 txid = api.post_raw_transaction(bytes.fromhex(tx_hex))
-if not wait_for_confirmation(api, account.address, initial_nonce, initial_height, timeout=120):
+if not wait_for_tx_confirmation(api, account.address, initial_nonce, initial_height, timeout=120):
     raise RuntimeError("Contract deployment confirmation timeout")
 ```
 
@@ -174,7 +174,7 @@ tx_hex = cli.call_contract(
 
 # Submit and confirm
 txid = api.post_raw_transaction(bytes.fromhex(tx_hex))
-if not wait_for_confirmation(api, account.address, initial_nonce, initial_height, timeout=120):
+if not wait_for_tx_confirmation(api, account.address, initial_nonce, initial_height, timeout=120):
     raise RuntimeError("Contract call confirmation timeout")
 ```
 
@@ -197,7 +197,7 @@ For detailed documentation on all utility functions, data structures, and advanc
 **Essential Functions (`utils.helpers`)**
 - `get_account_info_typed(api, address)` - Get account info with IDE autocompletion (use .nonce and .balance)
 - `get_block_height(api)` - Current block height with autocompletion
-- `wait_for_confirmation(api, address, nonce, height, timeout)` - Wait for confirmation
+- `wait_for_tx_confirmation(api, address, nonce, height, timeout)` - Wait for confirmation
 
 **Direct API/CLI Usage**
 - `account = AccountManager.get(Miner.MINER1)` - Get account config
