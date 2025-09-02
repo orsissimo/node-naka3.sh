@@ -81,6 +81,8 @@ class Logger:
         timestamp = self._get_timestamp()
         formatted = self._format_with_color(text, color or Colors.WHITE)
         print(f"{timestamp} - {formatted}")
+        # TODO: Cambiare in chiave-valore: logger.info(format("Key: {amount}"), Colors.Orange) ---- al posto di standard
+        # TODO: Quindi toglierò alcune funzioni (stacks, standard, ecc...)
 
     def success(self, text: str, color: Optional[str] = None) -> None:
         """Log success message."""
@@ -152,3 +154,20 @@ logger = Logger()
 
 # Export for easy access
 __all__ = ["logger", "Colors"]
+
+# TODO: Aggiungere una possibilità di loggare solo info di default, debug se serve, ecc ecc ecc... Tutto in base a delle --flag del comando (o .env variables)
+# TODO: Questi dovrebbero avere INFO
+"""
+10:32:22 - Starting miners...
+10:32:22 - Restoring snapshot in auto mode...
+10:32:22 - Verifying all miner endpoints are ready...
+...
+10:32:32 - Miner 1 is now ready
+10:32:32 - Miner 2 is now ready
+10:32:32 - Miner 3 is now ready
+10:32:32 - All 3 miners are ready.
+10:32:32 - Snapshot restored
+10:32:32 - Verifying all miner endpoints are ready...
+"""
+# TODO: Settare lo stile del logger così: [DATA:ORA][LEVEL] Message
+# TODO: [INFO], [DEBG], ecc... tutti di 4 char

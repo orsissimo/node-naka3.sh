@@ -89,3 +89,27 @@ SECONDARY:
 - Potremmo gestire CTRL+C stop per fare fare ./three-miners stop prima di interrompere tutto, così da non "corrompere" lo snapshot.
 - Più avanti, funzioni uguali dentro ai vari file in /tests dovrebbero essere messe in un file utils.py, così da non duplicare codice.
 - Il debugger va bene così com'è? Vorrei vedere HH:MM:SS sempre per dire.
+
+
+------
+
+GetTransaction(...) {
+  response = make_request
+  object = parse_object(response)
+}
+
+11:13
+_do_request(...) -> T {
+   response = make_request
+  object = parse_object(response)
+}
+
+do_get
+do_post
+
+11:13
+GetTransaction(...) -> TransactionDetail {
+   return do_request()
+  } ------> Che deve fare risalire le eccezioni
+
+  MAKE REQUEST ---> SEND REQUEST

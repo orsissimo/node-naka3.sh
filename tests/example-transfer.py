@@ -49,10 +49,14 @@ def main():
         recipient_account_info = api.get_account_info(recipient_account.address)
         recipient_initial_balance = recipient_account_info.balance
 
+        # FIXME: logger.standard diventa logger.info con relativa formattazione (Vedi TODO in logger.py)
         logger.standard("Sender address", sender_account.address)
         logger.standard("Sender initial balance", sender_initial_balance, "µSTX")
         logger.standard("Recipient address", recipient_account.address)
         logger.standard("Recipient initial balance", recipient_initial_balance, "µSTX")
+        # TODO: Potrei creare un oggetto relativo al balance con STACKS_AMOUNT (amount di stacks) e UNITA_MISURA (quando a pylance arriva XYZ lui deve convertirlo in ...)
+        # TODO: Il balance amount avrà anche BTC_AMOUNT, ....
+        # TODO: Avrò anche funzioni .to_stx(), to_uSTX(), to_btc(), to_sats(), ecc ecc
 
         # Step 2: Prepare transfer
         logger.header("Step 2: Prepare transfer")
@@ -74,12 +78,14 @@ def main():
         cli_result = cli.transfer_tokens(
             sender_account.private_key,  # Private key for signing
             recipient_account.address,  # Recipient address
-            transfer_amount / 1_000_000,  # Amount in STX (convert from µSTX)
+            transfer_amount / 1_000_000,  # Amount in STX (convert from µSTX) # TODO: Quando avrò l'oggetto STACKS_AMOUNT, lui farà la conversione automaticamente
             transfer_memo,  # Transfer memo
             initial_nonce,  # Current nonce
-            fee,  # Transaction fee
+            fee,  # Transaction fee # TODO: Creo oggetto anche per FEE con la stessa logica di STACKS_AMOUNT (fee in STX, µSTX, ecc...) ---> Di base memorizzo in µSTX, sempre
         )
 
+        # FIXME: Qua è inutile lanciare l'eccezione, dovrebbe essere gestita internamente
+        # TODO: Se ho bisogno esplicito di uscire dal try e fare shutdown, dovrei usare un'exeption ad hoc (esplicativa) da usare per fare escape -- RecipeFailedException
         if not cli_result.success:
             raise StacksCLIException(
                 f"Token transfer failed: {cli_result.error_message}"
@@ -91,6 +97,7 @@ def main():
 
         # Step 4: Wait for confirmation
         logger.header("Step 4: Wait for confirmation")
+        # TODO: La confirmation la sposto in stacks_chain.py (che quando istanzio ha dentro API, CLI e Wrapper) --> Che non ha tanta logica, ma fa da "façade" di altri file
         api.wait_for_tx_confirmation(
             transfer_txid, sender_account.address, initial_nonce, initial_height, timeout=120
         )
@@ -194,28 +201,7 @@ def main():
 
         return True
 
-    except StacksTimeoutException as e:
-        logger.error(f"TEST FAILED - Timeout: {str(e)}")
-        return False
-    except StacksNetworkException as e:
-        logger.error(f"TEST FAILED - Network Error: {str(e)}")
-        return False
-    except StacksAPIException as e:
-        logger.error(f"TEST FAILED - API Error ({e.status_code}): {str(e)}")
-        if e.error_details:
-            logger.error(f"Error details: {e.error_details}")
-        return False
-    except StacksCLIException as e:
-        logger.error(f"TEST FAILED - CLI Error (exit {e.return_code}): {str(e)}")
-        if e.stderr:
-            logger.error(f"CLI stderr: {e.stderr}")
-        return False
-    except StacksValidationException as e:
-        logger.error(f"TEST FAILED - Validation Error: {str(e)}")
-        return False
-    except StacksException as e:
-        logger.error(f"TEST FAILED - Stacks Error: {str(e)}")
-        return False
+    # TODO: Qua posso tenere solo Exception. Tanto poi mi viene detto quale tipo di eccezione è
     except Exception as e:
         logger.error(f"TEST FAILED - Unexpected Error: {str(e)}")
         logger.error(f"Error type: {type(e).__name__}")
@@ -233,3 +219,5 @@ if __name__ == "__main__":
 
     success = main()
     sys.exit(0 if success else 1)
+
+# TODO: (LATER): Potrei partire da alcuni test base (che estendono da alcuni file) - Che fanno da "template"

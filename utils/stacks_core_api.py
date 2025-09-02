@@ -103,12 +103,15 @@ class StacksCoreAPI:
         except requests.exceptions.ConnectionError as e:
             logger.critical(f"Connection error occurred: {str(e)}")
             raise StacksNetworkException(f"Connection error for {method} {url}") from e
+        # FIXME: Potrei fare except StacksHTTPException, che ha error_code: XYZ + error_message
+        # FIXME: Dove ora cerco "404" nella stringa, poi controllo StacksHTTPException.error_code
         except requests.exceptions.RequestException as e:
             logger.critical(f"An HTTP request error occurred: {str(e)}")
             raise StacksNetworkException(
                 f"Request failed for {method} {url}: {str(e)}"
             ) from e
 
+    # TODO: Chiamo _parse_json_response qua dentro
     def handle_api_response(self, response: requests.Response) -> Any:
         """
         Centralized handler for all API responses.
@@ -180,6 +183,7 @@ class StacksCoreAPI:
 
         # Use existing AccountInfo from config (not Pydantic model)
         return AccountInfo(address=principal, balance=balance, nonce=data["nonce"])
+        # FIXME: parse_json_response
 
     def get_pox_info(self, *, tip: Optional[str] = None) -> "PoxInfo":
         """GET /v2/pox - Get Proof of Transfer (PoX) information as typed object."""
@@ -449,6 +453,7 @@ class StacksCoreAPI:
         while time.time() - start_time < timeout:
             try:
                 # Get current node info with parsed response logging
+                # FIXME: Qua c'è ripetizione, chiamo direttamente get_info, uguale per v3/txid
                 response = self._make_request("GET", "/v2/info")
                 info_data = self.handle_api_response(response)
                 node_info = self._parse_json_response(info_data, NodeInfo)
@@ -457,21 +462,24 @@ class StacksCoreAPI:
                 # Only check transaction when block height increases (more efficient)
                 if current_height > last_checked_height:
                     try:
+                        ###
                         # Check transaction result via v3/transaction endpoint with parsed response logging
                         response = self._make_request("GET", f"/v3/transaction/{txid}")
                         tx_data = self.handle_api_response(response)
                         
                         # Parse transaction details through _parse_json_response
                         tx_details = self._parse_json_response(tx_data, TransactionDetails)
+                        ###
                         
                         # Check if transaction has result field with '(ok true)'
                         if tx_details.result == '(ok true)':
                             logger.debug(f"Transaction {txid} successful with result: '(ok true)'")
                             return True
-                        elif tx_details.result:
+                        else:
                             logger.debug(f"Transaction {txid} completed with result: {tx_details.result}")
                             return False  # Transaction completed but not successful
-                            
+
+                    # FIXME:     
                     except StacksAPIException as e:
                         # Transaction not found yet
                         if "404" in str(e):
