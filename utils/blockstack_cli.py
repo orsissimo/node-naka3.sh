@@ -55,7 +55,24 @@ class BlockstackCLI:
     """
 
     def __init__(self, cli_path: str = "blockstack-cli"):
-        self.cli_path = cli_path
+        self._cli_path = self._validate_cli_path(cli_path)
+
+    def _validate_cli_path(self, cli_path: str) -> str:
+        """Validate CLI path"""
+        if not cli_path:
+            raise ValueError("CLI path cannot be empty")
+        if not isinstance(cli_path, str):
+            raise TypeError("CLI path must be a string")
+        # Strip whitespace and ensure no path injection
+        cli_path = cli_path.strip()
+        if not cli_path:
+            raise ValueError("CLI path cannot be only whitespace")
+        return cli_path
+
+    @property
+    def cli_path(self) -> str:
+        """Get the CLI executable path (read-only)"""
+        return self._cli_path
 
     def _parse_json_response(self, stdout: str, response_type: Type[T]) -> T:
         """
@@ -101,7 +118,7 @@ class BlockstackCLI:
         self, command_parts: List[str], testnet: bool, chain_id: Optional[str]
     ) -> Tuple[Optional[str], Optional[str], int]:
         """Internal helper to construct and execute the final command."""
-        base_cmd = [self.cli_path]
+        base_cmd = [self._cli_path]
         if testnet:
             base_cmd.append(f"--testnet{f'={chain_id}' if chain_id else ''}")
 
@@ -135,10 +152,10 @@ class BlockstackCLI:
             return stdout, stderr, process.returncode
         except FileNotFoundError as e:
             logger.critical(
-                f"Executable not found at '{self.cli_path}'. Please ensure it is installed and in your PATH."
+                f"Executable not found at '{self._cli_path}'. Please ensure it is installed and in your PATH."
             )
             raise StacksCLIException(
-                f"Executable not found at '{self.cli_path}'", return_code=1
+                f"Executable not found at '{self._cli_path}'", return_code=1
             ) from e
         except Exception as e:
             logger.critical(f"An unexpected error occurred: {e}")
