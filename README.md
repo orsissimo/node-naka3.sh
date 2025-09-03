@@ -59,3 +59,23 @@ Black is an opinionated formatter that automatically fixes code style issues lik
   - black --line-length 100 . - Use 100 char line limit instead of default 88
 
 ---
+
+To see debug logs, you need to set the LOG_LEVEL environment variable to debug:
+
+  LOG_LEVEL=debug python3 tests/example-transfer.py
+
+  This will show all log levels including debug messages. The available log levels are:
+
+  - LOG_LEVEL=debug - Shows everything (debug, info, warning, error)
+  - LOG_LEVEL=info - Shows info, warning, error (default)
+  - LOG_LEVEL=warning - Shows only warning and error
+  - LOG_LEVEL=error - Shows only error messages
+
+  You can also set it for the current session:
+  export LOG_LEVEL=debug
+  python3 tests/example-transfer.py
+
+  The debug messages will appear with the format:
+  [21:19:02][DEBG] Debug information here
+
+---

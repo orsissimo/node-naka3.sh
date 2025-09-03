@@ -1,6 +1,25 @@
-import logging
+import os
 from typing import Optional, Any
 from enum import Enum
+
+
+class LogLevel(Enum):
+    """Log level enumeration with filtering support."""
+    DEBUG = 0
+    INFO = 1
+    WARNING = 2
+    ERROR = 3
+    
+    @classmethod
+    def from_string(cls, level_str: str) -> "LogLevel":
+        """Convert string to LogLevel enum."""
+        level_map = {
+            'debug': cls.DEBUG,
+            'info': cls.INFO,
+            'warning': cls.WARNING,
+            'error': cls.ERROR,
+        }
+        return level_map.get(level_str.lower(), cls.INFO)
 
 
 class Colors:
@@ -20,14 +39,16 @@ class Colors:
 
 
 class Logger:
-    """Clean logger with semantic methods and optional color overrides."""
+    """Clean logger with semantic methods, log level filtering, and f-string key-value support."""
 
-    def __init__(self):
-        pass
+    def __init__(self, min_level: Optional[LogLevel] = None):
+        # Get log level from environment or default to INFO
+        env_level = os.getenv('LOG_LEVEL', 'info')
+        self._min_level = min_level or LogLevel.from_string(env_level)
 
-    def _get_color_code(self, color: str) -> str:
-        """Get ANSI color code directly from Colors class."""
-        return color
+    def _should_log(self, level: LogLevel) -> bool:
+        """Check if message should be logged based on minimum level."""
+        return level.value >= self._min_level.value
 
     def _format_with_color(self, text: str, color: Optional[str]) -> str:
         """Apply color formatting to text."""
@@ -36,138 +57,84 @@ class Logger:
         return text
 
     def _get_timestamp(self) -> str:
-        """Get current timestamp in HH:MM:SS format."""
+        """Get current timestamp in [HH:MM:SS] format."""
         import datetime
+        return f"[{datetime.datetime.now().strftime('%H:%M:%S')}]"
 
-        return datetime.datetime.now().strftime("%H:%M:%S")
+    def _format_message(self, level_tag: str, message: str, color: Optional[str]) -> str:
+        """Format message with new [TIME][LEVEL] Message format."""
+        timestamp = self._get_timestamp()
+        formatted_message = self._format_with_color(message, color)
+        return f"{timestamp}[{level_tag}] {formatted_message}"
 
     def header(self, text: str, color: Optional[str] = None) -> None:
-        """Log a step header with automatic spacing."""
+        """Log a step header with automatic spacing (always shown regardless of log level)."""
         formatted = self._format_with_color(text, color or Colors.BLUE)
         print(f"{'=' * 60}")
         print(formatted)
         print(f"{'=' * 60}")
 
-    def standard(
-        self,
-        key: str,
-        value: Any,
-        unit: Optional[str] = None,
-        color: Optional[str] = None,
-    ) -> None:
-        """Log key-value pairs with smart formatting."""
-        timestamp = self._get_timestamp()
-        # Smart value formatting
-        if isinstance(value, int) and abs(value) > 1000:
-            formatted_value = f"{value:,}"
-        else:
-            formatted_value = str(value)
+    def info(self, message: str, color: Optional[str] = None) -> None:
+        """Log general information with f-string key-value support.
+        
+        Usage: 
+          logger.info("Starting process")
+          logger.info(f"Sender: {address}", Colors.ORANGE)
+          logger.info(f"Balance: {balance:,} µSTX")
+        """
+        if not self._should_log(LogLevel.INFO):
+            return
+        formatted = self._format_message("INFO", message, color or Colors.WHITE)
+        print(formatted)
 
-        if unit:
-            formatted_value += f" {unit}"
-
-        # Auto-detect addresses and dim them
-        if isinstance(value, str) and value.startswith("ST"):
-            value_color = color or Colors.DIM
-        else:
-            value_color = color or Colors.WHITE
-
-        key_part = self._format_with_color(key, Colors.WHITE)
-        value_part = self._format_with_color(formatted_value, value_color)
-        print(f"{timestamp} - {key_part}: {value_part}")
-
-    def info(self, text: str, color: Optional[str] = None) -> None:
-        """Log general information."""
-        timestamp = self._get_timestamp()
-        formatted = self._format_with_color(text, color or Colors.WHITE)
-        print(f"{timestamp} - {formatted}")
-        # TODO: Cambiare in chiave-valore: logger.info(format("Key: {amount}"), Colors.Orange) ---- al posto di standard
-        # TODO: Quindi toglierò alcune funzioni (stacks, standard, ecc...)
-
-    def success(self, text: str, color: Optional[str] = None) -> None:
+    def success(self, message: str, color: Optional[str] = None) -> None:
         """Log success message."""
-        timestamp = self._get_timestamp()
-        default_color = color or Colors.GREEN
-        formatted = self._format_with_color(f"✓ {text}", default_color)
-        print(f"{timestamp} - {formatted}")
+        if not self._should_log(LogLevel.INFO):
+            return
+        success_msg = f"✓ {message}"
+        formatted = self._format_message("SUCC", success_msg, color or Colors.GREEN)
+        print(formatted)
 
-    def error(self, text: str, color: Optional[str] = None) -> None:
+    def error(self, message: str, color: Optional[str] = None) -> None:
         """Log error message."""
-        timestamp = self._get_timestamp()
-        default_color = color or Colors.RED
-        formatted = self._format_with_color(f"✗ {text}", default_color)
-        print(f"{timestamp} - {formatted}")
+        if not self._should_log(LogLevel.ERROR):
+            return
+        error_msg = f"✗ {message}"
+        formatted = self._format_message("ERRO", error_msg, color or Colors.RED)
+        print(formatted)
 
-    def warn(self, text: str, color: Optional[str] = None) -> None:
+    def warning(self, message: str, color: Optional[str] = None) -> None:
         """Log warning message."""
-        timestamp = self._get_timestamp()
-        default_color = color or Colors.YELLOW
-        formatted = self._format_with_color(f"⚠ {text}", default_color)
-        print(f"{timestamp} - {formatted}")
+        if not self._should_log(LogLevel.WARNING):
+            return
+        warning_msg = f"⚠ {message}"
+        formatted = self._format_message("WARN", warning_msg, color or Colors.YELLOW)
+        print(formatted)
 
-    def warning(self, text: str, color: Optional[str] = None) -> None:
-        """Log warning message (alias for warn)."""
-        self.warn(text, color)
+    def debug(self, message: str, color: Optional[str] = None) -> None:
+        """Log debug message."""
+        if not self._should_log(LogLevel.DEBUG):
+            return
+        formatted = self._format_message("DEBG", message, color or Colors.GREY)
+        print(formatted)
 
-    def dim(self, text: str, color: Optional[str] = None) -> None:
-        """Log dimmed/secondary text."""
-        timestamp = self._get_timestamp()
-        formatted = self._format_with_color(text, color or Colors.DIM)
-        print(f"{timestamp} - {formatted}")
+    # Convenience methods for backward compatibility during migration
+    def warn(self, message: str, color: Optional[str] = None) -> None:
+        """Alias for warning method."""
+        self.warning(message, color)
 
-    def subheader(self, text: str, color: Optional[str] = None) -> None:
-        """Log sub-section header."""
-        timestamp = self._get_timestamp()
-        formatted = self._format_with_color(text, color or Colors.CYAN)
-        print(f"{timestamp} - {formatted}")
+    def critical(self, message: str, color: Optional[str] = None) -> None:
+        """Log critical message (maps to error with CRITICAL prefix)."""
+        critical_msg = f"CRITICAL - {message}"
+        self.error(critical_msg, color or f"{Colors.BOLD}{Colors.RED}")
 
-    def stacks(self, text: str, color: Optional[str] = None) -> None:
-        """Log Stacks-specific data (default orange)."""
-        timestamp = self._get_timestamp()
-        formatted = self._format_with_color(text, color or Colors.ORANGE)
-        print(f"{timestamp} - {formatted}")
-
-    def custom(self, text: str, color: str) -> None:
-        """Log with custom color (always requires color)."""
-        timestamp = self._get_timestamp()
-        formatted = self._format_with_color(text, color)
-        print(f"{timestamp} - {formatted}")
-
-    # Debug and critical methods with simple colored output
-    def debug(self, msg: str) -> None:
-        """Log debug message with timestamp."""
-        timestamp = self._get_timestamp()
-        formatted_msg = f"{Colors.GREY}{timestamp} - DEBUG - {msg}{Colors.RESET}"
-        print(formatted_msg)
-
-    def critical(self, msg: str) -> None:
-        """Log critical message with timestamp."""
-        timestamp = self._get_timestamp()
-        formatted_msg = (
-            f"{Colors.BOLD}{Colors.RED}{timestamp} - CRITICAL - {msg}{Colors.RESET}"
-        )
-        print(formatted_msg)
+    def set_level(self, level: LogLevel) -> None:
+        """Change the minimum log level at runtime."""
+        self._min_level = level
 
 
-# Create simple logger instance
+# Create logger instance with environment-based configuration
 logger = Logger()
 
 # Export for easy access
-__all__ = ["logger", "Colors"]
-
-# TODO: Aggiungere una possibilità di loggare solo info di default, debug se serve, ecc ecc ecc... Tutto in base a delle --flag del comando (o .env variables)
-# TODO: Questi dovrebbero avere INFO
-"""
-10:32:22 - Starting miners...
-10:32:22 - Restoring snapshot in auto mode...
-10:32:22 - Verifying all miner endpoints are ready...
-...
-10:32:32 - Miner 1 is now ready
-10:32:32 - Miner 2 is now ready
-10:32:32 - Miner 3 is now ready
-10:32:32 - All 3 miners are ready.
-10:32:32 - Snapshot restored
-10:32:32 - Verifying all miner endpoints are ready...
-"""
-# TODO: Settare lo stile del logger così: [DATA:ORA][LEVEL] Message
-# TODO: [INFO], [DEBG], ecc... tutti di 4 char
+__all__ = ["logger", "Colors", "LogLevel"]

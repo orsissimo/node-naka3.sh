@@ -649,6 +649,7 @@ class StacksCoreAPI:
                 if current_height > last_checked_height:
                     try:
                         # Check transaction result using existing method (eliminates repetition)
+                        logger.debug(f"Checking transaction {txid} at block height {current_height}")
                         tx_details = self.get_transaction_by_id(txid)
                         
                         # Check if transaction has result field with '(ok true)'
