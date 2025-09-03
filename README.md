@@ -1,3 +1,5 @@
+cd naka3/playbooks/three-miners && ./three-miners.sh snapshot create
+
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -55,3 +57,5 @@ Black is an opinionated formatter that automatically fixes code style issues lik
   Common usage:
   - black . - Format all Python files in current directory
   - black --line-length 100 . - Use 100 char line limit instead of default 88
+
+---
