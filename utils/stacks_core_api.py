@@ -714,11 +714,14 @@ class StacksCoreAPI:
 
             except (StacksNetworkException, StacksTimeoutException) as e:
                 consecutive_failures += 1
-                logger.warning(
-                    f"Network error during confirmation wait ({consecutive_failures}/{max_consecutive_failures}): {e}"
-                )
-
-                if consecutive_failures >= max_consecutive_failures:
+                if consecutive_failures < max_consecutive_failures:
+                    logger.warning(
+                        f"Network error during confirmation wait (retrying {consecutive_failures}/{max_consecutive_failures}): {type(e).__name__}"
+                    )
+                else:
+                    logger.error(
+                        f"Network error during confirmation wait (final failure {consecutive_failures}/{max_consecutive_failures}): {e}"
+                    )
                     raise StacksNetworkException(
                         f"Too many consecutive network failures during confirmation wait: {e}"
                     ) from e
@@ -726,17 +729,23 @@ class StacksCoreAPI:
                 time.sleep(2)
             except StacksAPIException as e:
                 consecutive_failures += 1
-                logger.warning(
-                    f"API error during confirmation wait ({consecutive_failures}/{max_consecutive_failures}): {e}"
-                )
-
-                if consecutive_failures >= max_consecutive_failures:
+                if consecutive_failures < max_consecutive_failures:
+                    logger.warning(
+                        f"API error during confirmation wait (retrying {consecutive_failures}/{max_consecutive_failures}): {type(e).__name__}"
+                    )
+                else:
+                    logger.error(
+                        f"API error during confirmation wait (final failure {consecutive_failures}/{max_consecutive_failures}): {e}"
+                    )
                     raise StacksAPIException(
                         f"Too many consecutive API failures during confirmation wait: {e}"
                     ) from e
 
                 time.sleep(2)
 
+        logger.error(
+            f"Transaction confirmation timeout after {timeout}s for account {account_address}"
+        )
         raise StacksTimeoutException(
             f"Transaction confirmation timeout after {timeout}s for account {account_address}"
         )
