@@ -6,7 +6,6 @@ import os
 from .logger import logger, Colors
 from .stacks_core_api import StacksCoreAPI, StacksCoreAPIWrapper
 from .config import (
-    ACCOUNTS,
     AccountManager,
     Miner,
     MiningMode,
@@ -22,12 +21,30 @@ PLAYBOOK_DIR = os.path.join(PROJECT_ROOT, "naka3", "playbooks", "three-miners")
 
 class MinerManager:
     def __init__(self):
-        self.miner_process = None
-        self.running = False
-        self.apis = {
+        self._miner_process = None
+        self._running = False
+        self._apis = {
             name: StacksCoreAPI(base_url=account.api_url)
             for name, account in AccountManager.all().items()
         }
+        self._validate_initialization()
+
+    def _validate_initialization(self):
+        """Validate that initialization completed successfully."""
+        if not self._apis:
+            raise ValueError("No miner APIs were initialized")
+        if not isinstance(self._running, bool):
+            raise TypeError("Running state must be boolean")
+
+    @property
+    def is_running(self) -> bool:
+        """Check if miners are currently running (read-only)."""
+        return self._running
+
+    @property
+    def api_count(self) -> int:
+        """Get number of managed APIs (read-only)."""
+        return len(self._apis)
 
     def wait_for_miners_ready(self, timeout: int = 45) -> bool:
         """Waits for all managed miner APIs to become responsive with adaptive polling."""
@@ -35,14 +52,14 @@ class MinerManager:
         time.sleep(10)
 
         start_time = time.time()
-        miners_to_check = list(self.apis.keys())
+        miners_to_check = list(self._apis.keys())
         sleep_interval = 1  # Start with 1 second
 
         while time.time() - start_time < timeout:
             ready_miners = []
             progress_made = False
 
-            for miner_name, api in self.apis.items():
+            for miner_name, api in self._apis.items():
                 try:
                     if api.get_info():
                         ready_miners.append(miner_name)
@@ -109,14 +126,14 @@ class MinerManager:
         try:
             cmd = ["./three-miners.sh", "start", mode.value]
 
-            self.miner_process = subprocess.Popen(
+            self._miner_process = subprocess.Popen(
                 cmd,
                 cwd=PLAYBOOK_DIR,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 text=True,
             )
-            self.running = True
+            self._running = True
 
             self.wait_for_miners_ready()
             logger.success("All 3 miners are ready.")
@@ -124,8 +141,8 @@ class MinerManager:
 
         except Exception as e:
             logger.error(f"Failed to start from scratch: {str(e)}")
-            if self.miner_process and self.miner_process.poll() is None:
-                self.miner_process.terminate()
+            if self._miner_process and self._miner_process.poll() is None:
+                self._miner_process.terminate()
             raise StacksException(
                 f"Failed to start miners from scratch: {str(e)}"
             ) from e
@@ -163,14 +180,14 @@ class MinerManager:
         try:
             cmd = ["./three-miners.sh", "snapshot", "restore", mode.value]
 
-            self.miner_process = subprocess.Popen(
+            self._miner_process = subprocess.Popen(
                 cmd,
                 cwd=PLAYBOOK_DIR,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 text=True,
             )
-            self.running = True
+            self._running = True
 
             # Wait for miners to be ready after snapshot restore
             try:
@@ -178,7 +195,7 @@ class MinerManager:
             except StacksTimeoutException:
                 logger.warning("Miners may not be fully ready after snapshot restore")
 
-            if self.miner_process.poll() is not None:
+            if self._miner_process.poll() is not None:
                 logger.error("Miners process exited early.")
                 raise StacksException(
                     "Miners process exited early during snapshot restore"
@@ -191,8 +208,8 @@ class MinerManager:
             return True
         except Exception as e:
             logger.error(f"Failed to restore snapshot: {str(e)}")
-            if self.miner_process and self.miner_process.poll() is None:
-                self.miner_process.terminate()
+            if self._miner_process and self._miner_process.poll() is None:
+                self._miner_process.terminate()
             raise StacksException(f"Failed to restore snapshot: {str(e)}") from e
 
     def snapshot_restore_auto(self) -> bool:
@@ -335,16 +352,16 @@ class MinerManager:
 
     def cleanup(self):
         """Clean up the miner process if it's running."""
-        if self.miner_process and self.running:
+        if self._miner_process and self._running:
             logger.info("Cleaning up background miner process...", Colors.ORANGE)
-            self.miner_process.terminate()
+            self._miner_process.terminate()
             try:
-                self.miner_process.wait(timeout=5)
+                self._miner_process.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 logger.warning(
                     "Miners process did not terminate gracefully, killing it."
                 )
-                self.miner_process.kill()
-                self.miner_process.wait()
-            self.running = False
+                self._miner_process.kill()
+                self._miner_process.wait()
+            self._running = False
             logger.info("Cleanup complete", Colors.ORANGE)

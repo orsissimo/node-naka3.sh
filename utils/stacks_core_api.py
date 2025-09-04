@@ -322,6 +322,7 @@ class StacksCoreAPI:
         self,
         response: requests.Response,
         response_type: Optional[Type[T]] = None,
+        is_retry_context: bool = False,
         **parse_kwargs,
     ) -> Any:
         """
@@ -338,7 +339,14 @@ class StacksCoreAPI:
             except json.JSONDecodeError:
                 error_message = f"API Error ({response.status_code}): {response.text}"
 
-            logger.error(f"API call failed: {error_message}")
+            # Use different log levels based on context and error type
+            if is_retry_context and response.status_code == 404:
+                # For 404s in retry contexts (like transaction not found yet), use warning
+                logger.warning(f"API call temporarily failed (will retry): {error_message}")
+            else:
+                # For final failures or non-retryable errors, use error
+                logger.error(f"API call failed: {error_message}")
+            
             raise StacksAPIException(
                 error_message,
                 status_code=response.status_code,
@@ -576,7 +584,7 @@ class StacksCoreAPI:
         )
         return self._handle_api_response(response)
 
-    def get_transaction_by_id(self, txid: str) -> "TransactionDetails":
+    def get_transaction_by_id(self, txid: str, is_retry_context: bool = False) -> "TransactionDetails":
         """GET /v3/transaction/{txid} - Retrieve transaction details as typed object.
         NOTE: The OpenAPI spec incorrectly lists this as a POST endpoint. Real-world
         testing shows it is a GET endpoint. This implementation uses GET.
@@ -585,6 +593,7 @@ class StacksCoreAPI:
         return self._handle_api_response(
             response,
             TransactionDetails,
+            is_retry_context=is_retry_context,
             txid=txid,
             tx_status="unknown",
             tx_type="unknown",
@@ -670,7 +679,7 @@ class StacksCoreAPI:
                         logger.debug(
                             f"Checking transaction {txid} at block height {current_height}"
                         )
-                        tx_details = self.get_transaction_by_id(txid)
+                        tx_details = self.get_transaction_by_id(txid, is_retry_context=True)
 
                         # Check if transaction has result field with '(ok true)'
                         if tx_details.result == "(ok true)":

@@ -77,10 +77,10 @@ class Logger:
         return text
 
     def _get_timestamp(self) -> str:
-        """Get current timestamp in [HH:MM:SS] format."""
+        """Get current timestamp in [YYYY-MM-DD HH:MM:SS] format."""
         import datetime
 
-        return f"[{datetime.datetime.now().strftime('%H:%M:%S')}]"
+        return f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}]"
 
     def _format_message(
         self, level_tag: str, message: str, color: Optional[str]

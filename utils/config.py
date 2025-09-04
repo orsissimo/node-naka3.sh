@@ -27,7 +27,7 @@ class Account(BaseModel):
         return f"http://localhost:{self.api_port}"
 
 
-ACCOUNTS = {
+_ACCOUNTS = {
     1: Account(
         name="miner1",
         address="STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6",
@@ -154,22 +154,69 @@ class StacksTimeoutException(StacksNetworkException):
 
 
 class AccountManager:
-    """Type-safe account access."""
+    """Type-safe account access with perfect encapsulation."""
+
+    def __init__(self):
+        self._accounts = _ACCOUNTS.copy()
+        self._validate_accounts()
+
+    def _validate_accounts(self):
+        """Validate account configuration."""
+        if not self._accounts:
+            raise ValueError("No accounts configured")
+        for key, account in self._accounts.items():
+            if not isinstance(key, int) or key <= 0:
+                raise ValueError(f"Invalid account key: {key}")
+            if not isinstance(account, Account):
+                raise TypeError(f"Account {key} is not an Account instance")
+
+    def get(self, miner: Miner) -> Account:
+        """Get account by enum with validation."""
+        if not isinstance(miner, Miner):
+            raise TypeError("Parameter must be a Miner enum")
+        if miner.value not in self._accounts:
+            raise ValueError(f"No account found for miner: {miner}")
+        return self._accounts[miner.value]
+
+    def all_miners(self) -> List[Miner]:
+        """Get all available miner enums."""
+        return list(Miner)
+
+    def all(self) -> Dict[str, Account]:
+        """Get copy of all accounts (read-only)."""
+        return {account.name: account for account in self._accounts.values()}
+
+    @property
+    def account_count(self) -> int:
+        """Get number of managed accounts (read-only)."""
+        return len(self._accounts)
+
+
+# Global instance for backwards compatibility
+_account_manager = AccountManager()
+
+
+class AccountManagerCompat:
+    """Static compatibility interface - delegates to instance."""
 
     @staticmethod
     def get(miner: Miner) -> Account:
         """Get account by enum with full IDE autocompletion support."""
-        return ACCOUNTS[miner.value]
+        return _account_manager.get(miner)
 
     @staticmethod
     def all_miners() -> List[Miner]:
         """Get all available miner enums."""
-        return list(Miner)
+        return _account_manager.all_miners()
 
     @staticmethod
     def all() -> Dict[str, Account]:
         """Get all accounts."""
-        return ACCOUNTS.copy()
+        return _account_manager.all()
+
+
+# Maintain backward compatibility
+AccountManager = AccountManagerCompat
 
 
 class TransferParams(BaseModel):

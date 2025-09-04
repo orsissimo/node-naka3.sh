@@ -114,14 +114,27 @@ class BlockstackCLI:
                 f"Unexpected error parsing {response_type.__name__}: {e}"
             ) from e
 
-    def _execute_command_for_hex(self, command_parts: List[str], testnet: bool = True, chain_id: Optional[str] = None, operation_name: str = "CLI operation") -> str:
+    def _execute_command_for_hex(
+        self,
+        command_parts: List[str],
+        testnet: bool = True,
+        chain_id: Optional[str] = None,
+        operation_name: str = "CLI operation",
+    ) -> str:
         """Execute command and return hex string - eliminates repetition."""
         stdout, stderr, returncode = self._run_command(command_parts, testnet, chain_id)
         if not stdout:
             raise StacksCLIException(f"{operation_name} returned empty output")
         return stdout.strip()
 
-    def _execute_command_for_json(self, command_parts: List[str], response_type: Type[T], testnet: bool = True, chain_id: Optional[str] = None, operation_name: str = "CLI operation") -> T:
+    def _execute_command_for_json(
+        self,
+        command_parts: List[str],
+        response_type: Type[T],
+        testnet: bool = True,
+        chain_id: Optional[str] = None,
+        operation_name: str = "CLI operation",
+    ) -> T:
         """Execute command and return parsed JSON object - eliminates repetition."""
         stdout, stderr, returncode = self._run_command(command_parts, testnet, chain_id)
         if not stdout:
@@ -230,7 +243,9 @@ class BlockstackCLI:
     ) -> SecretKeyInfo:
         """Generate a new secret key as typed object."""
         cmd = ["generate-sk"]
-        return self._execute_command_for_json(cmd, SecretKeyInfo, testnet, chain_id, "generate-sk")
+        return self._execute_command_for_json(
+            cmd, SecretKeyInfo, testnet, chain_id, "generate-sk"
+        )
 
     def token_transfer(
         self,
@@ -261,14 +276,18 @@ class BlockstackCLI:
     ) -> AddressInfo:
         """Get addresses from secret key as typed object."""
         cmd = ["addresses", secret_key]
-        return self._execute_command_for_json(cmd, AddressInfo, testnet, chain_id, "addresses command")
+        return self._execute_command_for_json(
+            cmd, AddressInfo, testnet, chain_id, "addresses command"
+        )
 
     def _decode_helper(
         self, command: str, hex_data: str, *, testnet: bool, chain_id: Optional[str]
     ) -> Dict[str, Any]:
         """Internal helper for all decode commands - returns raw dict for decode operations."""
         cmd = [command, hex_data]
-        stdout = self._execute_command_for_hex(cmd, testnet, chain_id, f"{command} command")
+        stdout = self._execute_command_for_hex(
+            cmd, testnet, chain_id, f"{command} command"
+        )
         try:
             return json.loads(stdout)
         except json.JSONDecodeError as e:
@@ -328,16 +347,31 @@ class BlockstackCLI:
             "decode-microblocks", microblocks_hex, testnet=testnet, chain_id=chain_id
         )
 
-    def _prepare_transaction_binary(self, command_parts: List[str], testnet: bool = True, chain_id: Optional[str] = None) -> bytes:
+    def _prepare_transaction_binary(
+        self,
+        command_parts: List[str],
+        testnet: bool = True,
+        chain_id: Optional[str] = None,
+    ) -> bytes:
         """Execute CLI command and return transaction binary with perfect encapsulation."""
-        stdout = self._execute_command_for_hex(command_parts, testnet, chain_id, "CLI command")
+        stdout = self._execute_command_for_hex(
+            command_parts, testnet, chain_id, "CLI command"
+        )
         try:
             return bytes.fromhex(stdout)
         except ValueError as e:
             logger.error(f"Invalid hex output from CLI command: {stdout}")
-            raise StacksCLIException(f"Invalid hex output from CLI command: {stdout}") from e
+            raise StacksCLIException(
+                f"Invalid hex output from CLI command: {stdout}"
+            ) from e
 
-    def execute_and_submit(self, api, command_parts: List[str], testnet: bool = True, chain_id: Optional[str] = None) -> str:
+    def execute_and_submit(
+        self,
+        api,
+        command_parts: List[str],
+        testnet: bool = True,
+        chain_id: Optional[str] = None,
+    ) -> str:
         """Execute CLI command and submit transaction to blockchain - requires StacksCoreAPI instance."""
         tx_binary = self._prepare_transaction_binary(command_parts, testnet, chain_id)
         return api.post_raw_transaction(tx_binary)
