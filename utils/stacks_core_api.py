@@ -759,7 +759,12 @@ class StacksCoreAPIWrapper:
     """
 
     def __init__(self, api: Optional["StacksCoreAPI"] = None):
-        self.api = api or StacksCoreAPI()
+        self._api = api or StacksCoreAPI()
+
+    @property
+    def api(self) -> "StacksCoreAPI":
+        """Get the wrapped API instance (read-only)."""
+        return self._api
 
     def _safe_execute(self, operation_name: str, operation_func) -> ApiResult:
         """
@@ -810,7 +815,7 @@ class StacksCoreAPIWrapper:
 
     def get_block_height(self) -> int:
         """Get current block height from the Stacks API - raises exceptions instead of returning None."""
-        result = self._safe_execute("get_block_height", lambda: self.api.get_info())
+        result = self._safe_execute("get_block_height", lambda: self._api.get_info())
         if result.success and result.data:
             return result.data.stacks_tip_height
 

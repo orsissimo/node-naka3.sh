@@ -5,6 +5,7 @@ import os
 
 # Constants
 MICROSTX_PER_STX = 1_000_000
+SATOSHI_PER_BTC = 100_000_000  # 1 BTC = 100,000,000 satoshi
 DEFAULT_HTTP_TIMEOUT = 20
 DEFAULT_API_PORT = 20443
 DEFAULT_POLL_INTERVAL = 2
@@ -271,6 +272,12 @@ class AccountInfo(BaseModel):
 
     class Config:
         populate_by_name = True
+    
+    @property
+    def balance_amount(self) -> "StacksAmount":
+        """Get balance as StacksAmount for easy conversions."""
+        from .amounts import StacksAmount
+        return StacksAmount.from_microstx(self.balance)
 
 
 class ApiResult(BaseModel):

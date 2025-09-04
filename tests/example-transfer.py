@@ -21,6 +21,7 @@ from utils.miners import MinerManager
 from utils.logger import logger, Colors
 from utils.blockstack_cli import BlockstackCLIWrapper
 from utils.stacks_core_api import StacksCoreAPI, StacksCoreAPIWrapper
+from utils.amounts import StacksAmount, StacksFee, stx, microstx
 
 
 def main():
@@ -45,31 +46,28 @@ def main():
         # Step 1: Check initial balances
         logger.header("Step 1: Check initial balances")
         sender_account_info = api.get_account_info(sender_account.address)
-        sender_initial_balance = sender_account_info.balance
+        sender_initial_balance = sender_account_info.balance_amount
         recipient_account_info = api.get_account_info(recipient_account.address)
-        recipient_initial_balance = recipient_account_info.balance
+        recipient_initial_balance = recipient_account_info.balance_amount
 
         logger.info(f"Sender address: {sender_account.address}")
-        logger.info(f"Sender initial balance: {sender_initial_balance:,} µSTX")
+        logger.info(f"Sender initial balance: {sender_initial_balance}")
         logger.info(f"Recipient address: {recipient_account.address}")
-        logger.info(f"Recipient initial balance: {recipient_initial_balance:,} µSTX")
-        # TODO: Potrei creare un oggetto relativo al balance con STACKS_AMOUNT (amount di stacks) e UNITA_MISURA (quando a pylance arriva XYZ lui deve convertirlo in ...)
-        # TODO: Il balance amount avrà anche BTC_AMOUNT, ....
-        # TODO: Avrò anche funzioni .to_stx(), to_uSTX(), to_btc(), to_sats(), ecc ecc
+        logger.info(f"Recipient initial balance: {recipient_initial_balance}")
 
         # Step 2: Prepare transfer
         logger.header("Step 2: Prepare transfer")
-        transfer_amount = 50000  # 50,000 µSTX
+        transfer_amount = microstx(50000)  # 50,000 µSTX
         transfer_memo = "Test transfer from example"
-        fee = 1000  # Transaction fee in µSTX (CLI default)
+        transaction_fee = StacksFee.standard()  # 1000 µSTX
 
         sender_account_info = api.get_account_info(sender_account.address)
         initial_nonce = sender_account_info.nonce
         initial_height = api_wrapper.get_block_height()
 
-        logger.info(f"Transfer amount: {transfer_amount:,} µSTX")
+        logger.info(f"Transfer amount: {transfer_amount}")
         logger.info(f"Transfer memo: {transfer_memo}")
-        logger.info(f"Transaction fee: {fee:,} µSTX")
+        logger.info(f"Transaction fee: {transaction_fee}")
         logger.info(f"Sender nonce: {initial_nonce}")
 
         # Step 3: Execute transfer
@@ -77,11 +75,10 @@ def main():
         cli_result = cli.transfer_tokens(
             sender_account.private_key,  # Private key for signing
             recipient_account.address,  # Recipient address
-            transfer_amount
-            / 1_000_000,  # Amount in STX (convert from µSTX) # TODO: Quando avrò l'oggetto STACKS_AMOUNT, lui farà la conversione automaticamente
+            transfer_amount,  # Direct StacksAmount usage
             transfer_memo,  # Transfer memo
             initial_nonce,  # Current nonce
-            fee,  # Transaction fee # TODO: Creo oggetto anche per FEE con la stessa logica di STACKS_AMOUNT (fee in STX, µSTX, ecc...) ---> Di base memorizzo in µSTX, sempre
+            transaction_fee,  # Direct Fee usage
         )
 
         # FIXME: Qua è inutile lanciare l'eccezione, dovrebbe essere gestita internamente
@@ -110,47 +107,47 @@ def main():
         # Step 5: Verify final balances
         logger.header("Step 5: Verify final balances")
         sender_account_info = api.get_account_info(sender_account.address)
-        sender_final_balance = sender_account_info.balance
+        sender_final_balance = sender_account_info.balance_amount
         recipient_account_info = api.get_account_info(recipient_account.address)
-        recipient_final_balance = recipient_account_info.balance
+        recipient_final_balance = recipient_account_info.balance_amount
 
         sender_change = sender_final_balance - sender_initial_balance
         recipient_change = recipient_final_balance - recipient_initial_balance
-        expected_sender_change = -(transfer_amount + fee)
+        expected_sender_change = -(transfer_amount + transaction_fee)
 
-        logger.info(f"Sender final balance: {sender_final_balance:,} µSTX")
-        logger.info(f"Sender balance change: {sender_change:,} µSTX")
-        logger.info(f"Recipient final balance: {recipient_final_balance:,} µSTX")
-        logger.info(f"Recipient balance change: {recipient_change:,} µSTX")
+        logger.info(f"Sender final balance: {sender_final_balance}")
+        logger.info(f"Sender balance change: {sender_change}")
+        logger.info(f"Recipient final balance: {recipient_final_balance}")
+        logger.info(f"Recipient balance change: {recipient_change}")
 
         # Step 6: Validate transfer amounts
         logger.header("Step 6: Validate transfer amounts")
 
-        # Sender should have lost: transfer_amount + fee
+        # Sender should have lost: transfer_amount + transaction_fee
         if sender_change == expected_sender_change:
             logger.success(
-                f"Sender balance change correct: {expected_sender_change:,} µSTX"
+                f"Sender balance change correct: {expected_sender_change}"
             )
         else:
             logger.error("Sender balance change incorrect")
-            logger.info(f"  Expected: {expected_sender_change:,} µSTX")
-            logger.info(f"  Actual: {sender_change:,} µSTX")
+            logger.info(f"  Expected: {expected_sender_change}")
+            logger.info(f"  Actual: {sender_change}")
 
         # Recipient should have gained: transfer_amount
         if recipient_change == transfer_amount:
             logger.success(
-                f"Recipient balance change correct: +{transfer_amount:,} µSTX"
+                f"Recipient balance change correct: +{transfer_amount}"
             )
         else:
             logger.error("Recipient balance change incorrect")
-            logger.info(f"  Expected: +{transfer_amount:,} µSTX")
-            logger.info(f"  Actual: +{recipient_change:,} µSTX")
+            logger.info(f"  Expected: +{transfer_amount}")
+            logger.info(f"  Actual: +{recipient_change}")
 
         # Step 7: Test multiple small transfers
         logger.header("Step 7: Test multiple small transfers")
 
         for i in range(3):
-            small_amount = 1000 * (i + 1)  # 1000, 2000, 3000 µSTX
+            small_amount = microstx(1000 * (i + 1))  # 1000, 2000, 3000 µSTX
             small_memo = f"Small transfer #{i+1}"
 
             sender_account_info = api.get_account_info(sender_account.address)
@@ -160,10 +157,10 @@ def main():
             cli_result = cli.transfer_tokens(
                 sender_account.private_key,
                 recipient_account.address,
-                small_amount / 1_000_000,  # Convert µSTX to STX
+                small_amount,  # Direct StacksAmount usage
                 small_memo,
                 current_nonce,  # Use current nonce
-                fee,  # Use same fee
+                transaction_fee,  # Direct Fee usage
             )
 
             if not cli_result.success:
@@ -190,18 +187,18 @@ def main():
         logger.header("FINAL RESULT")
 
         sender_account_info = api.get_account_info(sender_account.address)
-        final_sender_balance = sender_account_info.balance
+        final_sender_balance = sender_account_info.balance_amount
         recipient_account_info = api.get_account_info(recipient_account.address)
-        final_recipient_balance = recipient_account_info.balance
+        final_recipient_balance = recipient_account_info.balance_amount
         total_sender_change = final_sender_balance - sender_initial_balance
         total_recipient_change = final_recipient_balance - recipient_initial_balance
 
+        total_transferred = transfer_amount + microstx(6000)  # Main + 3 small transfers
+
         logger.info(f"Main transfer TXID: {transfer_txid}")
-        logger.info(
-            f"Total amount transferred: {transfer_amount + 6000:,} µSTX"
-        )  # Main + 3 small transfers
-        logger.info(f"Total sender change: {total_sender_change:,} µSTX")
-        logger.info(f"Total recipient gain: {total_recipient_change:,} µSTX")
+        logger.info(f"Total amount transferred: {total_transferred}")
+        logger.info(f"Total sender change: {total_sender_change}")
+        logger.info(f"Total recipient gain: {total_recipient_change}")
 
         return True
 

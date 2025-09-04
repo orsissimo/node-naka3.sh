@@ -1,7 +1,7 @@
 import subprocess
 import shlex
 import json
-from typing import List, Optional, Tuple, Dict, Any, TypeVar, Type
+from typing import List, Optional, Tuple, Dict, Any, TypeVar, Type, Union
 from pydantic import BaseModel, Field, ValidationError
 from .logger import Colors, logger
 from .config import MICROSTX_PER_STX, StacksCLIException, StacksValidationException
@@ -422,21 +422,33 @@ class BlockstackCLIWrapper:
         self,
         origin_sk: str,
         recipient: str,
-        amount_stx: float,
+        amount: Union["StacksAmount", float],
         memo: str = "",
         nonce: int = 0,
-        fee_rate: int = 1000,
+        fee: Union["StacksFee", int] = 1000,
         testnet: bool = True,
     ) -> CLIResult:
-        """Transfer STX tokens with bulletproof error handling and STX→microSTX conversion."""
+        """Transfer STX tokens with support for StacksAmount and StacksFee classes."""
+        from .amounts import StacksAmount, StacksFee
 
         def _execute_transfer():
-            # Convert STX to microSTX (1 STX = 1,000,000 microSTX)
-            amount_microstx = int(amount_stx * MICROSTX_PER_STX)
+            # Handle both old (float) and new (StacksAmount) interfaces
+            if isinstance(amount, StacksAmount):
+                amount_microstx = amount.to_microstx()
+            else:
+                # Backward compatibility: treat as STX float
+                amount_microstx = int(amount * MICROSTX_PER_STX)
+            
+            # Handle both old (int) and new (StacksFee) interfaces  
+            if isinstance(fee, StacksFee):
+                fee_microstx = fee.to_microstx()
+            else:
+                # Backward compatibility: treat as microSTX int
+                fee_microstx = fee
 
             result = self.cli.token_transfer(
                 origin_sk=origin_sk,
-                fee_rate=fee_rate,
+                fee_rate=fee_microstx,
                 nonce=nonce,
                 recipient_address=recipient,
                 amount=amount_microstx,
