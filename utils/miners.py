@@ -4,7 +4,7 @@ import subprocess
 import time
 import os
 from .logger import logger, Colors
-from .stacks_core_api import StacksCoreAPI, StacksCoreAPIWrapper
+from .stacks_core_api import StacksCoreAPI
 from .config import (
     AccountManager,
     Miner,

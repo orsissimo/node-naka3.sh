@@ -20,8 +20,7 @@ from utils.config import (
 )
 from utils.miners import MinerManager
 from utils.logger import logger, Colors
-from utils.blockstack_cli import BlockstackCLIWrapper
-from utils.stacks_core_api import StacksCoreAPI, StacksCoreAPIWrapper
+from utils.stacks_chain import StacksChain
 from utils.amounts import StacksAmount, StacksFee, stx, microstx
 
 
@@ -29,14 +28,14 @@ def main():
     """Execute STX token transfer test"""
     logger.header("STX TOKEN TRANSFER TEST")
 
-    # Raw minimal setup
-    # FIXME: (LATER): Potrei creare un type "Setup" che ha cli, api, minermanager, ...
+    # Clean setup with façade pattern
     miners = MinerManager()
     sender_account = AccountManager.get(Miner.MINER1)
     recipient_account = AccountManager.get(Miner.MINER2)
-    api = StacksCoreAPI(base_url=sender_account.api_url)
-    api_wrapper = StacksCoreAPIWrapper(api)
-    cli = BlockstackCLIWrapper()
+    
+    # Single façade that handles everything
+    sender = StacksChain(sender_account)
+    recipient = StacksChain(recipient_account)
 
     try:
         # Start the node
@@ -46,10 +45,9 @@ def main():
 
         # Step 1: Check initial balances
         logger.header("Step 1: Check initial balances")
-        sender_account_info = api.get_account_info(sender_account.address)
-        sender_initial_balance = sender_account_info.balance_amount
-        recipient_account_info = api.get_account_info(recipient_account.address)
-        recipient_initial_balance = recipient_account_info.balance_amount
+        # Using façade convenience methods
+        sender_initial_balance = sender.get_balance()
+        recipient_initial_balance = recipient.get_balance()
 
         logger.info(f"Sender address: {sender_account.address}")
         logger.info(f"Sender initial balance: {sender_initial_balance}")
@@ -62,9 +60,9 @@ def main():
         transfer_memo = "Test transfer from example"
         transaction_fee = StacksFee.standard()  # 1000 µSTX
 
-        sender_account_info = api.get_account_info(sender_account.address)
-        initial_nonce = sender_account_info.nonce
-        initial_height = api_wrapper.get_block_height()
+        # Auto-fetched by façade, but showing explicit access
+        initial_nonce = sender.get_current_nonce()
+        initial_height = sender.get_current_height()
 
         logger.info(f"Transfer amount: {transfer_amount}")
         logger.info(f"Transfer memo: {transfer_memo}")
@@ -73,44 +71,37 @@ def main():
 
         # Step 3: Execute transfer
         logger.header("Step 3: Execute transfer")
-        cli_result = cli.transfer_tokens(
-            sender_account.private_key,  # Private key for signing
-            recipient_account.address,  # Recipient address
-            transfer_amount,  # Direct StacksAmount usage
-            transfer_memo,  # Transfer memo
-            initial_nonce,  # Current nonce
-            transaction_fee,  # Direct Fee usage
-        )
-
-        if not cli_result.success:
+        # Façade handles everything automatically
+        try:
+            transfer_txid = sender.transfer_tokens(
+                recipient=recipient_account.address,
+                amount=transfer_amount,
+                memo=transfer_memo,
+                fee=transaction_fee,
+                nonce=initial_nonce  # Explicit for this demo
+            )
+        except StacksException as e:
             raise RecipeFailedException(
                 "Main token transfer failed",
-                step="Step 3: Execute transfer", 
-                details=cli_result.error_message
+                step="Step 3: Execute transfer",
+                details=str(e)
             )
-        tx_hex = cli_result.data.tx_hex
-
-        transfer_txid = api.post_raw_transaction(bytes.fromhex(tx_hex))
-        logger.success(f"Transfer submitted: {transfer_txid}")
 
         # Step 4: Wait for confirmation
         logger.header("Step 4: Wait for confirmation")
-        # TODO: La confirmation la sposto in stacks_chain.py (che quando istanzio ha dentro API, CLI e Wrapper) --> Che non ha tanta logica, ma fa da "façade" di altri file
-        api.wait_for_tx_confirmation(
-            transfer_txid,
-            sender_account.address,
-            initial_nonce,
-            initial_height,
+        # Façade convenience method with auto-parameters
+        sender.wait_for_confirmation(
+            txid=transfer_txid,
             timeout=120,
+            initial_nonce=initial_nonce,
+            initial_height=initial_height
         )
-        logger.success("Transfer confirmed!")
 
         # Step 5: Verify final balances
         logger.header("Step 5: Verify final balances")
-        sender_account_info = api.get_account_info(sender_account.address)
-        sender_final_balance = sender_account_info.balance_amount
-        recipient_account_info = api.get_account_info(recipient_account.address)
-        recipient_final_balance = recipient_account_info.balance_amount
+        # Façade convenience methods
+        sender_final_balance = sender.get_balance()
+        recipient_final_balance = recipient.get_balance()
 
         sender_change = sender_final_balance - sender_initial_balance
         recipient_change = recipient_final_balance - recipient_initial_balance
@@ -151,46 +142,32 @@ def main():
             small_amount = microstx(1000 * (i + 1))  # 1000, 2000, 3000 µSTX
             small_memo = f"Small transfer #{i+1}"
 
-            sender_account_info = api.get_account_info(sender_account.address)
-            current_nonce = sender_account_info.nonce
-            current_height = api_wrapper.get_block_height()
+            # Using façade for cleaner code
+            current_nonce = sender.get_current_nonce()
+            current_height = sender.get_current_height()
 
-            cli_result = cli.transfer_tokens(
-                sender_account.private_key,
-                recipient_account.address,
-                small_amount,  # Direct StacksAmount usage
-                small_memo,
-                current_nonce,  # Use current nonce
-                transaction_fee,  # Direct Fee usage
-            )
-
-            if not cli_result.success:
-                logger.error(f"Transfer #{i+1} failed: {cli_result.error}")
-                continue
-            tx_hex = cli_result.data.tx_hex
-
-            small_txid = api.post_raw_transaction(bytes.fromhex(tx_hex))
-            logger.success(f"Transfer #{i+1} submitted: {small_txid}")
-
+            # Using atomic transfer_and_confirm operation
             try:
-                api.wait_for_tx_confirmation(
-                    small_txid,
-                    sender_account.address,
-                    current_nonce,
-                    current_height,
-                    timeout=120,
+                small_txid = sender.transfer_and_confirm(
+                    recipient=recipient_account.address,
+                    amount=small_amount,
+                    memo=small_memo,
+                    fee=transaction_fee,
+                    timeout=120
                 )
-                logger.success(f"Transfer #{i+1} confirmed")
+                logger.success(f"Transfer #{i+1} completed: {small_txid}")
             except StacksTimeoutException:
                 logger.error(f"Transfer #{i+1} confirmation timeout")
+            except StacksException as e:
+                logger.error(f"Transfer #{i+1} failed: {str(e)}")
+                continue
 
         # Final summary
         logger.header("FINAL RESULT")
 
-        sender_account_info = api.get_account_info(sender_account.address)
-        final_sender_balance = sender_account_info.balance_amount
-        recipient_account_info = api.get_account_info(recipient_account.address)
-        final_recipient_balance = recipient_account_info.balance_amount
+        # Final balance check with façade
+        final_sender_balance = sender.get_balance()
+        final_recipient_balance = recipient.get_balance()
         total_sender_change = final_sender_balance - sender_initial_balance
         total_recipient_change = final_recipient_balance - recipient_initial_balance
 
