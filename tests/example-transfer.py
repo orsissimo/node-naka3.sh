@@ -16,6 +16,7 @@ from utils.config import (
     StacksValidationException,
     StacksNetworkException,
     StacksTimeoutException,
+    RecipeFailedException,
 )
 from utils.miners import MinerManager
 from utils.logger import logger, Colors
@@ -81,11 +82,11 @@ def main():
             transaction_fee,  # Direct Fee usage
         )
 
-        # FIXME: Qua è inutile lanciare l'eccezione, dovrebbe essere gestita internamente
-        # TODO: Se ho bisogno esplicito di uscire dal try e fare shutdown, dovrei usare un'exeption ad hoc (esplicativa) da usare per fare escape -- RecipeFailedException
         if not cli_result.success:
-            raise StacksCLIException(
-                f"Token transfer failed: {cli_result.error_message}"
+            raise RecipeFailedException(
+                "Main token transfer failed",
+                step="Step 3: Execute transfer", 
+                details=cli_result.error_message
             )
         tx_hex = cli_result.data.tx_hex
 
@@ -202,7 +203,6 @@ def main():
 
         return True
 
-    # TODO: Qua posso tenere solo Exception. Tanto poi mi viene detto quale tipo di eccezione è
     except Exception as e:
         logger.error(f"TEST FAILED - Unexpected Error: {str(e)}")
         logger.error(f"Error type: {type(e).__name__}")

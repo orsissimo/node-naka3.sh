@@ -154,6 +154,15 @@ class StacksTimeoutException(StacksNetworkException):
     pass
 
 
+class RecipeFailedException(StacksException):
+    """Exception for explicit test/recipe failures that require cleanup."""
+
+    def __init__(self, message: str, step: Optional[str] = None, details: Optional[str] = None):
+        self.step = step
+        self.details = details
+        super().__init__(message)
+
+
 class AccountManager:
     """Type-safe account access with perfect encapsulation."""
 

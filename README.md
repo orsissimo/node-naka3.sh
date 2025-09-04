@@ -79,3 +79,13 @@ To see debug logs, you need to set the LOG_LEVEL environment variable to debug:
   [21:19:02][DEBG] Debug information here
 
 ---
+
+The RecipeFailedException is now available throughout your codebase for any scenario where you need explicit control over test failure and cleanup.
+   It includes:
+
+  - step: Which step failed (for debugging)
+  - details: Specific error details
+  - Inherits from StacksException: Maintains your exception hierarchy
+
+  Use it wherever you need to explicitly escape from a try block and trigger cleanup in test scenarios. It's perfect for recipe/test failures that
+  need special handling.
