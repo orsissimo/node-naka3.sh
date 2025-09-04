@@ -5,19 +5,20 @@ from enum import Enum
 
 class LogLevel(Enum):
     """Log level enumeration with filtering support."""
+
     DEBUG = 0
     INFO = 1
     WARNING = 2
     ERROR = 3
-    
+
     @classmethod
     def from_string(cls, level_str: str) -> "LogLevel":
         """Convert string to LogLevel enum."""
         level_map = {
-            'debug': cls.DEBUG,
-            'info': cls.INFO,
-            'warning': cls.WARNING,
-            'error': cls.ERROR,
+            "debug": cls.DEBUG,
+            "info": cls.INFO,
+            "warning": cls.WARNING,
+            "error": cls.ERROR,
         }
         return level_map.get(level_str.lower(), cls.INFO)
 
@@ -43,8 +44,27 @@ class Logger:
 
     def __init__(self, min_level: Optional[LogLevel] = None):
         # Get log level from environment or default to INFO
-        env_level = os.getenv('LOG_LEVEL', 'info')
-        self._min_level = min_level or LogLevel.from_string(env_level)
+        env_level = os.getenv("LOG_LEVEL", "info")
+        if min_level is not None:
+            self._min_level = self._validate_log_level(min_level)
+        else:
+            self._min_level = LogLevel.from_string(env_level)
+
+    def _validate_log_level(self, level: LogLevel) -> LogLevel:
+        """Validate log level parameter."""
+        if not isinstance(level, LogLevel):
+            raise TypeError("Log level must be a LogLevel enum value")
+        return level
+
+    @property
+    def min_level(self) -> LogLevel:
+        """Get the current minimum log level (read-only)."""
+        return self._min_level
+
+    @property
+    def level(self) -> LogLevel:
+        """Alias for min_level property."""
+        return self._min_level
 
     def _should_log(self, level: LogLevel) -> bool:
         """Check if message should be logged based on minimum level."""
@@ -59,9 +79,12 @@ class Logger:
     def _get_timestamp(self) -> str:
         """Get current timestamp in [HH:MM:SS] format."""
         import datetime
+
         return f"[{datetime.datetime.now().strftime('%H:%M:%S')}]"
 
-    def _format_message(self, level_tag: str, message: str, color: Optional[str]) -> str:
+    def _format_message(
+        self, level_tag: str, message: str, color: Optional[str]
+    ) -> str:
         """Format message with new [TIME][LEVEL] Message format."""
         timestamp = self._get_timestamp()
         formatted_message = self._format_with_color(message, color)
@@ -76,8 +99,8 @@ class Logger:
 
     def info(self, message: str, color: Optional[str] = None) -> None:
         """Log general information with f-string key-value support.
-        
-        Usage: 
+
+        Usage:
           logger.info("Starting process")
           logger.info(f"Sender: {address}", Colors.ORANGE)
           logger.info(f"Balance: {balance:,} µSTX")
@@ -129,8 +152,8 @@ class Logger:
         self.error(critical_msg, color or f"{Colors.BOLD}{Colors.RED}")
 
     def set_level(self, level: LogLevel) -> None:
-        """Change the minimum log level at runtime."""
-        self._min_level = level
+        """Change the minimum log level at runtime with validation."""
+        self._min_level = self._validate_log_level(level)
 
 
 # Create logger instance with environment-based configuration

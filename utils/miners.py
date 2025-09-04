@@ -65,11 +65,13 @@ class MinerManager:
                 if new_ready:
                     progress_made = True
                     for miner in new_ready:
-                        logger.info(f"Miner {miner} is now ready")
+                        logger.info(f"Miner {miner} is now ready", Colors.ORANGE)
                 self._ready_miners.update(ready_miners)
 
             if len(ready_miners) == len(miners_to_check):
-                logger.info(f"All {len(miners_to_check)} miners are ready.", Colors.ORANGE)
+                logger.info(
+                    f"All {len(miners_to_check)} miners are ready.", Colors.ORANGE
+                )
                 return True
 
             # Adaptive polling: faster when making progress, slower when not
@@ -101,7 +103,9 @@ class MinerManager:
                 f"Invalid mode '{mode}'. Use MiningMode.AUTO or MiningMode.MANUAL"
             )
 
-        logger.info(f"Starting three miners from scratch in {mode.value} mode...", Colors.ORANGE)
+        logger.info(
+            f"Starting three miners from scratch in {mode.value} mode...", Colors.ORANGE
+        )
         try:
             cmd = ["./three-miners.sh", "start", mode.value]
 
@@ -332,7 +336,7 @@ class MinerManager:
     def cleanup(self):
         """Clean up the miner process if it's running."""
         if self.miner_process and self.running:
-            logger.info("Cleaning up background miner process...")
+            logger.info("Cleaning up background miner process...", Colors.ORANGE)
             self.miner_process.terminate()
             try:
                 self.miner_process.wait(timeout=5)

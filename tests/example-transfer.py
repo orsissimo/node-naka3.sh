@@ -38,7 +38,7 @@ def main():
 
     try:
         # Start the node
-        logger.info("Starting miners...", Colors.ORANGE)
+        logger.info("Starting miners...")
         if not miners.snapshot_restore_auto():
             raise StacksException("Failed to start miners")
 
@@ -77,7 +77,8 @@ def main():
         cli_result = cli.transfer_tokens(
             sender_account.private_key,  # Private key for signing
             recipient_account.address,  # Recipient address
-            transfer_amount / 1_000_000,  # Amount in STX (convert from µSTX) # TODO: Quando avrò l'oggetto STACKS_AMOUNT, lui farà la conversione automaticamente
+            transfer_amount
+            / 1_000_000,  # Amount in STX (convert from µSTX) # TODO: Quando avrò l'oggetto STACKS_AMOUNT, lui farà la conversione automaticamente
             transfer_memo,  # Transfer memo
             initial_nonce,  # Current nonce
             fee,  # Transaction fee # TODO: Creo oggetto anche per FEE con la stessa logica di STACKS_AMOUNT (fee in STX, µSTX, ecc...) ---> Di base memorizzo in µSTX, sempre
@@ -98,7 +99,11 @@ def main():
         logger.header("Step 4: Wait for confirmation")
         # TODO: La confirmation la sposto in stacks_chain.py (che quando istanzio ha dentro API, CLI e Wrapper) --> Che non ha tanta logica, ma fa da "façade" di altri file
         api.wait_for_tx_confirmation(
-            transfer_txid, sender_account.address, initial_nonce, initial_height, timeout=120
+            transfer_txid,
+            sender_account.address,
+            initial_nonce,
+            initial_height,
+            timeout=120,
         )
         logger.success("Transfer confirmed!")
 
@@ -192,7 +197,9 @@ def main():
         total_recipient_change = final_recipient_balance - recipient_initial_balance
 
         logger.info(f"Main transfer TXID: {transfer_txid}")
-        logger.info(f"Total amount transferred: {transfer_amount + 6000:,} µSTX")  # Main + 3 small transfers
+        logger.info(
+            f"Total amount transferred: {transfer_amount + 6000:,} µSTX"
+        )  # Main + 3 small transfers
         logger.info(f"Total sender change: {total_sender_change:,} µSTX")
         logger.info(f"Total recipient gain: {total_recipient_change:,} µSTX")
 

@@ -114,6 +114,20 @@ class BlockstackCLI:
                 f"Unexpected error parsing {response_type.__name__}: {e}"
             ) from e
 
+    def _execute_command_for_hex(self, command_parts: List[str], testnet: bool = True, chain_id: Optional[str] = None, operation_name: str = "CLI operation") -> str:
+        """Execute command and return hex string - eliminates repetition."""
+        stdout, stderr, returncode = self._run_command(command_parts, testnet, chain_id)
+        if not stdout:
+            raise StacksCLIException(f"{operation_name} returned empty output")
+        return stdout.strip()
+
+    def _execute_command_for_json(self, command_parts: List[str], response_type: Type[T], testnet: bool = True, chain_id: Optional[str] = None, operation_name: str = "CLI operation") -> T:
+        """Execute command and return parsed JSON object - eliminates repetition."""
+        stdout, stderr, returncode = self._run_command(command_parts, testnet, chain_id)
+        if not stdout:
+            raise StacksCLIException(f"{operation_name} returned empty output")
+        return self._parse_json_response(stdout, response_type)
+
     def _run_command(
         self, command_parts: List[str], testnet: bool, chain_id: Optional[str]
     ) -> Tuple[Optional[str], Optional[str], int]:
@@ -182,11 +196,7 @@ class BlockstackCLI:
             contract_name,
             file_name,
         ]
-
-        stdout, stderr, returncode = self._run_command(cmd, testnet, None)
-        if not stdout:
-            raise StacksCLIException("Contract publish returned empty output")
-        return stdout.strip()
+        return self._execute_command_for_hex(cmd, testnet, None, "Contract publish")
 
     def call_contract(
         self,
@@ -213,21 +223,14 @@ class BlockstackCLI:
         if args:
             for arg in args:
                 cmd.extend(["-e", arg])
-
-        stdout, stderr, returncode = self._run_command(cmd, testnet, None)
-        if not stdout:
-            raise StacksCLIException("Contract call returned empty output")
-        return stdout.strip()
+        return self._execute_command_for_hex(cmd, testnet, None, "Contract call")
 
     def generate_sk(
         self, *, testnet: bool = False, chain_id: Optional[str] = None
     ) -> SecretKeyInfo:
         """Generate a new secret key as typed object."""
         cmd = ["generate-sk"]
-        stdout, _, retcode = self._run_command(cmd, testnet, chain_id)
-        if not stdout:
-            raise StacksCLIException("generate-sk returned empty output")
-        return self._parse_json_response(stdout, SecretKeyInfo)
+        return self._execute_command_for_json(cmd, SecretKeyInfo, testnet, chain_id, "generate-sk")
 
     def token_transfer(
         self,
@@ -251,30 +254,21 @@ class BlockstackCLI:
         ]
         if memo:
             cmd.append(memo)
-
-        stdout, stderr, returncode = self._run_command(cmd, testnet, None)
-        if not stdout:
-            raise StacksCLIException("Token transfer returned empty output")
-        return stdout.strip()
+        return self._execute_command_for_hex(cmd, testnet, None, "Token transfer")
 
     def get_addresses(
         self, secret_key: str, *, testnet: bool = False, chain_id: Optional[str] = None
     ) -> AddressInfo:
         """Get addresses from secret key as typed object."""
         cmd = ["addresses", secret_key]
-        stdout, _, retcode = self._run_command(cmd, testnet, chain_id)
-        if not stdout:
-            raise StacksCLIException("addresses command returned empty output")
-        return self._parse_json_response(stdout, AddressInfo)
+        return self._execute_command_for_json(cmd, AddressInfo, testnet, chain_id, "addresses command")
 
     def _decode_helper(
         self, command: str, hex_data: str, *, testnet: bool, chain_id: Optional[str]
     ) -> Dict[str, Any]:
         """Internal helper for all decode commands - returns raw dict for decode operations."""
         cmd = [command, hex_data]
-        stdout, _, retcode = self._run_command(cmd, testnet, chain_id)
-        if not stdout:
-            raise StacksCLIException(f"{command} command returned empty output")
+        stdout = self._execute_command_for_hex(cmd, testnet, chain_id, f"{command} command")
         try:
             return json.loads(stdout)
         except json.JSONDecodeError as e:
@@ -334,6 +328,20 @@ class BlockstackCLI:
             "decode-microblocks", microblocks_hex, testnet=testnet, chain_id=chain_id
         )
 
+    def _prepare_transaction_binary(self, command_parts: List[str], testnet: bool = True, chain_id: Optional[str] = None) -> bytes:
+        """Execute CLI command and return transaction binary with perfect encapsulation."""
+        stdout = self._execute_command_for_hex(command_parts, testnet, chain_id, "CLI command")
+        try:
+            return bytes.fromhex(stdout)
+        except ValueError as e:
+            logger.error(f"Invalid hex output from CLI command: {stdout}")
+            raise StacksCLIException(f"Invalid hex output from CLI command: {stdout}") from e
+
+    def execute_and_submit(self, api, command_parts: List[str], testnet: bool = True, chain_id: Optional[str] = None) -> str:
+        """Execute CLI command and submit transaction to blockchain - requires StacksCoreAPI instance."""
+        tx_binary = self._prepare_transaction_binary(command_parts, testnet, chain_id)
+        return api.post_raw_transaction(tx_binary)
+
 
 class BlockstackCLIWrapper:
     """
@@ -375,19 +383,6 @@ class BlockstackCLIWrapper:
                 success=False,
                 error_message=f"Unexpected error in {operation_name}: {str(e)}",
             )
-
-    def create_new_account(self, testnet: bool = True) -> CLIResult:
-        """Create a new account with bulletproof error handling."""
-        return self._safe_execute(
-            "create_new_account", lambda: self.cli.generate_sk(testnet=testnet)
-        )
-
-    def get_account_addresses(self, secret_key: str, testnet: bool = True) -> CLIResult:
-        """Get addresses with bulletproof error handling."""
-        return self._safe_execute(
-            "get_account_addresses",
-            lambda: self.cli.get_addresses(secret_key, testnet=testnet),
-        )
 
     def transfer_tokens(
         self,

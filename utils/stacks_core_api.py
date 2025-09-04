@@ -96,7 +96,7 @@ class TransactionDetails(BaseModel):
     tx: Optional[str] = None  # Raw transaction hex
     result: Optional[str] = None  # Contract call result like '(ok true)'
     txid: Optional[str] = None  # Added manually by our code
-    tx_status: Optional[str] = None  # Added manually by our code  
+    tx_status: Optional[str] = None  # Added manually by our code
     tx_type: Optional[str] = None  # Added manually by our code
     receipt_time: Optional[int] = None
     receipt_time_iso: Optional[str] = None
@@ -197,7 +197,10 @@ class StacksCoreAPI:
     """
 
     def __init__(
-        self, base_url: str = "http://localhost:20443", auth_token: Optional[str] = None, timeout: int = 20
+        self,
+        base_url: str = "http://localhost:20443",
+        auth_token: Optional[str] = None,
+        timeout: int = 20,
     ):
         self._base_url = self._validate_url(base_url)
         self._session = requests.Session()
@@ -209,16 +212,16 @@ class StacksCoreAPI:
         """Validate and normalize the base URL"""
         if not url:
             raise ValueError("Base URL cannot be empty")
-        
+
         # Ensure URL doesn't end with slash for consistent endpoint building
-        url = url.rstrip('/')
-        
+        url = url.rstrip("/")
+
         # Basic URL format validation
-        if not (url.startswith('http://') or url.startswith('https://')):
+        if not (url.startswith("http://") or url.startswith("https://")):
             raise ValueError("Base URL must start with http:// or https://")
-            
+
         return url
-    
+
     def _validate_timeout(self, timeout: int) -> int:
         """Validate timeout value"""
         if timeout <= 0:
@@ -229,12 +232,12 @@ class StacksCoreAPI:
     def base_url(self) -> str:
         """Get the base URL (read-only)"""
         return self._base_url
-    
-    @property 
+
+    @property
     def timeout(self) -> int:
         """Get the request timeout"""
         return self._timeout
-    
+
     @timeout.setter
     def timeout(self, value: int) -> None:
         """Set the request timeout with validation"""
@@ -315,7 +318,12 @@ class StacksCoreAPI:
                 f"Request failed for {method} {url}: {str(e)}"
             ) from e
 
-    def _handle_api_response(self, response: requests.Response, response_type: Optional[Type[T]] = None, **parse_kwargs) -> Any:
+    def _handle_api_response(
+        self,
+        response: requests.Response,
+        response_type: Optional[Type[T]] = None,
+        **parse_kwargs,
+    ) -> Any:
         """
         Centralized handler for all API responses.
         On success (200), intelligently parses and returns the body content.
@@ -387,9 +395,12 @@ class StacksCoreAPI:
             k: v for k, v in {"proof": proof, "tip": tip}.items() if v is not None
         }
         response = self._make_request("GET", f"/v2/accounts/{principal}", params=params)
-        return self._handle_api_response(response, AccountInfo,
-                                       address=principal,
-                                       balance=lambda data: self._parse_hex_balance(data.get("balance", "0x0")))
+        return self._handle_api_response(
+            response,
+            AccountInfo,
+            address=principal,
+            balance=lambda data: self._parse_hex_balance(data.get("balance", "0x0")),
+        )
 
     def get_pox_info(self, *, tip: Optional[str] = None) -> "PoxInfo":
         """GET /v2/pox - Get Proof of Transfer (PoX) information as typed object."""
@@ -571,8 +582,13 @@ class StacksCoreAPI:
         testing shows it is a GET endpoint. This implementation uses GET.
         """
         response = self._make_request("GET", f"/v3/transaction/{txid}")
-        return self._handle_api_response(response, TransactionDetails, 
-                                       txid=txid, tx_status="unknown", tx_type="unknown")
+        return self._handle_api_response(
+            response,
+            TransactionDetails,
+            txid=txid,
+            tx_status="unknown",
+            tx_type="unknown",
+        )
 
     def get_tenure_info(self) -> Optional["TenureInfo"]:
         """GET /v3/tenures/info - Fetch metadata about the ongoing Nakamoto tenure."""
@@ -611,7 +627,9 @@ class StacksCoreAPI:
     def get_stacker_set(self, cycle_number: int) -> "StackerSet":
         """GET /v3/stacker_set/{cycle_number} - Fetch stacker set info for a cycle."""
         response = self._make_request("GET", f"/v3/stacker_set/{cycle_number}")
-        return self._handle_api_response(response, StackerSet, cycle_number=cycle_number)
+        return self._handle_api_response(
+            response, StackerSet, cycle_number=cycle_number
+        )
 
     def get_signer_block_count(self, signer_pubkey: str, cycle_number: int) -> int:
         """GET /v3/signer/{signer}/{cycle_number} - Get number of blocks signed by a signer in a cycle."""
@@ -649,21 +667,29 @@ class StacksCoreAPI:
                 if current_height > last_checked_height:
                     try:
                         # Check transaction result using existing method (eliminates repetition)
-                        logger.debug(f"Checking transaction {txid} at block height {current_height}")
+                        logger.debug(
+                            f"Checking transaction {txid} at block height {current_height}"
+                        )
                         tx_details = self.get_transaction_by_id(txid)
-                        
+
                         # Check if transaction has result field with '(ok true)'
-                        if tx_details.result == '(ok true)':
-                            logger.debug(f"Transaction {txid} successful with result: '(ok true)'")
+                        if tx_details.result == "(ok true)":
+                            logger.debug(
+                                f"Transaction {txid} successful with result: '(ok true)'"
+                            )
                             return True
                         else:
-                            logger.debug(f"Transaction {txid} completed with result: {tx_details.result}")
+                            logger.debug(
+                                f"Transaction {txid} completed with result: {tx_details.result}"
+                            )
                             return False  # Transaction completed but not successful
 
                     except StacksAPIException as e:
                         # Transaction not found yet
                         if "404" in str(e):
-                            logger.debug(f"Transaction {txid} not found yet in block {current_height}")
+                            logger.debug(
+                                f"Transaction {txid} not found yet in block {current_height}"
+                            )
                         else:
                             raise  # Re-raise non-404 errors
 
