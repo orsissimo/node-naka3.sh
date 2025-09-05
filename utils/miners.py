@@ -73,7 +73,9 @@ class MinerManager:
                     # Log transient API failures as warnings during readiness check
                     remaining_time = timeout - (time.time() - start_time)
                     if remaining_time > 5:  # Only warn if we have time left to retry
-                        logger.warning(f"Miner {miner_name} not ready yet (will retry): {type(e).__name__}")
+                        logger.warning(
+                            f"Miner {miner_name} not ready yet (will retry): {type(e).__name__}"
+                        )
                     # Continue checking other miners
 
             # Track ready miners to detect progress

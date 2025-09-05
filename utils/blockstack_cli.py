@@ -346,6 +346,3 @@ class BlockstackCLI:
         return self._decode_helper(
             "decode-microblocks", microblocks_hex, testnet=testnet, chain_id=chain_id
         )
-
-
-

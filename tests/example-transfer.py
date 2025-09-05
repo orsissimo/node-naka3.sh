@@ -32,7 +32,7 @@ def main():
     miners = MinerManager()
     sender_account = account_manager.get(Miner.MINER1)
     recipient_account = account_manager.get(Miner.MINER2)
-    
+
     # Single façade that handles everything
     sender = StacksChain(sender_account)
     recipient = StacksChain(recipient_account)
@@ -78,13 +78,13 @@ def main():
                 amount=transfer_amount,
                 memo=transfer_memo,
                 fee=transaction_fee,
-                nonce=initial_nonce  # Explicit for this demo
+                nonce=initial_nonce,  # Explicit for this demo
             )
         except StacksException as e:
             raise RecipeFailedException(
                 "Main token transfer failed",
                 step="Step 3: Execute transfer",
-                details=str(e)
+                details=str(e),
             )
 
         # Step 4: Wait for confirmation
@@ -94,7 +94,7 @@ def main():
             txid=transfer_txid,
             timeout=120,
             initial_nonce=initial_nonce,
-            initial_height=initial_height
+            initial_height=initial_height,
         )
 
         # Step 5: Verify final balances
@@ -117,9 +117,7 @@ def main():
 
         # Sender should have lost: transfer_amount + transaction_fee
         if sender_change == expected_sender_change:
-            logger.success(
-                f"Sender balance change correct: {expected_sender_change}"
-            )
+            logger.success(f"Sender balance change correct: {expected_sender_change}")
         else:
             logger.error("Sender balance change incorrect")
             logger.info(f"  Expected: {expected_sender_change}")
@@ -127,9 +125,7 @@ def main():
 
         # Recipient should have gained: transfer_amount
         if recipient_change == transfer_amount:
-            logger.success(
-                f"Recipient balance change correct: +{transfer_amount}"
-            )
+            logger.success(f"Recipient balance change correct: +{transfer_amount}")
         else:
             logger.error("Recipient balance change incorrect")
             logger.info(f"  Expected: +{transfer_amount}")
@@ -153,7 +149,7 @@ def main():
                     amount=small_amount,
                     memo=small_memo,
                     fee=transaction_fee,
-                    timeout=120
+                    timeout=120,
                 )
                 logger.success(f"Transfer #{i+1} completed: {small_txid}")
             except StacksTimeoutException:

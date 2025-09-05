@@ -12,8 +12,8 @@ class StacksChain:
     """
     Façade that combines API, CLI and Wrapper for high-level blockchain operations.
     Provides convenient methods that coordinate multiple components automatically.
-    
-    Philosophy: Keep underlying components simple and focused, put the "fancy" 
+
+    Philosophy: Keep underlying components simple and focused, put the "fancy"
     convenience operations here.
     """
 
@@ -36,7 +36,7 @@ class StacksChain:
         """Get the associated account (read-only)."""
         return self._account
 
-    @property 
+    @property
     def api(self) -> StacksCoreAPI:
         """Get the raw API instance for direct access when needed."""
         return self._api
@@ -45,7 +45,6 @@ class StacksChain:
     def cli(self) -> BlockstackCLI:
         """Get the raw CLI for direct access when needed."""
         return self._cli
-
 
     def get_current_nonce(self) -> int:
         """Get current nonce for the account - convenience method."""
@@ -72,24 +71,24 @@ class StacksChain:
     ) -> str:
         """
         Transfer tokens with automatic nonce and fee handling.
-        
+
         Args:
             recipient: Recipient address
             amount: Transfer amount as TokenAmount
             memo: Optional memo
             fee: Transaction fee (defaults to standard fee)
             nonce: Transaction nonce (auto-fetched if not provided)
-            
+
         Returns:
             Transaction ID (txid)
-            
+
         Raises:
             StacksException: If transfer fails
         """
         # Auto-fetch nonce if not provided
         if nonce is None:
             nonce = self.get_current_nonce()
-            
+
         # Use standard fee if not provided
         if fee is None:
             fee = standard_fee()
@@ -114,36 +113,40 @@ class StacksChain:
 
         # Submit transaction to blockchain
         txid = self._api.post_raw_transaction(bytes.fromhex(tx_hex))
-        
+
         logger.success(f"Transfer submitted: {txid}")
         return txid
 
     def wait_for_confirmation(
-        self, 
-        txid: str, 
+        self,
+        txid: str,
         timeout: int = 120,
         initial_nonce: Optional[int] = None,
-        initial_height: Optional[int] = None
+        initial_height: Optional[int] = None,
     ) -> bool:
         """
         Wait for transaction confirmation with automatic parameter handling.
         This is a compound operation that coordinates API calls with smart polling.
-        
+
         Args:
             txid: Transaction ID to wait for
             timeout: Timeout in seconds
             initial_nonce: Initial nonce (auto-fetched if not provided)
             initial_height: Initial height (auto-fetched if not provided)
-            
+
         Returns:
             True if confirmed
-            
+
         Raises:
             StacksTimeoutException: If confirmation times out
         """
         import time
-        from .config import StacksNetworkException, StacksAPIException, StacksTimeoutException
-        
+        from .config import (
+            StacksNetworkException,
+            StacksAPIException,
+            StacksTimeoutException,
+        )
+
         # Auto-fetch parameters if not provided
         if initial_nonce is None:
             initial_nonce = self.get_current_nonce()
@@ -168,7 +171,9 @@ class StacksChain:
                         logger.debug(
                             f"Checking transaction {txid} at block height {current_height}"
                         )
-                        tx_details = self._api.get_transaction_by_id(txid, is_retry_context=True)
+                        tx_details = self._api.get_transaction_by_id(
+                            txid, is_retry_context=True
+                        )
 
                         # Check if transaction has result field with '(ok true)'
                         if tx_details.result == "(ok true)":
@@ -250,17 +255,17 @@ class StacksChain:
     ) -> str:
         """
         Transfer tokens and wait for confirmation - atomic operation.
-        
+
         Args:
             recipient: Recipient address
             amount: Transfer amount
             memo: Optional memo
             fee: Transaction fee (defaults to standard)
             timeout: Confirmation timeout in seconds
-            
+
         Returns:
             Transaction ID (txid)
-            
+
         Raises:
             StacksException: If transfer fails
             StacksTimeoutException: If confirmation times out
@@ -268,22 +273,18 @@ class StacksChain:
         # Capture initial state
         initial_nonce = self.get_current_nonce()
         initial_height = self.get_current_height()
-        
+
         # Execute transfer
         txid = self.transfer_tokens(
-            recipient=recipient,
-            amount=amount,
-            memo=memo,
-            fee=fee,
-            nonce=initial_nonce
+            recipient=recipient, amount=amount, memo=memo, fee=fee, nonce=initial_nonce
         )
-        
+
         # Wait for confirmation
         self.wait_for_confirmation(
             txid=txid,
             timeout=timeout,
             initial_nonce=initial_nonce,
-            initial_height=initial_height
+            initial_height=initial_height,
         )
-        
+
         return txid

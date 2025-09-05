@@ -342,11 +342,13 @@ class StacksCoreAPI:
             # Use different log levels based on context and error type
             if is_retry_context and response.status_code == 404:
                 # For 404s in retry contexts (like transaction not found yet), use warning
-                logger.warning(f"API call temporarily failed (will retry): {error_message}")
+                logger.warning(
+                    f"API call temporarily failed (will retry): {error_message}"
+                )
             else:
                 # For final failures or non-retryable errors, use error
                 logger.error(f"API call failed: {error_message}")
-            
+
             raise StacksAPIException(
                 error_message,
                 status_code=response.status_code,
@@ -584,7 +586,9 @@ class StacksCoreAPI:
         )
         return self._handle_api_response(response)
 
-    def get_transaction_by_id(self, txid: str, is_retry_context: bool = False) -> "TransactionDetails":
+    def get_transaction_by_id(
+        self, txid: str, is_retry_context: bool = False
+    ) -> "TransactionDetails":
         """GET /v3/transaction/{txid} - Retrieve transaction details as typed object.
         NOTE: The OpenAPI spec incorrectly lists this as a POST endpoint. Real-world
         testing shows it is a GET endpoint. This implementation uses GET.
@@ -649,6 +653,3 @@ class StacksCoreAPI:
         if not resp or not isinstance(resp, str) or not resp.isdigit():
             raise StacksAPIException(f"Invalid signer block count response: {resp}")
         return int(resp)
-
-
-

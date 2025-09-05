@@ -157,7 +157,9 @@ class StacksTimeoutException(StacksNetworkException):
 class RecipeFailedException(StacksException):
     """Exception for explicit test/recipe failures that require cleanup."""
 
-    def __init__(self, message: str, step: Optional[str] = None, details: Optional[str] = None):
+    def __init__(
+        self, message: str, step: Optional[str] = None, details: Optional[str] = None
+    ):
         self.step = step
         self.details = details
         super().__init__(message)
@@ -258,11 +260,12 @@ class AccountInfo(BaseModel):
 
     class Config:
         populate_by_name = True
-    
+
     @property
     def balance_amount(self) -> "TokenAmount":
         """Get balance as TokenAmount for easy conversions."""
         from .tokens import microstx
+
         return microstx(self.balance)
 
 
