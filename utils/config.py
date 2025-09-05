@@ -202,31 +202,8 @@ class AccountManager:
         return len(self._accounts)
 
 
-# Global instance for backwards compatibility
-_account_manager = AccountManager()
-
-
-class AccountManagerCompat:
-    """Static compatibility interface - delegates to instance."""
-
-    @staticmethod
-    def get(miner: Miner) -> Account:
-        """Get account by enum with full IDE autocompletion support."""
-        return _account_manager.get(miner)
-
-    @staticmethod
-    def all_miners() -> List[Miner]:
-        """Get all available miner enums."""
-        return _account_manager.all_miners()
-
-    @staticmethod
-    def all() -> Dict[str, Account]:
-        """Get all accounts."""
-        return _account_manager.all()
-
-
-# Maintain backward compatibility
-AccountManager = AccountManagerCompat
+# Global account manager instance
+account_manager = AccountManager()
 
 
 class TransferParams(BaseModel):
@@ -283,10 +260,10 @@ class AccountInfo(BaseModel):
         populate_by_name = True
     
     @property
-    def balance_amount(self) -> "StacksAmount":
-        """Get balance as StacksAmount for easy conversions."""
-        from .amounts import StacksAmount
-        return StacksAmount.from_microstx(self.balance)
+    def balance_amount(self) -> "TokenAmount":
+        """Get balance as TokenAmount for easy conversions."""
+        from .tokens import microstx
+        return microstx(self.balance)
 
 
 class ApiResult(BaseModel):

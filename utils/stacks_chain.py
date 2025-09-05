@@ -4,7 +4,7 @@ from typing import Optional, Union
 from .config import Account, StacksException, StacksTimeoutException
 from .stacks_core_api import StacksCoreAPI
 from .blockstack_cli import BlockstackCLI
-from .amounts import StacksAmount, StacksFee
+from .tokens import TokenAmount, standard_fee
 from .logger import logger
 
 
@@ -57,7 +57,7 @@ class StacksChain:
         node_info = self._api.get_info()
         return node_info.stacks_tip_height
 
-    def get_balance(self) -> StacksAmount:
+    def get_balance(self) -> TokenAmount:
         """Get current balance as StacksAmount - convenience method."""
         account_info = self._api.get_account_info(self._account.address)
         return account_info.balance_amount
@@ -65,9 +65,9 @@ class StacksChain:
     def transfer_tokens(
         self,
         recipient: str,
-        amount: Union[StacksAmount, float],
+        amount: TokenAmount,
         memo: str = "",
-        fee: Optional[Union[StacksFee, int]] = None,
+        fee: Optional[TokenAmount] = None,
         nonce: Optional[int] = None,
     ) -> str:
         """
@@ -75,7 +75,7 @@ class StacksChain:
         
         Args:
             recipient: Recipient address
-            amount: Transfer amount (StacksAmount or float STX)
+            amount: Transfer amount as TokenAmount
             memo: Optional memo
             fee: Transaction fee (defaults to standard fee)
             nonce: Transaction nonce (auto-fetched if not provided)
@@ -92,24 +92,11 @@ class StacksChain:
             
         # Use standard fee if not provided
         if fee is None:
-            fee = StacksFee.standard()
+            fee = standard_fee()
 
-        # "Fancy" type conversion logic (moved from CLIWrapper)
-        from .config import MICROSTX_PER_STX
-        
-        # Handle both old (float) and new (StacksAmount) interfaces
-        if isinstance(amount, StacksAmount):
-            amount_microstx = amount.to_microstx()
-        else:
-            # Backward compatibility: treat as STX float
-            amount_microstx = int(amount * MICROSTX_PER_STX)
-        
-        # Handle both old (int) and new (StacksFee) interfaces  
-        if isinstance(fee, StacksFee):
-            fee_microstx = fee.to_microstx()
-        else:
-            # Backward compatibility: treat as microSTX int
-            fee_microstx = fee
+        # Convert TokenAmount to base units for CLI
+        amount_microstx = amount.to_base_units()
+        fee_microstx = fee.to_base_units()
 
         # Execute transfer using raw CLI
         try:
@@ -256,9 +243,9 @@ class StacksChain:
     def transfer_and_confirm(
         self,
         recipient: str,
-        amount: Union[StacksAmount, float],
+        amount: TokenAmount,
         memo: str = "",
-        fee: Optional[Union[StacksFee, int]] = None,
+        fee: Optional[TokenAmount] = None,
         timeout: int = 120,
     ) -> str:
         """

@@ -8,7 +8,7 @@ import json
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from utils.config import (
-    AccountManager,
+    account_manager,
     Miner,
     StacksException,
     StacksAPIException,
@@ -21,7 +21,7 @@ from utils.config import (
 from utils.miners import MinerManager
 from utils.logger import logger, Colors
 from utils.stacks_chain import StacksChain
-from utils.amounts import StacksAmount, StacksFee, stx, microstx
+from utils.tokens import TokenAmount, standard_fee, stx, microstx
 
 
 def main():
@@ -30,8 +30,8 @@ def main():
 
     # Clean setup with façade pattern
     miners = MinerManager()
-    sender_account = AccountManager.get(Miner.MINER1)
-    recipient_account = AccountManager.get(Miner.MINER2)
+    sender_account = account_manager.get(Miner.MINER1)
+    recipient_account = account_manager.get(Miner.MINER2)
     
     # Single façade that handles everything
     sender = StacksChain(sender_account)
@@ -58,7 +58,7 @@ def main():
         logger.header("Step 2: Prepare transfer")
         transfer_amount = microstx(50000)  # 50,000 µSTX
         transfer_memo = "Test transfer from example"
-        transaction_fee = StacksFee.standard()  # 1000 µSTX
+        transaction_fee = standard_fee()  # 1000 µSTX
 
         # Auto-fetched by façade, but showing explicit access
         initial_nonce = sender.get_current_nonce()

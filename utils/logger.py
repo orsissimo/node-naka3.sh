@@ -141,7 +141,6 @@ class Logger:
         formatted = self._format_message("DEBG", message, color or Colors.GREY)
         print(formatted)
 
-    # Convenience methods for backward compatibility during migration
     def warn(self, message: str, color: Optional[str] = None) -> None:
         """Alias for warning method."""
         self.warning(message, color)

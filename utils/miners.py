@@ -6,7 +6,7 @@ import os
 from .logger import logger, Colors
 from .stacks_core_api import StacksCoreAPI
 from .config import (
-    AccountManager,
+    account_manager,
     Miner,
     MiningMode,
     StacksException,
@@ -25,7 +25,7 @@ class MinerManager:
         self._running = False
         self._apis = {
             name: StacksCoreAPI(base_url=account.api_url)
-            for name, account in AccountManager.all().items()
+            for name, account in account_manager.all().items()
         }
         self._validate_initialization()
 
