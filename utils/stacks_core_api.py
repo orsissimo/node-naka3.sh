@@ -305,15 +305,15 @@ class StacksCoreAPI:
             logger.debug(f"<- Status: {response.status_code} {indicator}")
             return response
         except requests.exceptions.Timeout as e:
-            logger.critical(f"Request timeout occurred: {str(e)}")
+            logger.error(f"Request timeout occurred: {str(e)}")
             raise StacksTimeoutException(f"Request timeout for {method} {url}") from e
         except requests.exceptions.ConnectionError as e:
-            logger.critical(f"Connection error occurred: {str(e)}")
+            logger.error(f"Connection error occurred: {str(e)}")
             raise StacksNetworkException(f"Connection error for {method} {url}") from e
         # FIXME: Potrei fare except StacksHTTPException, che ha error_code: XYZ + error_message
         # FIXME: Dove ora cerco "404" nella stringa, poi controllo StacksHTTPException.error_code
         except requests.exceptions.RequestException as e:
-            logger.critical(f"An HTTP request error occurred: {str(e)}")
+            logger.error(f"An HTTP request error occurred: {str(e)}")
             raise StacksNetworkException(
                 f"Request failed for {method} {url}: {str(e)}"
             ) from e

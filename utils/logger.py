@@ -141,15 +141,6 @@ class Logger:
         formatted = self._format_message("DEBG", message, color or Colors.GREY)
         print(formatted)
 
-    def warn(self, message: str, color: Optional[str] = None) -> None:
-        """Alias for warning method."""
-        self.warning(message, color)
-
-    def critical(self, message: str, color: Optional[str] = None) -> None:
-        """Log critical message (maps to error with CRITICAL prefix)."""
-        critical_msg = f"CRITICAL - {message}"
-        self.error(critical_msg, color or f"{Colors.BOLD}{Colors.RED}")
-
     def set_level(self, level: LogLevel) -> None:
         """Change the minimum log level at runtime with validation."""
         self._min_level = self._validate_log_level(level)

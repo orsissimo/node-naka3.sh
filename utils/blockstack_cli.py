@@ -174,18 +174,18 @@ class BlockstackCLI:
             if stdout:
                 logger.debug(f"STDOUT:\n{stdout}")
             if stderr:
-                logger.warn(f"STDERR:\n{stderr}")
+                logger.warning(f"STDERR:\n{stderr}")
 
             return stdout, stderr, process.returncode
         except FileNotFoundError as e:
-            logger.critical(
+            logger.error(
                 f"Executable not found at '{self._cli_path}'. Please ensure it is installed and in your PATH."
             )
             raise StacksCLIException(
                 f"Executable not found at '{self._cli_path}'", return_code=1
             ) from e
         except Exception as e:
-            logger.critical(f"An unexpected error occurred: {e}")
+            logger.error(f"An unexpected error occurred: {e}")
             raise StacksCLIException(
                 f"An unexpected error occurred: {e}", return_code=1
             ) from e

@@ -28,12 +28,9 @@ def main():
     """Execute STX token transfer test"""
     logger.header("STX TOKEN TRANSFER TEST")
 
-    # Clean setup with façade pattern
     miners = MinerManager()
     sender_account = account_manager.get(Miner.MINER1)
     recipient_account = account_manager.get(Miner.MINER2)
-
-    # Single façade that handles everything
     sender = StacksChain(sender_account)
     recipient = StacksChain(recipient_account)
 
@@ -45,7 +42,6 @@ def main():
 
         # Step 1: Check initial balances
         logger.header("Step 1: Check initial balances")
-        # Using façade convenience methods
         sender_initial_balance = sender.get_balance()
         recipient_initial_balance = recipient.get_balance()
 
@@ -60,7 +56,6 @@ def main():
         transfer_memo = "Test transfer from example"
         transaction_fee = standard_fee()  # 1000 µSTX
 
-        # Auto-fetched by façade, but showing explicit access
         initial_nonce = sender.get_current_nonce()
         initial_height = sender.get_current_height()
 
@@ -71,7 +66,6 @@ def main():
 
         # Step 3: Execute transfer
         logger.header("Step 3: Execute transfer")
-        # Façade handles everything automatically
         try:
             transfer_txid = sender.transfer_tokens(
                 recipient=recipient_account.address,
@@ -89,7 +83,6 @@ def main():
 
         # Step 4: Wait for confirmation
         logger.header("Step 4: Wait for confirmation")
-        # Façade convenience method with auto-parameters
         sender.wait_for_confirmation(
             txid=transfer_txid,
             timeout=120,
@@ -99,7 +92,6 @@ def main():
 
         # Step 5: Verify final balances
         logger.header("Step 5: Verify final balances")
-        # Façade convenience methods
         sender_final_balance = sender.get_balance()
         recipient_final_balance = recipient.get_balance()
 
@@ -138,11 +130,9 @@ def main():
             small_amount = microstx(1000 * (i + 1))  # 1000, 2000, 3000 µSTX
             small_memo = f"Small transfer #{i+1}"
 
-            # Using façade for cleaner code
             current_nonce = sender.get_current_nonce()
             current_height = sender.get_current_height()
 
-            # Using atomic transfer_and_confirm operation
             try:
                 small_txid = sender.transfer_and_confirm(
                     recipient=recipient_account.address,
@@ -161,7 +151,6 @@ def main():
         # Final summary
         logger.header("FINAL RESULT")
 
-        # Final balance check with façade
         final_sender_balance = sender.get_balance()
         final_recipient_balance = recipient.get_balance()
         total_sender_change = final_sender_balance - sender_initial_balance
