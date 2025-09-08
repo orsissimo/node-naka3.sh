@@ -100,7 +100,6 @@ class ApiError(Enum):
     UNKNOWN_ERROR = "Unknown error"
 
 
-# Custom Exception Classes for better error handling
 class StacksException(Exception):
     """Base exception for all Stacks-related errors."""
 
