@@ -1,20 +1,23 @@
 *.sw*
+.vscode
 */.vscode
+logs
 */logs
+tmp
 */tmp
+node_modules
 */node_modules
+__pycache__
 */__pycache__
-*/.DS_Store
-*/.claude
 
-idee.txt
-ignore-this
+.claude
+*/.claude
+CLAUDE.md
+
+.DS_Store
+*/.DS_Store
+
+venv
 
 tree-pro.sh
 tree-pro-output.txt
-
-logs
-
-venv
-improvements.txt
-CLAUDE.md
