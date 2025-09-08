@@ -1,3 +1,6 @@
+## Quick Start
+
+```bash
 cd naka3/playbooks/three-miners && ./three-miners.sh snapshot create
 
 python3 -m venv venv
@@ -5,47 +8,52 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 python3 tests/example-transfer.py
+```
 
----
+## Exception Hierarchy
 
-Exception Hierarchy:
+```
 Exception
   └── StacksException (base)
       ├── StacksAPIException
+      │   └── StacksHTTPException
       ├── StacksCLIException
       ├── StacksValidationException
       └── StacksNetworkException
           └── StacksTimeoutException
+```
 
   1. StacksException (Base exception)
     - Base exception for all Stacks-related errors
     - Parent class for all other custom exceptions
   2. StacksAPIException
     - Inherits from: StacksException
-    - Purpose: API-related exceptions
+    - Purpose: General API-related exceptions
+    - Used for: Unexpected API parsing errors
+  3. StacksHTTPException
+    - Inherits from: StacksAPIException
+    - Purpose: HTTP-specific API exceptions
     - Extra attributes: status_code, error_details
-    - Used for: HTTP errors, API response failures
-  3. StacksCLIException
+    - Used for: HTTP errors, API response failures (4xx, 5xx status codes)
+  4. StacksCLIException
     - Inherits from: StacksException
     - Purpose: CLI-related exceptions
     - Extra attributes: return_code, stderr
     - Used for: Blockstack CLI command failures
-  4. StacksValidationException
+  5. StacksValidationException
     - Inherits from: StacksException
     - Purpose: Data validation exceptions
-    - Used for: Invalid data/parameter validation failures
-  5. StacksNetworkException
+    - Used for: Invalid data/parameter validation failures, Pydantic errors
+  6. StacksNetworkException
     - Inherits from: StacksException
     - Purpose: Network/connection related exceptions
-    - Used for: Network connectivity issues
-  6. StacksTimeoutException
+    - Used for: Network connectivity issues, connection errors
+  7. StacksTimeoutException
     - Inherits from: StacksNetworkException
     - Purpose: Timeout-specific exceptions
     - Used for: Operation timeouts (confirmation waits, miner startup, etc.)
 
----
-
-pip packages
+## pip packages
 
 Pydantic is a Python library for data validation and parsing using type hints. We're using it for:
   1. Type-safe data models - All classes like Account, TransferInfo, DeploymentInfo inherit from BaseModel
@@ -58,7 +66,7 @@ Black is an opinionated formatter that automatically fixes code style issues lik
   - black . - Format all Python files in current directory
   - black --line-length 100 . - Use 100 char line limit instead of default 88
 
----
+## Logger
 
 To see debug logs, you need to set the LOG_LEVEL environment variable to debug:
 
@@ -78,7 +86,7 @@ To see debug logs, you need to set the LOG_LEVEL environment variable to debug:
   The debug messages will appear with the format:
   [21:19:02][DEBG] Debug information here
 
----
+## Stop signal for tests in /tests
 
 The RecipeFailedException is now available throughout your codebase for any scenario where you need explicit control over test failure and cleanup.
    It includes:
