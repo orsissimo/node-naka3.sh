@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Dict, Optional, List, Any
 
 # Constants
-MICROSTX_PER_STX = 1_000_000
+MICROSTX_PER_STX = 1_000_000 # 1 STX = 1,000,000 µSTX
 SATOSHI_PER_BTC = 100_000_000  # 1 BTC = 100,000,000 satoshi
 DEFAULT_HTTP_TIMEOUT = 20
 DEFAULT_API_PORT = 20443
