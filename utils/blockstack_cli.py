@@ -1,10 +1,10 @@
 import subprocess
 import shlex
 import json
-from typing import List, Optional, Tuple, Dict, Any, TypeVar, Type, Union
+from typing import List, Optional, Tuple, Dict, Any, TypeVar, Type
 from pydantic import BaseModel, Field, ValidationError
-from .logger import Colors, logger
-from .config import MICROSTX_PER_STX, StacksCLIException, StacksValidationException
+from .logger import logger
+from .config import StacksCLIException, StacksValidationException
 
 T = TypeVar("T", bound=BaseModel)
 

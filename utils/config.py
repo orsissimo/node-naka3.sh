@@ -1,7 +1,6 @@
 from pydantic import BaseModel, Field
 from enum import Enum
 from typing import Dict, Optional, List, Any
-import os
 
 # Constants
 MICROSTX_PER_STX = 1_000_000
@@ -120,6 +119,41 @@ class StacksAPIException(StacksException):
         self.status_code = status_code
         self.error_details = error_details or {}
         super().__init__(message)
+
+    def is_not_found(self) -> bool:
+        """Check if this is a 404 Not Found error."""
+        return self.status_code == 404
+
+    def is_client_error(self) -> bool:
+        """Check if this is a 4xx client error."""
+        return self.status_code is not None and 400 <= self.status_code < 500
+
+    def is_server_error(self) -> bool:
+        """Check if this is a 5xx server error."""
+        return self.status_code is not None and 500 <= self.status_code < 600
+
+
+class StacksHTTPException(StacksAPIException):
+    """HTTP-specific exceptions with status code semantics."""
+
+    def __init__(
+        self,
+        message: str,
+        status_code: int,
+        error_details: Optional[Dict[str, Any]] = None,
+    ):
+        super().__init__(message, status_code, error_details)
+
+    @classmethod
+    def from_response(
+        cls, response, error_details: Optional[Dict[str, Any]] = None
+    ) -> "StacksHTTPException":
+        """Create exception from HTTP response object."""
+        return cls(
+            message=f"HTTP {response.status_code}: {response.reason}",
+            status_code=response.status_code,
+            error_details=error_details or {},
+        )
 
 
 class StacksCLIException(StacksException):

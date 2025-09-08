@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from typing import Optional, Union
+from typing import Optional
 from .config import Account, StacksException, StacksTimeoutException
 from .stacks_core_api import StacksCoreAPI
 from .blockstack_cli import BlockstackCLI
@@ -190,7 +190,7 @@ class StacksChain:
 
                     except StacksAPIException as e:
                         # Transaction not found yet
-                        if "404" in str(e):
+                        if e.is_not_found():
                             logger.debug(
                                 f"Transaction {txid} not found yet in block {current_height}"
                             )
