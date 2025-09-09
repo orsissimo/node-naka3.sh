@@ -1,6 +1,7 @@
 import os
 from typing import Optional
 from enum import Enum
+import datetime
 
 
 class LogLevel(Enum):
@@ -78,7 +79,6 @@ class Logger:
 
     def _get_timestamp(self) -> str:
         """Get current timestamp in [YYYY-MM-DD HH:MM:SS] format."""
-        import datetime
 
         return f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}]"
 

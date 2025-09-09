@@ -4,7 +4,7 @@ import json
 from typing import List, Optional, Tuple, Dict, Any, TypeVar, Type
 from pydantic import BaseModel, Field, ValidationError
 from .logger import logger
-from .config import StacksCLIException, StacksValidationException
+from .exceptions import *
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -76,7 +76,7 @@ class BlockstackCLI:
 
     def _parse_json_response(self, stdout: str, response_type: Type[T]) -> T:
         """
-        Bulletproof automatic JSON→typed object parsing.
+        Automatic JSON→typed object parsing.
         Raises exceptions instead of returning None for better error handling.
         """
         if not stdout or not stdout.strip():
@@ -84,6 +84,7 @@ class BlockstackCLI:
                 f"Empty or None stdout for {response_type.__name__}"
             )
 
+        json_data = None
         try:
             # Parse JSON from stdout
             json_data = json.loads(stdout.strip())
@@ -102,9 +103,7 @@ class BlockstackCLI:
             ) from e
         except ValidationError as e:
             logger.error(f"Pydantic validation error for {response_type.__name__}: {e}")
-            logger.error(
-                f"JSON data: {json_data if 'json_data' in locals() else 'N/A'}"
-            )
+            logger.error(f"JSON data: {json_data if json_data is not None else 'N/A'}")
             raise StacksValidationException(
                 f"Validation failed for {response_type.__name__}: {e}"
             ) from e
@@ -121,7 +120,6 @@ class BlockstackCLI:
         chain_id: Optional[str] = None,
         operation_name: str = "CLI operation",
     ) -> str:
-        """Execute command and return hex string - eliminates repetition."""
         stdout, stderr, returncode = self._run_command(command_parts, testnet, chain_id)
         if not stdout:
             raise StacksCLIException(f"{operation_name} returned empty output")
@@ -135,7 +133,6 @@ class BlockstackCLI:
         chain_id: Optional[str] = None,
         operation_name: str = "CLI operation",
     ) -> T:
-        """Execute command and return parsed JSON object - eliminates repetition."""
         stdout, stderr, returncode = self._run_command(command_parts, testnet, chain_id)
         if not stdout:
             raise StacksCLIException(f"{operation_name} returned empty output")
@@ -144,7 +141,6 @@ class BlockstackCLI:
     def _run_command(
         self, command_parts: List[str], testnet: bool, chain_id: Optional[str]
     ) -> Tuple[Optional[str], Optional[str], int]:
-        """Internal helper to construct and execute the final command."""
         base_cmd = [self._cli_path]
         if testnet:
             base_cmd.append(f"--testnet{f'={chain_id}' if chain_id else ''}")
@@ -179,7 +175,8 @@ class BlockstackCLI:
             return stdout, stderr, process.returncode
         except FileNotFoundError as e:
             logger.error(
-                f"Executable not found at '{self._cli_path}'. Please ensure it is installed and in your PATH."
+                f"Executable not found at '{self._cli_path}'. "
+                f"Please ensure it is installed and in your PATH."
             )
             raise StacksCLIException(
                 f"Executable not found at '{self._cli_path}'", return_code=1
@@ -200,7 +197,6 @@ class BlockstackCLI:
         *,
         testnet: bool = True,
     ) -> str:
-        """Execute blockstack-cli publish command and return transaction hex"""
         cmd = [
             "publish",
             publisher_sk,
@@ -223,7 +219,6 @@ class BlockstackCLI:
         *,
         testnet: bool = True,
     ) -> str:
-        """Execute blockstack-cli contract-call command and return transaction hex"""
         cmd = [
             "contract-call",
             origin_sk,
@@ -241,7 +236,6 @@ class BlockstackCLI:
     def generate_sk(
         self, *, testnet: bool = False, chain_id: Optional[str] = None
     ) -> SecretKeyInfo:
-        """Generate a new secret key as typed object."""
         cmd = ["generate-sk"]
         return self._execute_command_for_json(
             cmd, SecretKeyInfo, testnet, chain_id, "generate-sk"
@@ -258,7 +252,6 @@ class BlockstackCLI:
         *,
         testnet: bool = True,
     ) -> str:
-        """Execute blockstack-cli token-transfer command and return transaction hex"""
         cmd = [
             "token-transfer",
             origin_sk,
@@ -274,7 +267,6 @@ class BlockstackCLI:
     def get_addresses(
         self, secret_key: str, *, testnet: bool = False, chain_id: Optional[str] = None
     ) -> AddressInfo:
-        """Get addresses from secret key as typed object."""
         cmd = ["addresses", secret_key]
         return self._execute_command_for_json(
             cmd, AddressInfo, testnet, chain_id, "addresses command"
@@ -283,7 +275,6 @@ class BlockstackCLI:
     def _decode_helper(
         self, command: str, hex_data: str, *, testnet: bool, chain_id: Optional[str]
     ) -> Dict[str, Any]:
-        """Internal helper for all decode commands - returns raw dict for decode operations."""
         cmd = [command, hex_data]
         stdout = self._execute_command_for_hex(
             cmd, testnet, chain_id, f"{command} command"
@@ -302,7 +293,6 @@ class BlockstackCLI:
     def decode_tx(
         self, tx_hex: str, *, testnet: bool = False, chain_id: Optional[str] = None
     ) -> Dict[str, Any]:
-        """Usage: blockstack-cli decode-tx [transaction-hex-or-stdin]"""
         return self._decode_helper(
             "decode-tx", tx_hex, testnet=testnet, chain_id=chain_id
         )
@@ -310,7 +300,6 @@ class BlockstackCLI:
     def decode_header(
         self, header_hex: str, *, testnet: bool = False, chain_id: Optional[str] = None
     ) -> Dict[str, Any]:
-        """Usage: blockstack-cli decode-header [block-path-or-stdin]"""
         return self._decode_helper(
             "decode-header", header_hex, testnet=testnet, chain_id=chain_id
         )
@@ -318,7 +307,6 @@ class BlockstackCLI:
     def decode_block(
         self, block_hex: str, *, testnet: bool = False, chain_id: Optional[str] = None
     ) -> Dict[str, Any]:
-        """Usage: blockstack-cli decode-block [block-path-or-stdin]"""
         return self._decode_helper(
             "decode-block", block_hex, testnet=testnet, chain_id=chain_id
         )
@@ -330,7 +318,6 @@ class BlockstackCLI:
         testnet: bool = False,
         chain_id: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Usage: blockstack-cli decode-microblock [microblock-path-or-stdin]"""
         return self._decode_helper(
             "decode-microblock", microblock_hex, testnet=testnet, chain_id=chain_id
         )
@@ -342,7 +329,6 @@ class BlockstackCLI:
         testnet: bool = False,
         chain_id: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Usage: blockstack-cli decode-microblocks [microblocks-path-or-stdin]"""
         return self._decode_helper(
             "decode-microblocks", microblocks_hex, testnet=testnet, chain_id=chain_id
         )

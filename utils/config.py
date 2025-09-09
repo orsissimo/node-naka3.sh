@@ -1,9 +1,13 @@
 from pydantic import BaseModel, Field
 from enum import Enum
-from typing import Dict, Optional, List, Any
+from typing import Dict, Optional, List, Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .tokens import TokenAmount
+
 
 # Constants
-MICROSTX_PER_STX = 1_000_000 # 1 STX = 1,000,000 µSTX
+MICROSTX_PER_STX = 1_000_000  # 1 STX = 1,000,000 µSTX
 SATOSHI_PER_BTC = 100_000_000  # 1 BTC = 100,000,000 satoshi
 DEFAULT_HTTP_TIMEOUT = 20
 DEFAULT_API_PORT = 20443
@@ -12,7 +16,7 @@ DEFAULT_WAIT_TIMEOUT = 60
 
 
 class Account(BaseModel):
-    """A Pydantic model to hold all information for a single miner account."""
+    """Pydantic model for miner account information."""
 
     name: str
     address: str
@@ -50,7 +54,7 @@ _ACCOUNTS = {
 
 
 class Miner(Enum):
-    """Enum for type-safe miner access."""
+    """Type-safe miner access enum."""
 
     MINER1 = 1
     MINER2 = 2
@@ -58,14 +62,14 @@ class Miner(Enum):
 
 
 class MiningMode(Enum):
-    """Enum for mining mode selection."""
+    """Mining mode selection enum."""
 
     AUTO = "auto"
     MANUAL = "manual"
 
 
 class TransactionStatus(Enum):
-    """Enum for transaction status with IDE autocompletion."""
+    """Transaction status enum."""
 
     SUBMITTED = "submitted"
     PENDING = "pending"
@@ -74,7 +78,7 @@ class TransactionStatus(Enum):
 
 
 class TestResult(Enum):
-    """Enum for test results with IDE autocompletion."""
+    """Test results enum."""
 
     SUCCESS = "success"
     FAILURE = "failure"
@@ -82,7 +86,7 @@ class TestResult(Enum):
 
 
 class TxStatus(Enum):
-    """Enum for transaction status values from Stacks API."""
+    """Transaction status values from Stacks API."""
 
     SUCCESS = "success"
     PENDING = "pending"
@@ -92,7 +96,7 @@ class TxStatus(Enum):
 
 
 class ApiError(Enum):
-    """Enum for standardized API error types."""
+    """Standardized API error types."""
 
     NOT_FOUND = "Not found (404)"
     TIMEOUT = "Timeout"
@@ -100,113 +104,14 @@ class ApiError(Enum):
     UNKNOWN_ERROR = "Unknown error"
 
 
-class StacksException(Exception):
-    """Base exception for all Stacks-related errors."""
-
-    pass
-
-
-class StacksAPIException(StacksException):
-    """API-related exceptions."""
-
-    def __init__(
-        self,
-        message: str,
-        status_code: Optional[int] = None,
-        error_details: Optional[Dict[str, Any]] = None,
-    ):
-        self.status_code = status_code
-        self.error_details = error_details or {}
-        super().__init__(message)
-
-    def is_not_found(self) -> bool:
-        """Check if this is a 404 Not Found error."""
-        return self.status_code == 404
-
-    def is_client_error(self) -> bool:
-        """Check if this is a 4xx client error."""
-        return self.status_code is not None and 400 <= self.status_code < 500
-
-    def is_server_error(self) -> bool:
-        """Check if this is a 5xx server error."""
-        return self.status_code is not None and 500 <= self.status_code < 600
-
-
-class StacksHTTPException(StacksAPIException):
-    """HTTP-specific exceptions with status code semantics."""
-
-    def __init__(
-        self,
-        message: str,
-        status_code: int,
-        error_details: Optional[Dict[str, Any]] = None,
-    ):
-        super().__init__(message, status_code, error_details)
-
-    @classmethod
-    def from_response(
-        cls, response, error_details: Optional[Dict[str, Any]] = None
-    ) -> "StacksHTTPException":
-        """Create exception from HTTP response object."""
-        return cls(
-            message=f"HTTP {response.status_code}: {response.reason}",
-            status_code=response.status_code,
-            error_details=error_details or {},
-        )
-
-
-class StacksCLIException(StacksException):
-    """CLI-related exceptions."""
-
-    def __init__(
-        self,
-        message: str,
-        return_code: Optional[int] = None,
-        stderr: Optional[str] = None,
-    ):
-        self.return_code = return_code
-        self.stderr = stderr
-        super().__init__(message)
-
-
-class StacksValidationException(StacksException):
-    """Data validation exceptions."""
-
-    pass
-
-
-class StacksNetworkException(StacksException):
-    """Network/connection related exceptions."""
-
-    pass
-
-
-class StacksTimeoutException(StacksNetworkException):
-    """Timeout-specific exceptions."""
-
-    pass
-
-
-class RecipeFailedException(StacksException):
-    """Exception for explicit test/recipe failures that require cleanup."""
-
-    def __init__(
-        self, message: str, step: Optional[str] = None, details: Optional[str] = None
-    ):
-        self.step = step
-        self.details = details
-        super().__init__(message)
-
-
 class AccountManager:
-    """Type-safe account access with perfect encapsulation."""
+    """Type-safe account access with encapsulation."""
 
     def __init__(self):
         self._accounts = _ACCOUNTS.copy()
         self._validate_accounts()
 
     def _validate_accounts(self):
-        """Validate account configuration."""
         if not self._accounts:
             raise ValueError("No accounts configured")
         for key, account in self._accounts.items():
@@ -216,7 +121,6 @@ class AccountManager:
                 raise TypeError(f"Account {key} is not an Account instance")
 
     def get(self, miner: Miner) -> Account:
-        """Get account by enum with validation."""
         if not isinstance(miner, Miner):
             raise TypeError("Parameter must be a Miner enum")
         if miner.value not in self._accounts:
@@ -224,16 +128,13 @@ class AccountManager:
         return self._accounts[miner.value]
 
     def all_miners(self) -> List[Miner]:
-        """Get all available miner enums."""
         return list(Miner)
 
     def all(self) -> Dict[str, Account]:
-        """Get copy of all accounts (read-only)."""
         return {account.name: account for account in self._accounts.values()}
 
     @property
     def account_count(self) -> int:
-        """Get number of managed accounts (read-only)."""
         return len(self._accounts)
 
 
@@ -242,7 +143,7 @@ account_manager = AccountManager()
 
 
 class TransferParams(BaseModel):
-    """Parameters for generating transfers."""
+    """Transfer generation parameters."""
 
     to: str
     amount: int
@@ -296,10 +197,8 @@ class AccountInfo(BaseModel):
 
     @property
     def balance_amount(self) -> "TokenAmount":
-        """Get balance as TokenAmount for easy conversions."""
-        from .tokens import microstx
-
-        return microstx(self.balance)
+        from .tokens import StacksToken
+        return StacksToken.from_microstx(self.balance)
 
 
 class ApiResult(BaseModel):

@@ -3,16 +3,14 @@
 import subprocess
 import time
 import os
+
+from .exceptions import *
 from .logger import logger, Colors
 from .stacks_core_api import StacksCoreAPI
 from .config import (
     account_manager,
     Miner,
     MiningMode,
-    StacksException,
-    StacksNetworkException,
-    StacksTimeoutException,
-    StacksAPIException,
 )
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -30,7 +28,6 @@ class MinerManager:
         self._validate_initialization()
 
     def _validate_initialization(self):
-        """Validate that initialization completed successfully."""
         if not self._apis:
             raise ValueError("No miner APIs were initialized")
         if not isinstance(self._running, bool):
@@ -38,22 +35,20 @@ class MinerManager:
 
     @property
     def is_running(self) -> bool:
-        """Check if miners are currently running (read-only)."""
         return self._running
 
     @property
     def api_count(self) -> int:
-        """Get number of managed APIs (read-only)."""
         return len(self._apis)
 
     def wait_for_miners_ready(self, timeout: int = 45) -> bool:
-        """Waits for all managed miner APIs to become responsive with adaptive polling."""
         logger.info("Verifying all miner endpoints are ready...", Colors.ORANGE)
         time.sleep(10)
 
         start_time = time.time()
         miners_to_check = list(self._apis.keys())
         sleep_interval = 1  # Start with 1 second
+        ready_miners = []  # Initialize to prevent unbound variable
 
         while time.time() - start_time < timeout:
             ready_miners = []
@@ -103,7 +98,8 @@ class MinerManager:
                 sleep_interval = min(sleep_interval * 1.2, 4)  # Gradual backoff, max 4s
 
             logger.debug(
-                f"Miners ready: {len(ready_miners)}/{len(miners_to_check)}. Waiting {sleep_interval:.1f}s..."
+                f"Miners ready: {len(ready_miners)}/{len(miners_to_check)}. "
+                f"Waiting {sleep_interval:.1f}s..."
             )
             time.sleep(sleep_interval)
 
@@ -153,15 +149,12 @@ class MinerManager:
             ) from e
 
     def start_auto(self) -> bool:
-        """Start miners in auto mining mode."""
         return self.start(MiningMode.AUTO)
 
     def start_manual(self) -> bool:
-        """Start miners in manual mining mode."""
         return self.start(MiningMode.MANUAL)
 
     def snapshot_create(self):
-        """Create generic snapshot."""
         logger.info("Creating snapshot...", Colors.ORANGE)
         try:
             subprocess.run(
@@ -218,15 +211,12 @@ class MinerManager:
             raise StacksException(f"Failed to restore snapshot: {str(e)}") from e
 
     def snapshot_restore_auto(self) -> bool:
-        """Restore snapshot in auto mining mode."""
         return self.snapshot_restore(MiningMode.AUTO)
 
     def snapshot_restore_manual(self) -> bool:
-        """Restore snapshot in manual mining mode."""
         return self.snapshot_restore(MiningMode.MANUAL)
 
     def info(self) -> str:
-        """Show status information."""
         logger.info("Getting mining info...", Colors.ORANGE)
         try:
             result = subprocess.run(
@@ -248,7 +238,6 @@ class MinerManager:
             ) from e
 
     def stop(self):
-        """Stop the three miners."""
         logger.info("Stopping miners...", Colors.ORANGE)
         try:
             subprocess.run(
@@ -263,7 +252,6 @@ class MinerManager:
             raise StacksException(f"Failed to stop miners: {str(e)}") from e
 
     def resume(self):
-        """Resume the three miners."""
         logger.info("Resuming three miners...", Colors.ORANGE)
         try:
             subprocess.run(
@@ -278,7 +266,6 @@ class MinerManager:
             raise StacksException(f"Failed to resume miners: {str(e)}") from e
 
     def _manage_miner(self, action: str, miner_id: int):
-        """Internal helper to stop or resume a specific miner."""
         action_gerund = "Stopping" if action == "stop" else "Resuming"
         action_past = "stopped" if action == "stop" else "resumed"
 
@@ -301,15 +288,12 @@ class MinerManager:
             ) from e
 
     def stop_miner(self, miner: Miner):
-        """Stop specific miner."""
         self._manage_miner("stop", miner.value)
 
     def resume_miner(self, miner: Miner):
-        """Resume specific miner."""
         self._manage_miner("resume", miner.value)
 
     def btc_auto(self):
-        """Switch to automatic mining mode."""
         logger.info("Switching to automatic mining...", Colors.ORANGE)
         try:
             subprocess.run(
@@ -326,7 +310,6 @@ class MinerManager:
             ) from e
 
     def btc_manual(self):
-        """Switch to manual mining mode."""
         logger.info("Switching to manual mining...", Colors.ORANGE)
         try:
             subprocess.run(
@@ -341,7 +324,6 @@ class MinerManager:
             raise StacksException(f"Failed to switch to manual mining: {str(e)}") from e
 
     def btc_mine(self):
-        """Mine single block (manual mode only)."""
         logger.info("Mining single BTC block...", Colors.ORANGE)
         try:
             subprocess.run(
@@ -356,7 +338,6 @@ class MinerManager:
             raise StacksException(f"Failed to mine block: {str(e)}") from e
 
     def cleanup(self):
-        """Clean up the miner process if it's running."""
         if self._miner_process and self._running:
             logger.info("Cleaning up background miner process...", Colors.ORANGE)
             self._miner_process.terminate()

@@ -4,16 +4,9 @@ import requests
 import json
 from typing import List, Optional, Dict, Any, TypeVar, Type
 from pydantic import BaseModel, Field, ValidationError
-from .logger import logger
-from .config import (
-    AccountInfo,
-    TxStatus,
-    StacksAPIException,
-    StacksHTTPException,
-    StacksValidationException,
-    StacksNetworkException,
-    StacksTimeoutException,
-)
+from .logger import logger, Colors
+from .config import AccountInfo, TxStatus
+from .exceptions import *
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -116,14 +109,11 @@ class TransactionDetails(BaseModel):
         else:
             return TxStatus.UNKNOWN
 
-    # Additional fields can be added as needed
-
 
 class StackerSet(BaseModel):
     """Stacker set information from /v3/stacker_set endpoint."""
 
     cycle_number: int
-    # Additional fields based on actual response structure
 
     class Config:
         populate_by_name = True
@@ -134,7 +124,6 @@ class TenureInfo(BaseModel):
 
     consensus_hash: str
     tenure_start_block_id: str
-    # Additional fields based on actual response structure
 
     class Config:
         populate_by_name = True
@@ -187,12 +176,7 @@ class FeeEstimate(BaseModel):
 
 
 class StacksCoreAPI:
-    """
-    A 1:1 Python port of the Stacks 3.0+ RPC API, covering all endpoints from
-    the provided OpenAPI specification with automatic JSON→object parsing and
-    centralized error handling. This class provides direct access to all API
-    endpoints without additional abstraction layers.
-    """
+    """1:1 Python port of Stacks 3.0+ RPC API with automatic JSON parsing."""
 
     def __init__(
         self,
@@ -211,10 +195,8 @@ class StacksCoreAPI:
         if not url:
             raise ValueError("Base URL cannot be empty")
 
-        # Ensure URL doesn't end with slash for consistent endpoint building
         url = url.rstrip("/")
 
-        # Basic URL format validation
         if not (url.startswith("http://") or url.startswith("https://")):
             raise ValueError("Base URL must start with http:// or https://")
 
@@ -242,10 +224,7 @@ class StacksCoreAPI:
         self._timeout = self._validate_timeout(value)
 
     def _parse_json_response(self, data: Dict[str, Any], response_type: Type[T]) -> T:
-        """
-        Bulletproof automatic JSON→typed object parsing for Stacks Core API.
-        Raises exceptions instead of returning None for better error handling.
-        """
+        """Automatic JSON→typed object parsing with exception handling."""
         if not data:
             raise StacksValidationException(
                 f"Empty or None data for {response_type.__name__}"
@@ -254,7 +233,6 @@ class StacksCoreAPI:
         try:
             logger.debug(f"Parsing JSON data for {response_type.__name__}: {data}")
 
-            # Automatic validation and object creation via Pydantic
             parsed_object = response_type.parse_obj(data)
             logger.debug(f"Successfully created {response_type.__name__} object")
             return parsed_object
@@ -280,25 +258,14 @@ class StacksCoreAPI:
             response = self._session.request(
                 method, url, **kwargs, timeout=self._timeout
             )
-            # Add visual indicator based on status code with colors
             if 200 <= response.status_code < 300:
-                from .logger import Colors
-
                 indicator = f"{Colors.GREEN}✓{Colors.RESET}"
             elif 400 <= response.status_code < 500:
-                from .logger import Colors
-
                 indicator = f"{Colors.RED}✗{Colors.RESET}"
             elif 500 <= response.status_code < 600:
-                from .logger import Colors
-
                 indicator = f"{Colors.RED}✗{Colors.RESET}"
             else:
-                from .logger import Colors
-
                 indicator = f"{Colors.YELLOW}?{Colors.RESET}"
-
-            from .logger import Colors
 
             logger.debug(f"<- Status: {response.status_code} {indicator}")
             return response
@@ -327,6 +294,7 @@ class StacksCoreAPI:
         On failure, raises appropriate StacksAPIException with details.
         """
         if response.status_code != 200:
+            error_details = {}  # Initialize to prevent unbound variable
             try:
                 error_details = response.json()
                 reason = error_details.get("reason", "Unknown API error")
@@ -335,20 +303,17 @@ class StacksCoreAPI:
             except json.JSONDecodeError:
                 error_message = f"API Error ({response.status_code}): {response.text}"
 
-            # Use different log levels based on context and error type
             if is_retry_context and response.status_code == 404:
-                # For 404s in retry contexts (like transaction not found yet), use warning
                 logger.warning(
                     f"API call temporarily failed (will retry): {error_message}"
                 )
             else:
-                # For final failures or non-retryable errors, use error
                 logger.error(f"API call failed: {error_message}")
 
             raise StacksHTTPException(
                 error_message,
                 status_code=response.status_code,
-                error_details=error_details if "error_details" in locals() else {},
+                error_details=error_details,
             )
 
         # Handle successful responses
@@ -547,12 +512,15 @@ class StacksCoreAPI:
         proof: Optional[int] = None,
         tip: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
-        """POST /v2/map_entry/{...} - Get a data-map entry (returns raw dict - varies by map structure)."""
+        """POST /v2/map_entry/{...} - Get a data-map entry.
+
+        Returns raw dict - varies by map structure.
+        """
         endpoint = f"/v2/map_entry/{contract_address}/{contract_name}/{map_name}"
         params = {
             k: v for k, v in {"proof": proof, "tip": tip}.items() if v is not None
         }
-        return self.do_post(endpoint, json_data=key_hex_json_string, params=params)
+        return self.do_post(endpoint, data=key_hex_json_string, params=params)
 
     def get_constant_value(
         self,
@@ -562,7 +530,10 @@ class StacksCoreAPI:
         *,
         tip: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
-        """POST /v2/constant_val/{...} - Get the value of a constant (returns raw dict - varies by constant type)."""
+        """POST /v2/constant_val/{...} - Get the value of a constant.
+
+        Returns raw dict - varies by constant type.
+        """
         endpoint = (
             f"/v2/constant_val/{contract_address}/{contract_name}/{constant_name}"
         )
@@ -578,9 +549,15 @@ class StacksCoreAPI:
         *,
         tip: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
-        """GET /v2/traits/{...} - Check if a contract implements a trait (returns raw dict)."""
-        endpoint = f"/v2/traits/{contract_address}/{contract_name}/{trait_contract_address}/{trait_contract_name}/{trait_name}"
-        return self.do_get(endpoint, params={"tip": tip} if tip else {})
+        """GET /v2/traits/{...} - Check if a contract implements a trait.
+
+        Returns raw dict.
+        """
+        endpoint = (
+            f"/v2/traits/{contract_address}/{contract_name}/"
+            f"{trait_contract_address}/{trait_contract_name}/{trait_name}"
+        )
+        return self.do_get(endpoint, params={"tip": tip} if tip else {})  # type: ignore
 
     def get_clarity_marf_value(
         self, marf_key: str, *, proof: Optional[int] = None, tip: Optional[str] = None
@@ -616,13 +593,13 @@ class StacksCoreAPI:
         """POST /v2/fees/transaction - Get an estimated fee for a given transaction payload."""
         payload = {"transaction_payload": transaction_payload_hex}
         if estimated_len is not None:
-            payload["estimated_len"] = estimated_len
+            payload["estimated_len"] = estimated_len  # type: ignore
         return self.do_post("/v2/fees/transaction", FeeEstimate, json_data=payload)
 
     # --- V3 Blocks, Tenures, and Transactions ---
     def get_block_by_id(self, block_id: str) -> bytes:
         """GET /v3/blocks/{block_id} - Fetch a Nakamoto block by its ID hash."""
-        return self.do_get(f"/v3/blocks/{block_id}")
+        return self.do_get(f"/v3/blocks/{block_id}")  # type: ignore
 
     def get_block_by_height(
         self, block_height: int, *, tip: Optional[str] = None
@@ -631,7 +608,7 @@ class StacksCoreAPI:
         return self.do_get(
             f"/v3/blocks/height/{block_height}",
             params={"tip": tip} if tip else {},
-        )
+        )  # type: ignore
 
     def get_transaction_by_id(
         self, txid: str, is_retry_context: bool = False
@@ -657,24 +634,30 @@ class StacksCoreAPI:
         """GET /v3/tenures/{block_id} - Fetch a sequence of Nakamoto blocks in a tenure."""
         return self.do_get(
             f"/v3/tenures/{block_id}", params={"stop": stop} if stop else {}
-        )
+        )  # type: ignore
 
     def get_sortitions(
         self, *, lookup_kind: Optional[str] = None, lookup: Optional[str] = None
     ) -> Optional[Dict[str, Any]]:
-        """GET /v3/sortitions/{lookup_kind}/{lookup} - Fetch information about evaluated burnchain blocks (returns raw dict)."""
+        """GET /v3/sortitions/{lookup_kind}/{lookup} - Fetch burnchain block info.
+
+        Returns raw dict.
+        """
         endpoint = "/v3/sortitions"
         if lookup_kind and lookup:
             endpoint += f"/{lookup_kind}/{lookup}"
         elif lookup_kind:
             endpoint += f"/{lookup_kind}"
-        return self.do_get(endpoint)
+        return self.do_get(endpoint)  # type: ignore
 
     # --- V3 Mining and Stacking ---
     def post_block_proposal(
         self, block_proposal_data: Dict
     ) -> Optional[Dict[str, Any]]:
-        """POST /v3/block_proposal - Validate a proposed Stacks block. Requires auth (returns raw dict)."""
+        """POST /v3/block_proposal - Validate a proposed Stacks block.
+
+        Requires auth. Returns raw dict.
+        """
         return self.do_post("/v3/block_proposal", json_data=block_proposal_data)
 
     def get_stacker_set(self, cycle_number: int) -> "StackerSet":
@@ -684,8 +667,8 @@ class StacksCoreAPI:
         )
 
     def get_signer_block_count(self, signer_pubkey: str, cycle_number: int) -> int:
-        """GET /v3/signer/{signer}/{cycle_number} - Get number of blocks signed by a signer in a cycle."""
-        resp = self.do_get(f"/v3/signer/{signer_pubkey}/{cycle_number}")
+        """GET /v3/signer/{signer}/{cycle_number} - Get signer block count in cycle."""
+        resp = self.do_get(f"/v3/signer/{signer_pubkey}/{cycle_number}")  # type: ignore
         if not resp or not isinstance(resp, str) or not resp.isdigit():
             raise StacksAPIException(f"Invalid signer block count response: {resp}")
         return int(resp)
