@@ -93,7 +93,7 @@ class TokenAmount(BaseModel):
     def to_base_units_formatted(self) -> str:
         return f"{self.base_units_value:,}"
 
-    def __add__(self: T, other: Union["TokenAmount", int, float]) -> T:
+    def __add__(self: T, other: Union["TokenAmount", int]) -> T:
         if isinstance(other, TokenAmount):
             if other.token_type != self.token_type:
                 raise ValueError(
@@ -102,14 +102,9 @@ class TokenAmount(BaseModel):
             return self.__class__(base_units=self.base_units_value + other.base_units_value, token_type=self.token_type)
         elif isinstance(other, int):
             return self.__class__(base_units=self.base_units_value + other, token_type=self.token_type)
-        elif isinstance(other, float):
-            return self.__class__(
-                base_units=self.base_units_value + int(other * self.token_type.base_units_per_main),
-                token_type=self.token_type
-            )
-        raise TypeError(f"Cannot add {type(other)} to TokenAmount")
+        raise TypeError(f"Cannot add {type(other)} to TokenAmount. Only integers (base units) and same token type allowed.")
 
-    def __sub__(self: T, other: Union["TokenAmount", int, float]) -> T:
+    def __sub__(self: T, other: Union["TokenAmount", int]) -> T:
         if isinstance(other, TokenAmount):
             if other.token_type != self.token_type:
                 raise ValueError(
@@ -118,25 +113,20 @@ class TokenAmount(BaseModel):
             return self.__class__(base_units=self.base_units_value - other.base_units_value, token_type=self.token_type)
         elif isinstance(other, int):
             return self.__class__(base_units=self.base_units_value - other, token_type=self.token_type)
-        elif isinstance(other, float):
-            return self.__class__(
-                base_units=self.base_units_value - int(other * self.token_type.base_units_per_main),
-                token_type=self.token_type
-            )
-        raise TypeError(f"Cannot subtract {type(other)} from TokenAmount")
+        raise TypeError(f"Cannot subtract {type(other)} from TokenAmount. Only integers (base units) and same token type allowed.")
 
-    def __mul__(self: T, multiplier: Union[int, float]) -> T:
-        if isinstance(multiplier, (int, float)):
-            return self.__class__(base_units=int(self.base_units_value * multiplier), token_type=self.token_type)
-        raise TypeError(f"Cannot multiply TokenAmount by {type(multiplier)}")
+    def __mul__(self: T, multiplier: int) -> T:
+        if isinstance(multiplier, int):
+            return self.__class__(base_units=self.base_units_value * multiplier, token_type=self.token_type)
+        raise TypeError(f"Cannot multiply TokenAmount by {type(multiplier)}. Only integers allowed for blockchain-correct operations.")
 
-    def __truediv__(self: T, divisor: Union[int, float]) -> T:
-        if isinstance(divisor, (int, float)) and divisor != 0:
-            return self.__class__(base_units=int(self.base_units_value / divisor), token_type=self.token_type)
-        raise TypeError(f"Cannot divide TokenAmount by {type(divisor)}")
+    def __floordiv__(self: T, divisor: int) -> T:
+        if isinstance(divisor, int) and divisor != 0:
+            return self.__class__(base_units=self.base_units_value // divisor, token_type=self.token_type)
+        raise TypeError(f"Cannot divide TokenAmount by {type(divisor)}. Only integer division (//) allowed for blockchain-correct operations.")
 
     # Comparison operators
-    def __eq__(self, other: Union["TokenAmount", int, float]) -> bool:
+    def __eq__(self, other: Union["TokenAmount", int]) -> bool:
         if isinstance(other, TokenAmount):
             return (
                 self.token_type == other.token_type
@@ -144,13 +134,9 @@ class TokenAmount(BaseModel):
             )
         elif isinstance(other, int):
             return self.base_units_value == other
-        elif isinstance(other, float):
-            return self.base_units_value == int(
-                other * self.token_type.base_units_per_main
-            )
         return False
 
-    def __lt__(self, other: Union["TokenAmount", int, float]) -> bool:
+    def __lt__(self, other: Union["TokenAmount", int]) -> bool:
         if isinstance(other, TokenAmount):
             if other.token_type != self.token_type:
                 raise ValueError(
@@ -159,19 +145,15 @@ class TokenAmount(BaseModel):
             return self.base_units_value < other.base_units_value
         elif isinstance(other, int):
             return self.base_units_value < other
-        elif isinstance(other, float):
-            return self.base_units_value < int(
-                other * self.token_type.base_units_per_main
-            )
-        raise TypeError(f"Cannot compare TokenAmount with {type(other)}")
+        raise TypeError(f"Cannot compare TokenAmount with {type(other)}. Only integers (base units) and same token type allowed.")
 
-    def __le__(self, other: Union["TokenAmount", int, float]) -> bool:
+    def __le__(self, other: Union["TokenAmount", int]) -> bool:
         return self == other or self < other
 
-    def __gt__(self, other: Union["TokenAmount", int, float]) -> bool:
+    def __gt__(self, other: Union["TokenAmount", int]) -> bool:
         return not self <= other
 
-    def __ge__(self, other: Union["TokenAmount", int, float]) -> bool:
+    def __ge__(self, other: Union["TokenAmount", int]) -> bool:
         return not self < other
 
     def __neg__(self: T) -> T:
