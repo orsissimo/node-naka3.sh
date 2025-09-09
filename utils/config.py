@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Dict, Optional, List, Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .tokens import TokenAmount
+    from .tokens import TokenAmount, StacksToken
 
 
 # Constants
@@ -153,6 +153,16 @@ class TransferParams(BaseModel):
         populate_by_name = True
 
 
+class TransferResult(BaseModel):
+    """Result of a transfer and confirmation operation."""
+
+    txid: str
+    confirmed: bool
+
+    class Config:
+        populate_by_name = True
+
+
 class TransferInfo(BaseModel):
     """Type-safe transfer information."""
 
@@ -196,8 +206,9 @@ class AccountInfo(BaseModel):
         populate_by_name = True
 
     @property
-    def balance_amount(self) -> "TokenAmount":
+    def balance_amount(self) -> "StacksToken":
         from .tokens import StacksToken
+
         return StacksToken.from_microstx(self.balance)
 
 

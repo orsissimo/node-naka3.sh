@@ -2,7 +2,7 @@
 
 import time
 from typing import Optional
-from .config import Account
+from .config import Account, TransferResult
 from .exceptions import *
 from .stacks_core_api import StacksCoreAPI
 from .blockstack_cli import BlockstackCLI
@@ -28,7 +28,7 @@ class StacksChain:
         node_info = self._api.get_info()
         return node_info.stacks_tip_height
 
-    def get_balance(self, address: str) -> TokenAmount:
+    def get_stx_balance(self, address: str) -> StacksToken:
         account_info = self._api.get_account_info(address)
         return account_info.balance_amount
 
@@ -173,7 +173,7 @@ class StacksChain:
         memo: str = "",
         fee: Optional[TokenAmount] = None,
         timeout: int = 120,
-    ) -> str:
+    ) -> TransferResult:
         """Transfer tokens and wait for confirmation."""
         initial_nonce = self.get_current_nonce(sender_account.address)
         initial_height = self.get_current_height()
@@ -187,11 +187,11 @@ class StacksChain:
             nonce=initial_nonce,
         )
 
-        self.wait_for_confirmation(
+        confirmed = self.wait_for_confirmation(
             txid=txid,
             timeout=timeout,
             initial_nonce=initial_nonce,
             initial_height=initial_height,
         )
 
-        return txid
+        return TransferResult(txid=txid, confirmed=confirmed)

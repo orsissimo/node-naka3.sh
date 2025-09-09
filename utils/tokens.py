@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
-from typing import Union, Optional
+from typing import Union, Optional, TypeVar
+
+T = TypeVar('T', bound='TokenAmount')
 from pydantic import BaseModel, Field, validator
 from .config import MICROSTX_PER_STX, SATOSHI_PER_BTC
 
@@ -91,44 +93,46 @@ class TokenAmount(BaseModel):
     def to_base_units_formatted(self) -> str:
         return f"{self.base_units_value:,}"
 
-    def __add__(self, other: Union["TokenAmount", int, float]) -> "TokenAmount":
+    def __add__(self: T, other: Union["TokenAmount", int, float]) -> T:
         if isinstance(other, TokenAmount):
             if other.token_type != self.token_type:
                 raise ValueError(
                     f"Cannot add {other.token_type.symbol} to {self.token_type.symbol}"
                 )
-            return self.__class__(self.base_units_value + other.base_units_value)
+            return self.__class__(base_units=self.base_units_value + other.base_units_value, token_type=self.token_type)
         elif isinstance(other, int):
-            return self.__class__(self.base_units_value + other)
+            return self.__class__(base_units=self.base_units_value + other, token_type=self.token_type)
         elif isinstance(other, float):
             return self.__class__(
-                self.base_units_value + int(other * self.token_type.base_units_per_main)
+                base_units=self.base_units_value + int(other * self.token_type.base_units_per_main),
+                token_type=self.token_type
             )
         raise TypeError(f"Cannot add {type(other)} to TokenAmount")
 
-    def __sub__(self, other: Union["TokenAmount", int, float]) -> "TokenAmount":
+    def __sub__(self: T, other: Union["TokenAmount", int, float]) -> T:
         if isinstance(other, TokenAmount):
             if other.token_type != self.token_type:
                 raise ValueError(
                     f"Cannot subtract {other.token_type.symbol} from {self.token_type.symbol}"
                 )
-            return self.__class__(self.base_units_value - other.base_units_value)
+            return self.__class__(base_units=self.base_units_value - other.base_units_value, token_type=self.token_type)
         elif isinstance(other, int):
-            return self.__class__(self.base_units_value - other)
+            return self.__class__(base_units=self.base_units_value - other, token_type=self.token_type)
         elif isinstance(other, float):
             return self.__class__(
-                self.base_units_value - int(other * self.token_type.base_units_per_main)
+                base_units=self.base_units_value - int(other * self.token_type.base_units_per_main),
+                token_type=self.token_type
             )
         raise TypeError(f"Cannot subtract {type(other)} from TokenAmount")
 
-    def __mul__(self, multiplier: Union[int, float]) -> "TokenAmount":
+    def __mul__(self: T, multiplier: Union[int, float]) -> T:
         if isinstance(multiplier, (int, float)):
-            return self.__class__(int(self.base_units_value * multiplier))
+            return self.__class__(base_units=int(self.base_units_value * multiplier), token_type=self.token_type)
         raise TypeError(f"Cannot multiply TokenAmount by {type(multiplier)}")
 
-    def __truediv__(self, divisor: Union[int, float]) -> "TokenAmount":
+    def __truediv__(self: T, divisor: Union[int, float]) -> T:
         if isinstance(divisor, (int, float)) and divisor != 0:
-            return self.__class__(int(self.base_units_value / divisor))
+            return self.__class__(base_units=int(self.base_units_value / divisor), token_type=self.token_type)
         raise TypeError(f"Cannot divide TokenAmount by {type(divisor)}")
 
     # Comparison operators
@@ -170,8 +174,8 @@ class TokenAmount(BaseModel):
     def __ge__(self, other: Union["TokenAmount", int, float]) -> bool:
         return not self < other
 
-    def __neg__(self) -> "TokenAmount":
-        return self.__class__(-self.base_units_value)
+    def __neg__(self: T) -> T:
+        return self.__class__(base_units=-self.base_units_value, token_type=self.token_type)
 
     def __str__(self) -> str:
         return f"{self.to_base_units_formatted()} {self.token_type.base_unit_symbol} ({self.to_main_units_string()} {self.token_type.symbol})"
@@ -183,14 +187,17 @@ class TokenAmount(BaseModel):
 class StacksToken(TokenAmount):
     """TokenAmount for Stacks with constructors and display methods."""
 
-    def __init__(self, base_units: int):
-        stacks_token_type = TokenType(
-            symbol="STX",
-            base_unit_symbol="µSTX",
-            base_units_per_main=MICROSTX_PER_STX,
-            decimal_places=6,
-            name="Stacks",
-        )
+    def __init__(self, base_units: int, token_type: Optional[TokenType] = None):
+        if token_type is None:
+            stacks_token_type = TokenType(
+                symbol="STX",
+                base_unit_symbol="µSTX",
+                base_units_per_main=MICROSTX_PER_STX,
+                decimal_places=6,
+                name="Stacks",
+            )
+        else:
+            stacks_token_type = token_type
         super().__init__(base_units=base_units, token_type=stacks_token_type)
 
     @classmethod
@@ -218,14 +225,17 @@ class StacksToken(TokenAmount):
 class BitcoinToken(TokenAmount):
     """TokenAmount for Bitcoin with constructors and display methods."""
 
-    def __init__(self, base_units: int):
-        bitcoin_token_type = TokenType(
-            symbol="BTC",
-            base_unit_symbol="sat",
-            base_units_per_main=SATOSHI_PER_BTC,
-            decimal_places=8,
-            name="Bitcoin",
-        )
+    def __init__(self, base_units: int, token_type: Optional[TokenType] = None):
+        if token_type is None:
+            bitcoin_token_type = TokenType(
+                symbol="BTC",
+                base_unit_symbol="sat",
+                base_units_per_main=SATOSHI_PER_BTC,
+                decimal_places=8,
+                name="Bitcoin",
+            )
+        else:
+            bitcoin_token_type = token_type
         super().__init__(base_units=base_units, token_type=bitcoin_token_type)
 
     @classmethod
