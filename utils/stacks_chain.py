@@ -5,7 +5,7 @@ from typing import Optional
 from .types.exceptions import *
 from .stacks_core_api import StacksCoreAPI
 from .blockstack_cli import BlockstackCLI
-from .tokens import TokenAmount, StacksToken
+from .types.tokens import StacksToken
 from .logger import logger
 from .types.infrastructure import Account, TransferResult
 
@@ -36,9 +36,9 @@ class StacksChain:
         self,
         sender_account: Account,
         recipient: str,
-        amount: TokenAmount,
+        amount: StacksToken,
         memo: str = "",
-        fee: Optional[TokenAmount] = None,
+        fee: Optional[StacksToken] = None,
         nonce: Optional[int] = None,
     ) -> str:
         """Transfer tokens with automatic nonce and fee handling."""
@@ -169,9 +169,9 @@ class StacksChain:
         self,
         sender_account: Account,
         recipient: str,
-        amount: TokenAmount,
+        amount: StacksToken,
         memo: str = "",
-        fee: Optional[TokenAmount] = None,
+        fee: Optional[StacksToken] = None,
         timeout: int = 120,
     ) -> TransferResult:
         """Transfer tokens and wait for confirmation."""

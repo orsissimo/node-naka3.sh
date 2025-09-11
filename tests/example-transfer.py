@@ -13,7 +13,7 @@ from utils.types.exceptions import *
 from utils.miners import MinerManager
 from utils.logger import logger
 from utils.stacks_chain import StacksChain
-from utils.tokens import TokenAmount, StacksToken
+from utils.types.tokens import StacksToken
 from utils.asserts import check_eq
 
 

@@ -1,7 +1,7 @@
 from typing import Dict, List, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .tokens import TokenAmount, StacksToken
+    from .types.tokens import TokenAmount, StacksToken
 from .types.api import AccountInfo
 from .types.infrastructure import Account, Miner, MiningMode, TransferResult
 
