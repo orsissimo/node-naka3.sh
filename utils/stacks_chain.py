@@ -2,12 +2,12 @@
 
 import time
 from typing import Optional
-from .types.config import Account, TransferResult
 from .types.exceptions import *
 from .stacks_core_api import StacksCoreAPI
 from .blockstack_cli import BlockstackCLI
 from .tokens import TokenAmount, StacksToken
 from .logger import logger
+from .types.infrastructure import Account, TransferResult
 
 
 class StacksChain:

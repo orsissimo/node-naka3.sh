@@ -4,11 +4,10 @@ import json
 from typing import List, Optional, Tuple, Dict, Any, TypeVar, Type
 from pydantic import BaseModel, ValidationError
 from .logger import logger
+from .types.api import AddressInfo, SecretKeyInfo
 from .types.exceptions import *
-from .types.blockstack_cli import SecretKeyInfo, AddressInfo
 
 T = TypeVar("T", bound=BaseModel)
-
 
 
 class BlockstackCLI:

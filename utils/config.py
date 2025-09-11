@@ -1,19 +1,9 @@
 from typing import Dict, List, TYPE_CHECKING
-from .types.config import (
-    Account,
-    Miner,
-    MiningMode,
-    TransactionStatus,
-    TxStatus,
-    ApiError,
-    TransferResult,
-    TransferInfo,
-    DeploymentInfo,
-    AccountInfo,
-)
 
 if TYPE_CHECKING:
     from .tokens import TokenAmount, StacksToken
+from .types.api import AccountInfo
+from .types.infrastructure import Account, Miner, MiningMode, TransferResult
 
 
 # Constants
@@ -83,5 +73,3 @@ class AccountManager:
 
 # Global account manager instance
 account_manager = AccountManager()
-
-

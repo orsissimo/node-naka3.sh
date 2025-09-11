@@ -5,22 +5,21 @@ import json
 from typing import List, Optional, Dict, Any, TypeVar, Type
 from pydantic import BaseModel, ValidationError
 from .logger import logger, Colors
-from .types.config import AccountInfo
-from .types.exceptions import *
-from .types.stacks_core_api import (
+from .types.api import (
+    AccountInfo,
+    ContractInterface,
+    ContractSource,
+    FeeEstimate,
     NodeInfo,
     PoxInfo,
-    TransactionDetails,
+    ReadOnlyFunctionResult,
     StackerSet,
     TenureInfo,
-    ContractSource,
-    ContractInterface,
-    ReadOnlyFunctionResult,
-    FeeEstimate,
+    TransactionDetails,
 )
+from .types.exceptions import *
 
 T = TypeVar("T", bound=BaseModel)
-
 
 
 class StacksCoreAPI:

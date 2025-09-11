@@ -8,7 +8,7 @@ import json
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from utils.config import account_manager
-from utils.types.config import Miner, TransferResult
+from utils.types.infrastructure import Miner, TransferResult
 from utils.types.exceptions import *
 from utils.miners import MinerManager
 from utils.logger import logger
@@ -37,7 +37,9 @@ def main():
         logger.info(f"Sender address: {sender_account.address}")
         logger.info(f"Sender initial balance: {sender_initial_balance.format_stx()}")
         logger.info(f"Recipient address: {recipient_account.address}")
-        logger.info(f"Recipient initial balance: {recipient_initial_balance.format_stx()}")
+        logger.info(
+            f"Recipient initial balance: {recipient_initial_balance.format_stx()}"
+        )
 
         logger.header("Step 2: Prepare transfer")
         transfer_amount = StacksToken.from_microstx(50_000)
