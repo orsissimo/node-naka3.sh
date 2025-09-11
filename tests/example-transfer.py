@@ -7,8 +7,9 @@ import json
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from utils.config import account_manager, Miner, TransferResult
-from utils.exceptions import *
+from utils.config import account_manager
+from utils.types.config import Miner, TransferResult
+from utils.types.exceptions import *
 from utils.miners import MinerManager
 from utils.logger import logger
 from utils.stacks_chain import StacksChain

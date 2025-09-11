@@ -2,8 +2,8 @@
 
 import time
 from typing import Optional
-from .config import Account, TransferResult
-from .exceptions import *
+from .types.config import Account, TransferResult
+from .types.exceptions import *
 from .stacks_core_api import StacksCoreAPI
 from .blockstack_cli import BlockstackCLI
 from .tokens import TokenAmount, StacksToken

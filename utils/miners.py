@@ -4,14 +4,11 @@ import subprocess
 import time
 import os
 
-from .exceptions import *
+from .types.exceptions import *
 from .logger import logger, Colors
 from .stacks_core_api import StacksCoreAPI
-from .config import (
-    account_manager,
-    Miner,
-    MiningMode,
-)
+from .config import account_manager
+from .types.config import Miner, MiningMode
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PLAYBOOK_DIR = os.path.join(PROJECT_ROOT, "naka3", "playbooks", "three-miners")

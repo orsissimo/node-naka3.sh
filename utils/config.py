@@ -1,6 +1,16 @@
-from pydantic import BaseModel, Field
-from enum import Enum
-from typing import Dict, Optional, List, Any, TYPE_CHECKING
+from typing import Dict, List, TYPE_CHECKING
+from .types.config import (
+    Account,
+    Miner,
+    MiningMode,
+    TransactionStatus,
+    TxStatus,
+    ApiError,
+    TransferResult,
+    TransferInfo,
+    DeploymentInfo,
+    AccountInfo,
+)
 
 if TYPE_CHECKING:
     from .tokens import TokenAmount, StacksToken
@@ -13,22 +23,6 @@ DEFAULT_HTTP_TIMEOUT = 20
 DEFAULT_API_PORT = 20443
 DEFAULT_POLL_INTERVAL = 2
 DEFAULT_WAIT_TIMEOUT = 60
-
-
-class Account(BaseModel):
-    """Pydantic model for miner account information."""
-
-    name: str
-    address: str
-    private_key: str
-    api_port: int
-
-    class Config:
-        populate_by_name = True
-
-    @property
-    def api_url(self) -> str:
-        return f"http://localhost:{self.api_port}"
 
 
 _ACCOUNTS = {
@@ -51,57 +45,6 @@ _ACCOUNTS = {
         api_port=40443,
     ),
 }
-
-
-class Miner(Enum):
-    """Type-safe miner access enum."""
-
-    MINER1 = 1
-    MINER2 = 2
-    MINER3 = 3
-
-
-class MiningMode(Enum):
-    """Mining mode selection enum."""
-
-    AUTO = "auto"
-    MANUAL = "manual"
-
-
-class TransactionStatus(Enum):
-    """Transaction status enum."""
-
-    SUBMITTED = "submitted"
-    PENDING = "pending"
-    CONFIRMED = "confirmed"
-    FAILED = "failed"
-
-
-class TestResult(Enum):
-    """Test results enum."""
-
-    SUCCESS = "success"
-    FAILURE = "failure"
-    ERROR = "error"
-
-
-class TxStatus(Enum):
-    """Transaction status values from Stacks API."""
-
-    SUCCESS = "success"
-    PENDING = "pending"
-    ABORT_BY_RESPONSE = "abort_by_response"
-    ABORT_BY_POST_CONDITION = "abort_by_post_condition"
-    UNKNOWN = "unknown"
-
-
-class ApiError(Enum):
-    """Standardized API error types."""
-
-    NOT_FOUND = "Not found (404)"
-    TIMEOUT = "Timeout"
-    CONNECTION_ERROR = "Connection error"
-    UNKNOWN_ERROR = "Unknown error"
 
 
 class AccountManager:
@@ -142,110 +85,3 @@ class AccountManager:
 account_manager = AccountManager()
 
 
-class TransferParams(BaseModel):
-    """Transfer generation parameters."""
-
-    to: str
-    amount: int
-    memo: str
-
-    class Config:
-        populate_by_name = True
-
-
-class TransferResult(BaseModel):
-    """Result of a transfer and confirmation operation."""
-
-    txid: str
-    confirmed: bool
-
-    class Config:
-        populate_by_name = True
-
-
-class TransferInfo(BaseModel):
-    """Type-safe transfer information."""
-
-    miner: Miner
-    to_address: str
-    amount: int
-    memo: str
-    nonce: int
-    status: TransactionStatus = TransactionStatus.PENDING
-    txid: Optional[str] = None
-    error: Optional[str] = None
-
-    class Config:
-        populate_by_name = True
-
-
-class DeploymentInfo(BaseModel):
-    """Type-safe deployment information."""
-
-    miner: Miner
-    contract_file: str
-    contract_name: str
-    nonce: int
-    status: TransactionStatus = TransactionStatus.PENDING
-    txid: Optional[str] = None
-    error: Optional[str] = None
-    size_kb: float = 0.0
-
-    class Config:
-        populate_by_name = True
-
-
-class AccountInfo(BaseModel):
-    """Type-safe account information from API."""
-
-    address: str
-    balance: int
-    nonce: int
-
-    class Config:
-        populate_by_name = True
-
-    @property
-    def balance_amount(self) -> "StacksToken":
-        from .tokens import StacksToken
-
-        return StacksToken.from_microstx(self.balance)
-
-
-class ApiResult(BaseModel):
-    """Type-safe API call result."""
-
-    success: bool
-    data: Optional[Any] = None
-    error: Optional[ApiError] = None
-    error_message: Optional[str] = None
-
-    class Config:
-        populate_by_name = True
-
-
-class VerificationSummary(BaseModel):
-    """Type-safe verification summary with full IDE support."""
-
-    total: int
-    confirmed: int
-    pending: int
-    failed: int
-    success_rate: float
-
-    class Config:
-        populate_by_name = True
-
-
-class VerificationResults(BaseModel):
-    """Type-safe verification results with full IDE support."""
-
-    confirmed: List["TransferInfo"] = Field(default_factory=list)
-    failed: List["TransferInfo"] = Field(default_factory=list)
-    pending: List["TransferInfo"] = Field(default_factory=list)
-    confirmed_deployments: List["DeploymentInfo"] = Field(default_factory=list)
-    failed_deployments: List["DeploymentInfo"] = Field(default_factory=list)
-    pending_deployments: List["DeploymentInfo"] = Field(default_factory=list)
-
-    class Config:
-        populate_by_name = True

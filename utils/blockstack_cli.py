@@ -2,49 +2,13 @@ import subprocess
 import shlex
 import json
 from typing import List, Optional, Tuple, Dict, Any, TypeVar, Type
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, ValidationError
 from .logger import logger
-from .exceptions import *
+from .types.exceptions import *
+from .types.blockstack_cli import SecretKeyInfo, AddressInfo
 
 T = TypeVar("T", bound=BaseModel)
 
-
-class SecretKeyInfo(BaseModel):
-    """Typed response from generate-sk command."""
-
-    secret_key: str = Field(alias="secretKey")
-    public_key: str = Field(alias="publicKey")
-    stacks_address: str = Field(alias="stacksAddress")
-
-    class Config:
-        populate_by_name = True
-
-
-class AddressInfo(BaseModel):
-    """Typed response from addresses command."""
-
-    stx_address: str = Field(alias="STX")
-    btc_address: str = Field(alias="BTC")
-
-    class Config:
-        populate_by_name = True
-
-
-class TransactionResult(BaseModel):
-    """Typed result for transaction commands."""
-
-    tx_hex: str
-    success: bool
-    error_message: Optional[str] = None
-
-
-class CLIResult(BaseModel):
-    """Generic typed result for CLI commands."""
-
-    success: bool
-    data: Optional[Any] = None
-    error_message: Optional[str] = None
-    return_code: int = 0
 
 
 class BlockstackCLI:
