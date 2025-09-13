@@ -1,4 +1,11 @@
 ;; Simple counter contract
+(define-constant MAX_COUNTER u100)
+
+(define-trait counter-trait
+  ((get-counter () (response uint uint))))
+
+(define-map simple-map uint principal)
+
 (define-data-var counter uint u0)
 (define-data-var last-caller principal tx-sender)
 
@@ -15,6 +22,7 @@
   (begin
     (var-set counter (+ (var-get counter) u1))
     (var-set last-caller tx-sender)
+    (map-set simple-map (var-get counter) tx-sender)
     (print {event: "incremented", new-value: (var-get counter), caller: tx-sender})
     (ok (var-get counter))))
 

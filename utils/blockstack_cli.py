@@ -54,7 +54,7 @@ class BlockstackCLI:
             logger.debug(f"Parsed JSON data: {json_data}")
 
             # Automatic validation and object creation via Pydantic
-            parsed_object = response_type.parse_obj(json_data)
+            parsed_object = response_type.model_validate(json_data)
             logger.debug(f"Successfully created {response_type.__name__} object")
             return parsed_object
 

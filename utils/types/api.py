@@ -62,12 +62,32 @@ class ContractSource(BaseModel):
         populate_by_name = True
 
 
+class FeeRate(BaseModel):
+    """Simple fee rate response from /v2/fees/transfer endpoint."""
+    
+    fee_rate: int
+    
+    class Config:
+        populate_by_name = True
+
+
+class FeeEstimation(BaseModel):
+    """Individual fee estimation."""
+    
+    fee_rate: int
+    fee: int
+    
+    class Config:
+        populate_by_name = True
+
+
 class FeeEstimate(BaseModel):
-    """Fee estimate response from /v2/fees endpoints."""
+    """Fee estimate response from /v2/fees/transaction endpoint."""
 
     estimated_cost_scalar: int
     estimated_cost: int
-    estimations: List[Dict]
+    cost_scalar_change_by_byte: float
+    estimations: List[FeeEstimation]
 
     class Config:
         populate_by_name = True
@@ -104,12 +124,66 @@ class NodeInfo(BaseModel):
 
 
 class PoxCycle(BaseModel):
-    """PoX cycle information."""
+    """PoX cycle information for current cycle."""
 
     id: int
     min_threshold_ustx: int
     stacked_ustx: int
     is_pox_active: bool
+
+    class Config:
+        populate_by_name = True
+
+
+class PoxNextCycle(BaseModel):
+    """PoX next cycle information."""
+
+    id: int
+    min_threshold_ustx: int
+    min_increment_ustx: int
+    stacked_ustx: int
+    prepare_phase_start_block_height: int
+    blocks_until_prepare_phase: int
+    reward_phase_start_block_height: int
+    blocks_until_reward_phase: int
+    ustx_until_pox_rejection: Optional[int] = None
+
+    class Config:
+        populate_by_name = True
+
+
+class PoxEpoch(BaseModel):
+    """PoX epoch information."""
+    
+    epoch_id: str
+    start_height: int
+    end_height: int
+    block_limit: "PoxBlockLimit"
+    network_epoch: int
+
+    class Config:
+        populate_by_name = True
+
+
+class PoxBlockLimit(BaseModel):
+    """Block limit information."""
+    
+    write_length: int
+    write_count: int
+    read_length: int
+    read_count: int
+    runtime: int
+
+    class Config:
+        populate_by_name = True
+
+
+class PoxContractVersion(BaseModel):
+    """PoX contract version information."""
+    
+    contract_id: str
+    activation_burnchain_block_height: int
+    first_reward_cycle_id: int
 
     class Config:
         populate_by_name = True
@@ -128,15 +202,15 @@ class PoxInfo(BaseModel):
     rejection_fraction: Optional[int] = None
     total_liquid_supply_ustx: int
     current_cycle: PoxCycle
-    next_cycle: PoxCycle
-    epochs: List[Dict]  # Can be further typed if needed
+    next_cycle: PoxNextCycle
+    epochs: List[PoxEpoch]
     min_amount_ustx: int
     prepare_cycle_length: int
     reward_cycle_id: int
     reward_cycle_length: int
     rejection_votes_left_required: Optional[int] = None
     next_reward_cycle_in: int
-    contract_versions: List[Dict]  # Can be further typed if needed
+    contract_versions: List[PoxContractVersion]
 
     class Config:
         populate_by_name = True
@@ -164,11 +238,57 @@ class SecretKeyInfo(BaseModel):
         populate_by_name = True
 
 
+class BinaryResponse(BaseModel):
+    """Wrapper for binary/bytes responses."""
+    
+    data: bytes
+    
+    class Config:
+        populate_by_name = True
+        arbitrary_types_allowed = True
+
+
 class StackerSet(BaseModel):
     """Stacker set information from /v3/stacker_set endpoint."""
 
     cycle_number: int
 
+    class Config:
+        populate_by_name = True
+
+
+class SortitionInfo(BaseModel):
+    """Sortition information from /v3/sortitions endpoint."""
+    
+    # Based on the actual API response structure
+    burn_block_hash: str
+    burn_block_height: int
+    burn_header_timestamp: int
+    sortition_id: str
+    parent_sortition_id: str
+    consensus_hash: str
+    ops: Optional[List[Dict]] = None  # Could be further typed if needed
+    burn_amount: Optional[int] = None
+    sunset_burn: Optional[int] = None
+    
+    class Config:
+        populate_by_name = True
+
+
+class TraitImplementationResponse(BaseModel):
+    """Response for trait implementation check."""
+    
+    is_implemented: bool
+    
+    class Config:
+        populate_by_name = True
+
+
+class SignerBlockCount(BaseModel):
+    """Signer block count response."""
+    
+    block_count: int
+    
     class Config:
         populate_by_name = True
 

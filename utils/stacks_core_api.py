@@ -2,7 +2,7 @@
 
 import requests
 import json
-from typing import List, Optional, Dict, Any, TypeVar, Type
+from typing import List, Optional, Dict, Any, TypeVar, Type, Union, cast, overload
 from pydantic import BaseModel, ValidationError
 from .logger import logger, Colors
 from .types.api import (
@@ -13,8 +13,11 @@ from .types.api import (
     NodeInfo,
     PoxInfo,
     ReadOnlyFunctionResult,
+    SignerBlockCount,
+    SortitionInfo,
     StackerSet,
     TenureInfo,
+    TraitImplementationResponse,
     TransactionDetails,
 )
 from .types.exceptions import *
@@ -80,7 +83,7 @@ class StacksCoreAPI:
         try:
             logger.debug(f"Parsing JSON data for {response_type.__name__}: {data}")
 
-            parsed_object = response_type.parse_obj(data)
+            parsed_object = response_type.model_validate(data)
             logger.debug(f"Successfully created {response_type.__name__} object")
             return parsed_object
 
@@ -221,26 +224,73 @@ class StacksCoreAPI:
             response, response_type, is_retry_context, **parse_kwargs
         )
 
+    @overload
     def do_get(
         self,
         endpoint: str,
         response_type: Type[T],
         params: Optional[Dict] = None,
         is_retry_context: bool = False,
+        raw_response: bool = False,
         **parse_kwargs,
-    ) -> T:
+    ) -> T: ...
+    
+    @overload
+    def do_get(
+        self,
+        endpoint: str,
+        response_type: None = None,
+        params: Optional[Dict] = None,
+        is_retry_context: bool = False,
+        raw_response: bool = True,
+        **parse_kwargs,
+    ) -> Union[bytes, str, Any]: ...
+
+    def do_get(
+        self,
+        endpoint: str,
+        response_type: Optional[Type[T]] = None,
+        params: Optional[Dict] = None,
+        is_retry_context: bool = False,
+        raw_response: bool = False,
+        **parse_kwargs,
+    ) -> Union[T, bytes, str, Any]:
         """
         Typed GET request facade.
         Returns typed object with automatic JSON parsing and exception handling.
+        
+        Args:
+            endpoint: API endpoint to call
+            response_type: Pydantic model type for parsing (required if raw_response=False)
+            params: Query parameters
+            is_retry_context: Whether this is a retry call
+            raw_response: If True, returns raw response based on content-type without parsing
+            **parse_kwargs: Additional arguments for response parsing
+            
+        Returns:
+            If raw_response=True: raw response (bytes, str, or dict based on content-type)
+            Otherwise: parsed Pydantic object of type response_type
         """
-        return self._do_request(
-            "GET",
-            endpoint,
-            response_type,
-            params=params,
-            is_retry_context=is_retry_context,
-            **parse_kwargs,
-        )
+        if raw_response:
+            # Return raw response based on content-type
+            return self._do_request(
+                "GET",
+                endpoint,
+                response_type=None,
+                params=params,
+                is_retry_context=is_retry_context,
+                **parse_kwargs,
+            )
+        else:
+            # Parse with Pydantic model (response_type required)
+            return self._do_request(
+                "GET",
+                endpoint,
+                response_type,
+                params=params,
+                is_retry_context=is_retry_context,
+                **parse_kwargs,
+            )
 
     def do_post(
         self,
@@ -367,24 +417,11 @@ class StacksCoreAPI:
         params = {
             k: v for k, v in {"proof": proof, "tip": tip}.items() if v is not None
         }
-        return self.do_post(endpoint, data=key_hex_json_string, params=params)
+        # API expects JSON string atom containing the hex key
+        import json
+        return self.do_post(endpoint, data=json.dumps(key_hex_json_string), 
+                          headers={"Content-Type": "application/json"}, params=params)
 
-    def get_constant_value(
-        self,
-        contract_address: str,
-        contract_name: str,
-        constant_name: str,
-        *,
-        tip: Optional[str] = None,
-    ) -> Optional[Dict[str, Any]]:
-        """POST /v2/constant_val/{...} - Get the value of a constant.
-
-        Returns raw dict - varies by constant type.
-        """
-        endpoint = (
-            f"/v2/constant_val/{contract_address}/{contract_name}/{constant_name}"
-        )
-        return self.do_post(endpoint, params={"tip": tip} if tip else {})
 
     def get_is_trait_implemented(
         self,
@@ -395,67 +432,32 @@ class StacksCoreAPI:
         trait_name: str,
         *,
         tip: Optional[str] = None,
-    ) -> Optional[Dict[str, Any]]:
-        """GET /v2/traits/{...} - Check if a contract implements a trait.
-
-        Returns raw dict.
-        """
+    ) -> "TraitImplementationResponse":
+        """GET /v2/traits/{...} - Check if a contract implements a trait."""
         endpoint = (
             f"/v2/traits/{contract_address}/{contract_name}/"
             f"{trait_contract_address}/{trait_contract_name}/{trait_name}"
         )
-        return self.do_get(endpoint, params={"tip": tip} if tip else {})  # type: ignore
+        return self.do_get(endpoint, TraitImplementationResponse, params={"tip": tip} if tip else {})
 
-    def get_clarity_marf_value(
-        self, marf_key: str, *, proof: Optional[int] = None, tip: Optional[str] = None
-    ) -> Optional[Dict[str, Any]]:
-        """POST /v2/clarity/marf/{...} - Get the MARF value for a key (returns raw dict)."""
-        params = {
-            k: v for k, v in {"proof": proof, "tip": tip}.items() if v is not None
-        }
-        return self.do_post(f"/v2/clarity/marf/{marf_key}", params=params)
-
-    def get_clarity_metadata(
-        self,
-        contract_address: str,
-        contract_name: str,
-        metadata_key: str,
-        *,
-        tip: Optional[str] = None,
-    ) -> Optional[Dict[str, Any]]:
-        """POST /v2/clarity/metadata/{...} - Get contract metadata (returns raw dict)."""
-        endpoint = (
-            f"/v2/clarity/metadata/{contract_address}/{contract_name}/{metadata_key}"
-        )
-        return self.do_post(endpoint, params={"tip": tip} if tip else {})
 
     # --- V2 Fees ---
-    def get_fee_rate_for_transfer(self) -> "FeeEstimate":
+    def get_fee_rate_for_transfer(self) -> int:
         """GET /v2/fees/transfer - Get estimated fee rate for STX transfers."""
-        return self.do_get("/v2/fees/transfer", FeeEstimate)
+        return cast(int, self.do_get("/v2/fees/transfer", raw_response=True))
 
-    def get_fee_estimate_for_transaction(
-        self, transaction_payload_hex: str, *, estimated_len: Optional[int] = None
-    ) -> "FeeEstimate":
-        """POST /v2/fees/transaction - Get an estimated fee for a given transaction payload."""
-        payload = {"transaction_payload": transaction_payload_hex}
-        if estimated_len is not None:
-            payload["estimated_len"] = estimated_len  # type: ignore
-        return self.do_post("/v2/fees/transaction", FeeEstimate, json_data=payload)
 
     # --- V3 Blocks, Tenures, and Transactions ---
     def get_block_by_id(self, block_id: str) -> bytes:
         """GET /v3/blocks/{block_id} - Fetch a Nakamoto block by its ID hash."""
-        return self.do_get(f"/v3/blocks/{block_id}")  # type: ignore
+        return cast(bytes, self.do_get(f"/v3/blocks/{block_id}", raw_response=True))
 
     def get_block_by_height(
         self, block_height: int, *, tip: Optional[str] = None
     ) -> bytes:
         """GET /v3/blocks/height/{block_height} - Fetch a Nakamoto block by height."""
-        return self.do_get(
-            f"/v3/blocks/height/{block_height}",
-            params={"tip": tip} if tip else {},
-        )  # type: ignore
+        params = {"tip": tip} if tip else {}
+        return cast(bytes, self.do_get(f"/v3/blocks/height/{block_height}", params=params, raw_response=True))
 
     def get_transaction_by_id(
         self, txid: str, is_retry_context: bool = False
@@ -479,43 +481,24 @@ class StacksCoreAPI:
 
     def get_tenure_blocks(self, block_id: str, *, stop: Optional[str] = None) -> bytes:
         """GET /v3/tenures/{block_id} - Fetch a sequence of Nakamoto blocks in a tenure."""
-        return self.do_get(
-            f"/v3/tenures/{block_id}", params={"stop": stop} if stop else {}
-        )  # type: ignore
+        params = {"stop": stop} if stop else {}
+        return cast(bytes, self.do_get(f"/v3/tenures/{block_id}", params=params, raw_response=True))
 
     def get_sortitions(
         self, *, lookup_kind: Optional[str] = None, lookup: Optional[str] = None
-    ) -> Optional[Dict[str, Any]]:
-        """GET /v3/sortitions/{lookup_kind}/{lookup} - Fetch burnchain block info.
-
-        Returns raw dict.
-        """
+    ) -> List["SortitionInfo"]:
+        """GET /v3/sortitions/{lookup_kind}/{lookup} - Fetch burnchain block info."""
         endpoint = "/v3/sortitions"
         if lookup_kind and lookup:
             endpoint += f"/{lookup_kind}/{lookup}"
         elif lookup_kind:
             endpoint += f"/{lookup_kind}"
-        return self.do_get(endpoint)  # type: ignore
+        raw_data = self.do_get(endpoint, raw_response=True)
+        # Handle both single item and list responses
+        if isinstance(raw_data, list):
+            return [SortitionInfo.model_validate(item) for item in raw_data]
+        else:
+            return [SortitionInfo.model_validate(raw_data)]
 
     # --- V3 Mining and Stacking ---
-    def post_block_proposal(
-        self, block_proposal_data: Dict
-    ) -> Optional[Dict[str, Any]]:
-        """POST /v3/block_proposal - Validate a proposed Stacks block.
 
-        Requires auth. Returns raw dict.
-        """
-        return self.do_post("/v3/block_proposal", json_data=block_proposal_data)
-
-    def get_stacker_set(self, cycle_number: int) -> "StackerSet":
-        """GET /v3/stacker_set/{cycle_number} - Fetch stacker set info for a cycle."""
-        return self.do_get(
-            f"/v3/stacker_set/{cycle_number}", StackerSet, cycle_number=cycle_number
-        )
-
-    def get_signer_block_count(self, signer_pubkey: str, cycle_number: int) -> int:
-        """GET /v3/signer/{signer}/{cycle_number} - Get signer block count in cycle."""
-        resp = self.do_get(f"/v3/signer/{signer_pubkey}/{cycle_number}")  # type: ignore
-        if not resp or not isinstance(resp, str) or not resp.isdigit():
-            raise StacksAPIException(f"Invalid signer block count response: {resp}")
-        return int(resp)

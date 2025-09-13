@@ -106,7 +106,7 @@ class StacksChain:
                             logger.debug(
                                 f"Transaction {txid} successful with result: '(ok true)'"
                             )
-                            logger.success("Transfer confirmed!")
+                            logger.success("Transaction confirmed!")
                             return True
                         else:
                             logger.debug(
@@ -183,6 +183,69 @@ class StacksChain:
             recipient=recipient,
             amount=amount,
             memo=memo,
+            fee=fee,
+            nonce=initial_nonce,
+        )
+
+        confirmed = self.wait_for_confirmation(
+            txid=txid,
+            timeout=timeout,
+            initial_nonce=initial_nonce,
+            initial_height=initial_height,
+        )
+
+        return TransferResult(txid=txid, confirmed=confirmed)
+
+    def deploy_contract(
+        self,
+        deployer_account: Account,
+        contract_name: str,
+        contract_file: str,
+        fee: Optional[StacksToken] = None,
+        nonce: Optional[int] = None,
+    ) -> str:
+        """Deploy contract with automatic nonce and fee handling."""
+        if nonce is None:
+            nonce = self.get_current_nonce(deployer_account.address)
+
+        if fee is None:
+            fee = StacksToken.from_microstx(50_000)  # Higher default fee for contracts
+
+        fee_microstx = fee.to_base_units()
+
+        try:
+            tx_hex = self._cli.publish_contract(
+                publisher_sk=deployer_account.private_key,
+                fee_rate=fee_microstx,
+                nonce=nonce,
+                contract_name=contract_name,
+                file_name=contract_file,
+                testnet=True,
+            )
+        except Exception as e:
+            raise StacksException(f"CLI contract deployment failed: {str(e)}")
+
+        txid = self._api.post_raw_transaction(bytes.fromhex(tx_hex))
+
+        logger.success(f"Contract deployment submitted: {txid}")
+        return txid
+
+    def deploy_and_confirm(
+        self,
+        deployer_account: Account,
+        contract_name: str,
+        contract_file: str,
+        fee: Optional[StacksToken] = None,
+        timeout: int = 120,
+    ) -> TransferResult:
+        """Deploy contract and wait for confirmation."""
+        initial_nonce = self.get_current_nonce(deployer_account.address)
+        initial_height = self.get_current_height()
+
+        txid = self.deploy_contract(
+            deployer_account=deployer_account,
+            contract_name=contract_name,
+            contract_file=contract_file,
             fee=fee,
             nonce=initial_nonce,
         )
