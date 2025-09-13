@@ -233,8 +233,9 @@ class StacksCoreAPI:
         is_retry_context: bool = False,
         raw_response: bool = False,
         **parse_kwargs,
-    ) -> T: ...
-    
+    ) -> T:
+        ...
+
     @overload
     def do_get(
         self,
@@ -244,7 +245,8 @@ class StacksCoreAPI:
         is_retry_context: bool = False,
         raw_response: bool = True,
         **parse_kwargs,
-    ) -> Union[bytes, str, Any]: ...
+    ) -> Union[bytes, str, Any]:
+        ...
 
     def do_get(
         self,
@@ -258,7 +260,7 @@ class StacksCoreAPI:
         """
         Typed GET request facade.
         Returns typed object with automatic JSON parsing and exception handling.
-        
+
         Args:
             endpoint: API endpoint to call
             response_type: Pydantic model type for parsing (required if raw_response=False)
@@ -266,7 +268,7 @@ class StacksCoreAPI:
             is_retry_context: Whether this is a retry call
             raw_response: If True, returns raw response based on content-type without parsing
             **parse_kwargs: Additional arguments for response parsing
-            
+
         Returns:
             If raw_response=True: raw response (bytes, str, or dict based on content-type)
             Otherwise: parsed Pydantic object of type response_type
@@ -419,9 +421,13 @@ class StacksCoreAPI:
         }
         # API expects JSON string atom containing the hex key
         import json
-        return self.do_post(endpoint, data=json.dumps(key_hex_json_string), 
-                          headers={"Content-Type": "application/json"}, params=params)
 
+        return self.do_post(
+            endpoint,
+            data=json.dumps(key_hex_json_string),
+            headers={"Content-Type": "application/json"},
+            params=params,
+        )
 
     def get_is_trait_implemented(
         self,
@@ -438,14 +444,14 @@ class StacksCoreAPI:
             f"/v2/traits/{contract_address}/{contract_name}/"
             f"{trait_contract_address}/{trait_contract_name}/{trait_name}"
         )
-        return self.do_get(endpoint, TraitImplementationResponse, params={"tip": tip} if tip else {})
-
+        return self.do_get(
+            endpoint, TraitImplementationResponse, params={"tip": tip} if tip else {}
+        )
 
     # --- V2 Fees ---
     def get_fee_rate_for_transfer(self) -> int:
         """GET /v2/fees/transfer - Get estimated fee rate for STX transfers."""
         return cast(int, self.do_get("/v2/fees/transfer", raw_response=True))
-
 
     # --- V3 Blocks, Tenures, and Transactions ---
     def get_block_by_id(self, block_id: str) -> bytes:
@@ -457,7 +463,12 @@ class StacksCoreAPI:
     ) -> bytes:
         """GET /v3/blocks/height/{block_height} - Fetch a Nakamoto block by height."""
         params = {"tip": tip} if tip else {}
-        return cast(bytes, self.do_get(f"/v3/blocks/height/{block_height}", params=params, raw_response=True))
+        return cast(
+            bytes,
+            self.do_get(
+                f"/v3/blocks/height/{block_height}", params=params, raw_response=True
+            ),
+        )
 
     def get_transaction_by_id(
         self, txid: str, is_retry_context: bool = False
@@ -482,7 +493,10 @@ class StacksCoreAPI:
     def get_tenure_blocks(self, block_id: str, *, stop: Optional[str] = None) -> bytes:
         """GET /v3/tenures/{block_id} - Fetch a sequence of Nakamoto blocks in a tenure."""
         params = {"stop": stop} if stop else {}
-        return cast(bytes, self.do_get(f"/v3/tenures/{block_id}", params=params, raw_response=True))
+        return cast(
+            bytes,
+            self.do_get(f"/v3/tenures/{block_id}", params=params, raw_response=True),
+        )
 
     def get_sortitions(
         self, *, lookup_kind: Optional[str] = None, lookup: Optional[str] = None
@@ -501,4 +515,3 @@ class StacksCoreAPI:
             return [SortitionInfo.model_validate(raw_data)]
 
     # --- V3 Mining and Stacking ---
-

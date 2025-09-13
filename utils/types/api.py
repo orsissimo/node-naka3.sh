@@ -64,19 +64,19 @@ class ContractSource(BaseModel):
 
 class FeeRate(BaseModel):
     """Simple fee rate response from /v2/fees/transfer endpoint."""
-    
+
     fee_rate: int
-    
+
     class Config:
         populate_by_name = True
 
 
 class FeeEstimation(BaseModel):
     """Individual fee estimation."""
-    
+
     fee_rate: int
     fee: int
-    
+
     class Config:
         populate_by_name = True
 
@@ -154,7 +154,7 @@ class PoxNextCycle(BaseModel):
 
 class PoxEpoch(BaseModel):
     """PoX epoch information."""
-    
+
     epoch_id: str
     start_height: int
     end_height: int
@@ -167,7 +167,7 @@ class PoxEpoch(BaseModel):
 
 class PoxBlockLimit(BaseModel):
     """Block limit information."""
-    
+
     write_length: int
     write_count: int
     read_length: int
@@ -180,7 +180,7 @@ class PoxBlockLimit(BaseModel):
 
 class PoxContractVersion(BaseModel):
     """PoX contract version information."""
-    
+
     contract_id: str
     activation_burnchain_block_height: int
     first_reward_cycle_id: int
@@ -240,9 +240,9 @@ class SecretKeyInfo(BaseModel):
 
 class BinaryResponse(BaseModel):
     """Wrapper for binary/bytes responses."""
-    
+
     data: bytes
-    
+
     class Config:
         populate_by_name = True
         arbitrary_types_allowed = True
@@ -259,7 +259,7 @@ class StackerSet(BaseModel):
 
 class SortitionInfo(BaseModel):
     """Sortition information from /v3/sortitions endpoint."""
-    
+
     # Based on the actual API response structure
     burn_block_hash: str
     burn_block_height: int
@@ -270,25 +270,25 @@ class SortitionInfo(BaseModel):
     ops: Optional[List[Dict]] = None  # Could be further typed if needed
     burn_amount: Optional[int] = None
     sunset_burn: Optional[int] = None
-    
+
     class Config:
         populate_by_name = True
 
 
 class TraitImplementationResponse(BaseModel):
     """Response for trait implementation check."""
-    
+
     is_implemented: bool
-    
+
     class Config:
         populate_by_name = True
 
 
 class SignerBlockCount(BaseModel):
     """Signer block count response."""
-    
+
     block_count: int
-    
+
     class Config:
         populate_by_name = True
 
