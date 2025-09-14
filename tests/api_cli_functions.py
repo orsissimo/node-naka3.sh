@@ -46,29 +46,45 @@ class TestResults:
 
         logger.info(f"API Functions Tested: {len(self.api_results)}")
         api_success_count = sum(1 for r in self.api_results.values() if r["success"])
-        logger.info(
-            f"API Functions Successful: {api_success_count}/{len(self.api_results)}"
-        )
+        if api_success_count == len(self.api_results):
+            logger.success(
+                f"API Functions Successful: {api_success_count}/{len(self.api_results)}"
+            )
+        else:
+            logger.error(
+                f"API Functions Successful: {api_success_count}/{len(self.api_results)}"
+            )
 
         logger.info(f"CLI Functions Tested: {len(self.cli_results)}")
         cli_success_count = sum(1 for r in self.cli_results.values() if r["success"])
-        logger.info(
-            f"CLI Functions Successful: {cli_success_count}/{len(self.cli_results)}"
-        )
+        if cli_success_count == len(self.cli_results):
+            logger.success(
+                f"CLI Functions Successful: {cli_success_count}/{len(self.cli_results)}"
+            )
+        else:
+            logger.error(
+                f"CLI Functions Successful: {cli_success_count}/{len(self.cli_results)}"
+            )
 
         logger.header("API CALL DETAILS")
         for func_name, result in self.api_results.items():
             status = "SUCCESS" if result["success"] else "FAILED"
-            logger.info(f"{func_name}: {status}")
-            if not result["success"] and result["error"]:
-                logger.info(f"  Reason: {result['error']}")
+            if result["success"]:
+                logger.success(f"{func_name}: {status}")
+            else:
+                logger.error(f"{func_name}: {status}")
+                if result["error"]:
+                    logger.error(f"  Reason: {result['error']}")
 
         logger.header("CLI CALL DETAILS")
         for func_name, result in self.cli_results.items():
             status = "SUCCESS" if result["success"] else "FAILED"
-            logger.info(f"{func_name}: {status}")
-            if not result["success"] and result["error"]:
-                logger.info(f"  Reason: {result['error']}")
+            if result["success"]:
+                logger.success(f"{func_name}: {status}")
+            else:
+                logger.error(f"{func_name}: {status}")
+                if result["error"]:
+                    logger.error(f"  Reason: {result['error']}")
 
 
 def test_api_function(test_results: TestResults, func_name: str, test_func):

@@ -333,3 +333,13 @@ class TransactionDetails(BaseModel):
             return TxStatus.PENDING
         else:
             return TxStatus.UNKNOWN
+
+
+class MapEntry(BaseModel):
+    """Data-map entry response from /v2/map_entry endpoint."""
+
+    data: str      # hex-encoded Clarity value (varies by map definition)
+    proof: str     # hex-encoded merkle proof for verification
+
+    class Config:
+        populate_by_name = True

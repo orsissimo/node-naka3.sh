@@ -160,6 +160,10 @@ class BlockstackCLI:
         *,
         testnet: bool = True,
     ) -> str:
+        """CLI: publish - Deploy a smart contract.
+        
+        File_name must be path to .clar file.
+        """
         cmd = [
             "publish",
             publisher_sk,
@@ -182,6 +186,10 @@ class BlockstackCLI:
         *,
         testnet: bool = True,
     ) -> str:
+        """CLI: contract-call - Call a smart contract function.
+        
+        Args must be Clarity values (e.g. 'u100', '"hello"').
+        """
         cmd = [
             "contract-call",
             origin_sk,
@@ -199,6 +207,7 @@ class BlockstackCLI:
     def generate_sk(
         self, *, testnet: bool = False, chain_id: Optional[str] = None
     ) -> SecretKeyInfo:
+        """CLI: generate-sk - Generate a new secret key."""
         cmd = ["generate-sk"]
         return self._execute_command_for_json(
             cmd, SecretKeyInfo, testnet, chain_id, "generate-sk"
@@ -215,6 +224,10 @@ class BlockstackCLI:
         *,
         testnet: bool = True,
     ) -> str:
+        """CLI: token-transfer - Transfer STX tokens.
+        
+        Amount is in microstx. Returns hex for api.post_raw_transaction(bytes.fromhex(result)).
+        """
         cmd = [
             "token-transfer",
             origin_sk,
@@ -230,6 +243,7 @@ class BlockstackCLI:
     def get_addresses(
         self, secret_key: str, *, testnet: bool = False, chain_id: Optional[str] = None
     ) -> AddressInfo:
+        """CLI: addresses - Get addresses from secret key."""
         cmd = ["addresses", secret_key]
         return self._execute_command_for_json(
             cmd, AddressInfo, testnet, chain_id, "addresses command"
@@ -256,6 +270,10 @@ class BlockstackCLI:
     def decode_tx(
         self, tx_hex: str, *, testnet: bool = False, chain_id: Optional[str] = None
     ) -> Dict[str, Any]:
+        """CLI: decode-tx - Decode a raw transaction hex.
+        
+        Hex must be without 0x prefix.
+        """
         return self._decode_helper(
             "decode-tx", tx_hex, testnet=testnet, chain_id=chain_id
         )
@@ -263,6 +281,7 @@ class BlockstackCLI:
     def decode_header(
         self, header_hex: str, *, testnet: bool = False, chain_id: Optional[str] = None
     ) -> Dict[str, Any]:
+        """CLI: decode-header - Decode a block header hex."""
         return self._decode_helper(
             "decode-header", header_hex, testnet=testnet, chain_id=chain_id
         )
@@ -270,6 +289,7 @@ class BlockstackCLI:
     def decode_block(
         self, block_hex: str, *, testnet: bool = False, chain_id: Optional[str] = None
     ) -> Dict[str, Any]:
+        """CLI: decode-block - Decode a raw block hex."""
         return self._decode_helper(
             "decode-block", block_hex, testnet=testnet, chain_id=chain_id
         )
@@ -281,6 +301,7 @@ class BlockstackCLI:
         testnet: bool = False,
         chain_id: Optional[str] = None,
     ) -> Dict[str, Any]:
+        """CLI: decode-microblock - Decode a raw microblock hex."""
         return self._decode_helper(
             "decode-microblock", microblock_hex, testnet=testnet, chain_id=chain_id
         )
@@ -292,6 +313,7 @@ class BlockstackCLI:
         testnet: bool = False,
         chain_id: Optional[str] = None,
     ) -> Dict[str, Any]:
+        """CLI: decode-microblocks - Decode a sequence of microblocks hex."""
         return self._decode_helper(
             "decode-microblocks", microblocks_hex, testnet=testnet, chain_id=chain_id
         )

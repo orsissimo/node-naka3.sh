@@ -10,6 +10,7 @@ from .types.api import (
     ContractInterface,
     ContractSource,
     FeeEstimate,
+    MapEntry,
     NodeInfo,
     PoxInfo,
     ReadOnlyFunctionResult,
@@ -205,9 +206,7 @@ class StacksCoreAPI:
         **parse_kwargs,
     ) -> Any:
         """
-        Facade pattern for unified request handling.
         Combines _send_request + _handle_api_response in a single call.
-        Eliminates code duplication across all API methods.
         """
         kwargs = {}
         if params:
@@ -258,16 +257,8 @@ class StacksCoreAPI:
         **parse_kwargs,
     ) -> Union[T, bytes, str, Any]:
         """
-        Typed GET request facade.
+        Typed GET request.
         Returns typed object with automatic JSON parsing and exception handling.
-
-        Args:
-            endpoint: API endpoint to call
-            response_type: Pydantic model type for parsing (required if raw_response=False)
-            params: Query parameters
-            is_retry_context: Whether this is a retry call
-            raw_response: If True, returns raw response based on content-type without parsing
-            **parse_kwargs: Additional arguments for response parsing
 
         Returns:
             If raw_response=True: raw response (bytes, str, or dict based on content-type)
@@ -294,6 +285,36 @@ class StacksCoreAPI:
                 **parse_kwargs,
             )
 
+    @overload
+    def do_post(
+        self,
+        endpoint: str,
+        response_type: Type[T],
+        json_data: Optional[Dict] = None,
+        data: Optional[Any] = None,
+        headers: Optional[Dict] = None,
+        params: Optional[Dict] = None,
+        is_retry_context: bool = False,
+        raw_response: bool = False,
+        **parse_kwargs,
+    ) -> T:
+        ...
+
+    @overload
+    def do_post(
+        self,
+        endpoint: str,
+        response_type: None = None,
+        json_data: Optional[Dict] = None,
+        data: Optional[Any] = None,
+        headers: Optional[Dict] = None,
+        params: Optional[Dict] = None,
+        is_retry_context: bool = False,
+        raw_response: bool = True,
+        **parse_kwargs,
+    ) -> Union[bytes, str, Any]:
+        ...
+
     def do_post(
         self,
         endpoint: str,
@@ -303,41 +324,68 @@ class StacksCoreAPI:
         headers: Optional[Dict] = None,
         params: Optional[Dict] = None,
         is_retry_context: bool = False,
+        raw_response: bool = False,
         **parse_kwargs,
-    ) -> Any:
+    ) -> Union[T, bytes, str, Any]:
         """
-        Typed POST request facade.
+        Typed POST request.
         Returns typed object with automatic JSON parsing and exception handling.
+
+        Returns:
+            If raw_response=True: raw response (bytes, str, or dict based on content-type)
+            Otherwise: parsed Pydantic object of type response_type
         """
-        return self._do_request(
-            "POST",
-            endpoint,
-            response_type,
-            params=params,
-            json_data=json_data,
-            data=data,
-            headers=headers,
-            is_retry_context=is_retry_context,
-            **parse_kwargs,
-        )
+        if raw_response:
+            # Return raw response based on content-type
+            return self._do_request(
+                "POST",
+                endpoint,
+                response_type=None,
+                params=params,
+                json_data=json_data,
+                data=data,
+                headers=headers,
+                is_retry_context=is_retry_context,
+                **parse_kwargs,
+            )
+        else:
+            # Parse with Pydantic model (response_type required)
+            return self._do_request(
+                "POST",
+                endpoint,
+                response_type,
+                params=params,
+                json_data=json_data,
+                data=data,
+                headers=headers,
+                is_retry_context=is_retry_context,
+                **parse_kwargs,
+            )
 
     # --- V2 Transactions, Accounts, and Info ---
     def get_info(self) -> "NodeInfo":
-        """GET /v2/info - Get Core API information as typed object."""
+        """GET /v2/info - Get Core API information."""
         return self.do_get("/v2/info", NodeInfo)
 
     def post_raw_transaction(self, raw_tx_bytes: bytes) -> str:
-        """POST /v2/transactions - Broadcast a raw transaction."""
-        return self.do_post(
+        """POST /v2/transactions - Broadcast a raw transaction.
+        
+        Use bytes.fromhex(cli_hex) where cli_hex comes from CLI functions.
+        """
+        return cast(str, self.do_post(
             "/v2/transactions",
+            raw_response=True,
             data=raw_tx_bytes,
             headers={"Content-Type": "application/octet-stream"},
-        )
+        ))
 
     def get_account_info(
         self, principal: str, *, proof: Optional[int] = None, tip: Optional[str] = None
     ) -> AccountInfo:
-        """GET /v2/accounts/{principal} - Get account information as typed object."""
+        """GET /v2/accounts/{principal} - Get account information.
+        
+        Expects principal as address string (e.g. from account.address). 
+        """
         params = {
             k: v for k, v in {"proof": proof, "tip": tip}.items() if v is not None
         }
@@ -350,7 +398,7 @@ class StacksCoreAPI:
         )
 
     def get_pox_info(self, *, tip: Optional[str] = None) -> "PoxInfo":
-        """GET /v2/pox - Get Proof of Transfer (PoX) information as typed object."""
+        """GET /v2/pox - Get Proof of Transfer (PoX) information."""
         return self.do_get("/v2/pox", PoxInfo, params={"tip": tip} if tip else {})
 
     # --- V2 Smart Contracts and Clarity ---
@@ -364,7 +412,10 @@ class StacksCoreAPI:
         *,
         tip: Optional[str] = None,
     ) -> "ReadOnlyFunctionResult":
-        """POST /v2/contracts/call-read/{...} - Call a read-only function."""
+        """POST /v2/contracts/call-read/{...} - Call a read-only function.
+        
+        Note: 'arguments' parameter must be hex-encoded Clarity values (use clarity-cli to encode: e.g. 'u100' -> '0x0100000000000000000000000000000064').
+        """
         endpoint = f"/v2/contracts/call-read/{contract_address}/{contract_name}/{function_name}"
         return self.do_post(
             endpoint,
@@ -410,10 +461,10 @@ class StacksCoreAPI:
         *,
         proof: Optional[int] = None,
         tip: Optional[str] = None,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[MapEntry]:
         """POST /v2/map_entry/{...} - Get a data-map entry.
-
-        Returns raw dict - varies by map structure.
+        
+        Note: 'key_hex_json_string' must be hex-encoded Clarity value (use clarity-cli to encode: e.g. 'u100' -> '0x0100000000000000000000000000000064').
         """
         endpoint = f"/v2/map_entry/{contract_address}/{contract_name}/{map_name}"
         params = {
@@ -424,6 +475,7 @@ class StacksCoreAPI:
 
         return self.do_post(
             endpoint,
+            MapEntry,
             data=json.dumps(key_hex_json_string),
             headers={"Content-Type": "application/json"},
             params=params,
@@ -450,18 +502,27 @@ class StacksCoreAPI:
 
     # --- V2 Fees ---
     def get_fee_rate_for_transfer(self) -> int:
-        """GET /v2/fees/transfer - Get estimated fee rate for STX transfers."""
+        """GET /v2/fees/transfer - Get estimated fee rate for STX transfers.
+        
+        No parameters required. Returns integer fee rate in microstx per byte.
+        """
         return cast(int, self.do_get("/v2/fees/transfer", raw_response=True))
 
     # --- V3 Blocks, Tenures, and Transactions ---
     def get_block_by_id(self, block_id: str) -> bytes:
-        """GET /v3/blocks/{block_id} - Fetch a Nakamoto block by its ID hash."""
+        """GET /v3/blocks/{block_id} - Fetch a Nakamoto block by its ID hash.
+        
+        Expects block_id hash string (e.g. from node_info.stacks_tip). Returns raw block bytes.
+        """
         return cast(bytes, self.do_get(f"/v3/blocks/{block_id}", raw_response=True))
 
     def get_block_by_height(
         self, block_height: int, *, tip: Optional[str] = None
     ) -> bytes:
-        """GET /v3/blocks/height/{block_height} - Fetch a Nakamoto block by height."""
+        """GET /v3/blocks/height/{block_height} - Fetch a Nakamoto block by height.
+        
+        Expects block_height int (e.g. from node_info.stacks_tip_height). Returns raw block bytes.
+        """
         params = {"tip": tip} if tip else {}
         return cast(
             bytes,
@@ -473,9 +534,9 @@ class StacksCoreAPI:
     def get_transaction_by_id(
         self, txid: str, is_retry_context: bool = False
     ) -> "TransactionDetails":
-        """GET /v3/transaction/{txid} - Retrieve transaction details as typed object.
-        NOTE: The OpenAPI spec incorrectly lists this as a POST endpoint. Real-world
-        testing shows it is a GET endpoint. This implementation uses GET.
+        """GET /v3/transaction/{txid} - Retrieve transaction details.
+        
+        Expects txid string (e.g. from transfer_result.txid).
         """
         return self.do_get(
             f"/v3/transaction/{txid}",
@@ -491,7 +552,11 @@ class StacksCoreAPI:
         return self.do_get("/v3/tenures/info", TenureInfo)
 
     def get_tenure_blocks(self, block_id: str, *, stop: Optional[str] = None) -> bytes:
-        """GET /v3/tenures/{block_id} - Fetch a sequence of Nakamoto blocks in a tenure."""
+        """GET /v3/tenures/{block_id} - Fetch a sequence of Nakamoto blocks in a tenure.
+        
+        Expects block_id as hex string (e.g. from node_info.stacks_tip). Optional stop block_id.
+        Returns raw bytes containing sequence of blocks in the tenure.
+        """
         params = {"stop": stop} if stop else {}
         return cast(
             bytes,
@@ -501,7 +566,10 @@ class StacksCoreAPI:
     def get_sortitions(
         self, *, lookup_kind: Optional[str] = None, lookup: Optional[str] = None
     ) -> List["SortitionInfo"]:
-        """GET /v3/sortitions/{lookup_kind}/{lookup} - Fetch burnchain block info."""
+        """GET /v3/sortitions/{lookup_kind}/{lookup} - Fetch burnchain block info.
+        
+        Optional lookup_kind and lookup parameters for filtering.
+        """
         endpoint = "/v3/sortitions"
         if lookup_kind and lookup:
             endpoint += f"/{lookup_kind}/{lookup}"
@@ -513,5 +581,3 @@ class StacksCoreAPI:
             return [SortitionInfo.model_validate(item) for item in raw_data]
         else:
             return [SortitionInfo.model_validate(raw_data)]
-
-    # --- V3 Mining and Stacking ---
