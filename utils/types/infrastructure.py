@@ -9,15 +9,6 @@ from pydantic import BaseModel
 from typing import Optional
 
 
-class ApiError(Enum):
-    """Standardized API error types."""
-
-    NOT_FOUND = "Not found (404)"
-    TIMEOUT = "Timeout"
-    CONNECTION_ERROR = "Connection error"
-    UNKNOWN_ERROR = "Unknown error"
-
-
 class Miner(Enum):
     """Type-safe miner access enum."""
 
@@ -66,38 +57,6 @@ class Account(BaseModel):
     @property
     def api_url(self) -> str:
         return f"http://localhost:{self.api_port}"
-
-
-class DeploymentInfo(BaseModel):
-    """Type-safe deployment information."""
-
-    miner: Miner
-    contract_file: str
-    contract_name: str
-    nonce: int
-    status: TransactionStatus = TransactionStatus.PENDING
-    txid: Optional[str] = None
-    error: Optional[str] = None
-    size_kb: float = 0.0
-
-    class Config:
-        populate_by_name = True
-
-
-class TransferInfo(BaseModel):
-    """Type-safe transfer information."""
-
-    miner: Miner
-    to_address: str
-    amount: int
-    memo: str
-    nonce: int
-    status: TransactionStatus = TransactionStatus.PENDING
-    txid: Optional[str] = None
-    error: Optional[str] = None
-
-    class Config:
-        populate_by_name = True
 
 
 class TransferResult(BaseModel):

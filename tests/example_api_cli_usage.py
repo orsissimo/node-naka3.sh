@@ -375,7 +375,9 @@ def main():
             )
         else:
             test_results.record_cli_call(
-                "generate_token_transfer_tx_hex", False, error="Could not get account nonce"
+                "generate_token_transfer_tx_hex",
+                False,
+                error="Could not get account nonce",
             )
 
         # Decode functions using real data from our transactions and blockchain
@@ -651,10 +653,14 @@ def main():
                     )
         else:
             test_results.record_cli_call(
-                "generate_contract_deploy_tx_hex", False, error="No account info or nonce available"
+                "generate_contract_deploy_tx_hex",
+                False,
+                error="No account info or nonce available",
             )
             test_results.record_cli_call(
-                "generate_contract_call_tx_hex", False, error="No account info or nonce available"
+                "generate_contract_call_tx_hex",
+                False,
+                error="No account info or nonce available",
             )
 
         # Test raw transaction posting via API with valid transaction bytes

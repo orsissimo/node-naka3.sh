@@ -9,14 +9,11 @@ from .types.api import (
     AccountInfo,
     ContractInterface,
     ContractSource,
-    FeeEstimate,
     MapEntry,
     NodeInfo,
     PoxInfo,
     ReadOnlyFunctionResult,
-    SignerBlockCount,
     SortitionInfo,
-    StackerSet,
     TenureInfo,
     TraitImplementationResponse,
     TransactionDetails,
@@ -369,22 +366,25 @@ class StacksCoreAPI:
 
     def post_raw_transaction(self, raw_tx_bytes: bytes) -> str:
         """POST /v2/transactions - Broadcast a raw transaction.
-        
+
         Use bytes.fromhex(cli_hex) where cli_hex comes from CLI functions.
         """
-        return cast(str, self.do_post(
-            "/v2/transactions",
-            raw_response=True,
-            data=raw_tx_bytes,
-            headers={"Content-Type": "application/octet-stream"},
-        ))
+        return cast(
+            str,
+            self.do_post(
+                "/v2/transactions",
+                raw_response=True,
+                data=raw_tx_bytes,
+                headers={"Content-Type": "application/octet-stream"},
+            ),
+        )
 
     def get_account_info(
         self, principal: str, *, proof: Optional[int] = None, tip: Optional[str] = None
     ) -> AccountInfo:
         """GET /v2/accounts/{principal} - Get account information.
-        
-        Expects principal as address string (e.g. from account.address). 
+
+        Expects principal as address string (e.g. from account.address).
         """
         params = {
             k: v for k, v in {"proof": proof, "tip": tip}.items() if v is not None
@@ -413,7 +413,7 @@ class StacksCoreAPI:
         tip: Optional[str] = None,
     ) -> "ReadOnlyFunctionResult":
         """POST /v2/contracts/call-read/{...} - Call a read-only function.
-        
+
         Note: 'arguments' parameter must be hex-encoded Clarity values (use clarity-cli to encode: e.g. 'u100' -> '0x0100000000000000000000000000000064').
         """
         endpoint = f"/v2/contracts/call-read/{contract_address}/{contract_name}/{function_name}"
@@ -463,7 +463,7 @@ class StacksCoreAPI:
         tip: Optional[str] = None,
     ) -> Optional[MapEntry]:
         """POST /v2/map_entry/{...} - Get a data-map entry.
-        
+
         Note: 'key_hex_json_string' must be hex-encoded Clarity value (use clarity-cli to encode: e.g. 'u100' -> '0x0100000000000000000000000000000064').
         """
         endpoint = f"/v2/map_entry/{contract_address}/{contract_name}/{map_name}"
@@ -503,7 +503,7 @@ class StacksCoreAPI:
     # --- V2 Fees ---
     def get_fee_rate_for_transfer(self) -> int:
         """GET /v2/fees/transfer - Get estimated fee rate for STX transfers.
-        
+
         No parameters required. Returns integer fee rate in microstx per byte.
         """
         return cast(int, self.do_get("/v2/fees/transfer", raw_response=True))
@@ -511,7 +511,7 @@ class StacksCoreAPI:
     # --- V3 Blocks, Tenures, and Transactions ---
     def get_block_by_id(self, block_id: str) -> bytes:
         """GET /v3/blocks/{block_id} - Fetch a Nakamoto block by its ID hash.
-        
+
         Expects block_id hash string (e.g. from node_info.stacks_tip). Returns raw block bytes.
         """
         return cast(bytes, self.do_get(f"/v3/blocks/{block_id}", raw_response=True))
@@ -520,7 +520,7 @@ class StacksCoreAPI:
         self, block_height: int, *, tip: Optional[str] = None
     ) -> bytes:
         """GET /v3/blocks/height/{block_height} - Fetch a Nakamoto block by height.
-        
+
         Expects block_height int (e.g. from node_info.stacks_tip_height). Returns raw block bytes.
         """
         params = {"tip": tip} if tip else {}
@@ -535,7 +535,7 @@ class StacksCoreAPI:
         self, txid: str, is_retry_context: bool = False
     ) -> "TransactionDetails":
         """GET /v3/transaction/{txid} - Retrieve transaction details.
-        
+
         Expects txid string (e.g. from transfer_result.txid).
         """
         return self.do_get(
@@ -553,7 +553,7 @@ class StacksCoreAPI:
 
     def get_tenure_blocks(self, block_id: str, *, stop: Optional[str] = None) -> bytes:
         """GET /v3/tenures/{block_id} - Fetch a sequence of Nakamoto blocks in a tenure.
-        
+
         Expects block_id as hex string (e.g. from node_info.stacks_tip). Optional stop block_id.
         Returns raw bytes containing sequence of blocks in the tenure.
         """
@@ -567,7 +567,7 @@ class StacksCoreAPI:
         self, *, lookup_kind: Optional[str] = None, lookup: Optional[str] = None
     ) -> List["SortitionInfo"]:
         """GET /v3/sortitions/{lookup_kind}/{lookup} - Fetch burnchain block info.
-        
+
         Optional lookup_kind and lookup parameters for filtering.
         """
         endpoint = "/v3/sortitions"

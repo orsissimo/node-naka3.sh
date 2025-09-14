@@ -62,37 +62,6 @@ class ContractSource(BaseModel):
         populate_by_name = True
 
 
-class FeeRate(BaseModel):
-    """Simple fee rate response from /v2/fees/transfer endpoint."""
-
-    fee_rate: int
-
-    class Config:
-        populate_by_name = True
-
-
-class FeeEstimation(BaseModel):
-    """Individual fee estimation."""
-
-    fee_rate: int
-    fee: int
-
-    class Config:
-        populate_by_name = True
-
-
-class FeeEstimate(BaseModel):
-    """Fee estimate response from /v2/fees/transaction endpoint."""
-
-    estimated_cost_scalar: int
-    estimated_cost: int
-    cost_scalar_change_by_byte: float
-    estimations: List[FeeEstimation]
-
-    class Config:
-        populate_by_name = True
-
-
 class NodeInfo(BaseModel):
     """Typed node information from /v2/info endpoint."""
 
@@ -238,25 +207,6 @@ class SecretKeyInfo(BaseModel):
         populate_by_name = True
 
 
-class BinaryResponse(BaseModel):
-    """Wrapper for binary/bytes responses."""
-
-    data: bytes
-
-    class Config:
-        populate_by_name = True
-        arbitrary_types_allowed = True
-
-
-class StackerSet(BaseModel):
-    """Stacker set information from /v3/stacker_set endpoint."""
-
-    cycle_number: int
-
-    class Config:
-        populate_by_name = True
-
-
 class SortitionInfo(BaseModel):
     """Sortition information from /v3/sortitions endpoint."""
 
@@ -279,15 +229,6 @@ class TraitImplementationResponse(BaseModel):
     """Response for trait implementation check."""
 
     is_implemented: bool
-
-    class Config:
-        populate_by_name = True
-
-
-class SignerBlockCount(BaseModel):
-    """Signer block count response."""
-
-    block_count: int
 
     class Config:
         populate_by_name = True
@@ -338,8 +279,8 @@ class TransactionDetails(BaseModel):
 class MapEntry(BaseModel):
     """Data-map entry response from /v2/map_entry endpoint."""
 
-    data: str      # hex-encoded Clarity value (varies by map definition)
-    proof: str     # hex-encoded merkle proof for verification
+    data: str  # hex-encoded Clarity value (varies by map definition)
+    proof: str  # hex-encoded merkle proof for verification
 
     class Config:
         populate_by_name = True
