@@ -30,9 +30,9 @@ Blockstack CLI Functions (10 total - all covered):
 ✅ All CLI Functions:
   - generate_sk - Generates secret keys
   - get_addresses - Gets addresses from secret keys
-  - token_transfer - Creates STX transfer transactions
-  - publish_contract - Publishes smart contracts
-  - call_contract - Calls contract functions
+  - generate_token_transfer_tx_hex - Creates STX transfer transactions
+  - generate_contract_deploy_tx_hex - Publishes smart contracts
+  - generate_contract_call_tx_hex - Calls contract functions
   - decode_tx - Decodes transaction hex
   - decode_header - Decodes header hex
   - decode_block - Decodes block hex

@@ -70,7 +70,7 @@ def try_deploy_contract(miner: Miner, contract_file: str, contract_name: str) ->
         logger.standard("Using fee", f"{fee} µSTX")
 
         # Deploy using raw APIs + helpers
-        tx_hex = cli.publish_contract(
+        tx_hex = cli.generate_contract_deploy_tx_hex(
             account.private_key, fee, initial_nonce, contract_name, contract_path
         )
         logger.standard("Deploying contract using minimal helpers", "")

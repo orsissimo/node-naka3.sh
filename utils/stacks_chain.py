@@ -52,7 +52,7 @@ class StacksChain:
         fee_microstx = fee.to_base_units()
 
         try:
-            tx_hex = self._cli.token_transfer(
+            tx_hex = self._cli.generate_token_transfer_tx_hex(
                 origin_sk=sender_account.private_key,
                 fee_rate=fee_microstx,
                 nonce=nonce,
@@ -214,7 +214,7 @@ class StacksChain:
         fee_microstx = fee.to_base_units()
 
         try:
-            tx_hex = self._cli.publish_contract(
+            tx_hex = self._cli.generate_contract_deploy_tx_hex(
                 publisher_sk=deployer_account.private_key,
                 fee_rate=fee_microstx,
                 nonce=nonce,

@@ -362,8 +362,8 @@ def main():
             nonce = account_info.nonce + 1
             test_cli_function(
                 test_results,
-                "token_transfer",
-                lambda: cli.token_transfer(
+                "generate_token_transfer_tx_hex",
+                lambda: cli.generate_token_transfer_tx_hex(
                     miner1_account.private_key,
                     1000,  # fee rate
                     nonce,
@@ -375,7 +375,7 @@ def main():
             )
         else:
             test_results.record_cli_call(
-                "token_transfer", False, error="Could not get account nonce"
+                "generate_token_transfer_tx_hex", False, error="Could not get account nonce"
             )
 
         # Decode functions using real data from our transactions and blockchain
@@ -384,7 +384,7 @@ def main():
         if account_info and hasattr(account_info, "nonce"):
             try:
                 # Generate a real transaction hex without posting it
-                real_tx_hex = cli.token_transfer(
+                real_tx_hex = cli.generate_token_transfer_tx_hex(
                     miner1_account.private_key,
                     1000,  # fee rate
                     account_info.nonce
@@ -441,9 +441,9 @@ def main():
 
                 # Record successful deployment
                 test_results.record_cli_call(
-                    "publish_contract", True, deploy_result.txid
+                    "generate_contract_deploy_tx_hex", True, deploy_result.txid
                 )
-                logger.success("CLI publish_contract: SUCCESS")
+                logger.success("CLI generate_contract_deploy_tx_hex: SUCCESS")
 
                 deploy_txid = deploy_result.txid
                 confirmed = deploy_result.confirmed
@@ -510,7 +510,7 @@ def main():
                         "Calling increment via contract call to populate map..."
                     )
                     current_nonce = chain.get_current_nonce(miner1_account.address)
-                    increment_hex = cli.call_contract(
+                    increment_hex = cli.generate_contract_call_tx_hex(
                         miner1_account.private_key,
                         50_000,
                         current_nonce,
@@ -565,7 +565,7 @@ def main():
             except Exception as deploy_error:
                 logger.warning(f"Could not deploy contract: {deploy_error}")
                 test_results.record_cli_call(
-                    "publish_contract",
+                    "generate_contract_deploy_tx_hex",
                     False,
                     error=f"Deployment failed: {deploy_error}",
                 )
@@ -577,7 +577,7 @@ def main():
                     call_nonce = chain.get_current_nonce(miner1_account.address)
                     call_initial_height = chain.get_current_height()
 
-                    call_tx_hex = cli.call_contract(
+                    call_tx_hex = cli.generate_contract_call_tx_hex(
                         miner1_account.private_key,
                         5_000,  # higher fee rate for contract calls
                         call_nonce,
@@ -590,9 +590,9 @@ def main():
 
                     # Record CLI success
                     test_results.record_cli_call(
-                        "call_contract", True, call_tx_hex[:20] + "..."
+                        "generate_contract_call_tx_hex", True, call_tx_hex[:20] + "..."
                     )
-                    logger.success("CLI call_contract: SUCCESS")
+                    logger.success("CLI generate_contract_call_tx_hex: SUCCESS")
 
                     # Post the contract call transaction
                     call_hex_str = (
@@ -645,23 +645,23 @@ def main():
 
                 else:
                     test_results.record_cli_call(
-                        "call_contract",
+                        "generate_contract_call_tx_hex",
                         False,
                         error="Contract deployment prerequisite not confirmed",
                     )
         else:
             test_results.record_cli_call(
-                "publish_contract", False, error="No account info or nonce available"
+                "generate_contract_deploy_tx_hex", False, error="No account info or nonce available"
             )
             test_results.record_cli_call(
-                "call_contract", False, error="No account info or nonce available"
+                "generate_contract_call_tx_hex", False, error="No account info or nonce available"
             )
 
         # Test raw transaction posting via API with valid transaction bytes
         try:
             # Generate valid transaction hex for raw posting
             if account_info and hasattr(account_info, "nonce"):
-                raw_tx_hex = cli.token_transfer(
+                raw_tx_hex = cli.generate_token_transfer_tx_hex(
                     miner1_account.private_key,
                     1000,  # fee rate
                     account_info.nonce + 3,  # Different nonce for raw posting

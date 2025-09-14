@@ -42,7 +42,7 @@ def main():
         initial_nonce = account_info.nonce
         initial_height = get_block_height(api)
 
-        tx_hex = cli.publish_contract(
+        tx_hex = cli.generate_contract_deploy_tx_hex(
             account.private_key,
             50000,
             initial_nonce,
@@ -127,7 +127,7 @@ def main():
         initial_nonce = account_info.nonce
         initial_height = get_block_height(api)
 
-        tx_hex = cli.call_contract(
+        tx_hex = cli.generate_contract_call_tx_hex(
             account.private_key,
             5000,
             initial_nonce,
@@ -151,7 +151,7 @@ def main():
         initial_nonce = account_info.nonce
         initial_height = get_block_height(api)
 
-        tx_hex = cli.call_contract(
+        tx_hex = cli.generate_contract_call_tx_hex(
             account.private_key,
             5000,
             initial_nonce,
@@ -175,7 +175,7 @@ def main():
         initial_nonce = account_info.nonce
         initial_height = get_block_height(api)
 
-        tx_hex = cli.call_contract(
+        tx_hex = cli.generate_contract_call_tx_hex(
             account.private_key,
             5000,
             initial_nonce,
@@ -199,7 +199,7 @@ def main():
         initial_nonce = account_info.nonce
         initial_height = get_block_height(api)
 
-        tx_hex = cli.call_contract(
+        tx_hex = cli.generate_contract_call_tx_hex(
             account.private_key,
             5000,
             initial_nonce,
@@ -225,7 +225,7 @@ def main():
         initial_nonce = account_info.nonce
         initial_height = get_block_height(api)
 
-        tx_hex = cli.call_contract(
+        tx_hex = cli.generate_contract_call_tx_hex(
             account.private_key,
             5000,
             initial_nonce,

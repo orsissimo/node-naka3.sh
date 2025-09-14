@@ -71,7 +71,7 @@ def submit_transfer_batch(miner: Miner, transfers: list) -> list:
             )
 
             # Use raw CLI + API
-            tx_hex = cli.token_transfer(
+            tx_hex = cli.generate_token_transfer_tx_hex(
                 account.private_key,
                 180,
                 nonce,
