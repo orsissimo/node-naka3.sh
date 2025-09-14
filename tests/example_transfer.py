@@ -8,7 +8,7 @@ import json
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from utils.config import account_manager
-from utils.types.infrastructure import Miner, TransferResult
+from utils.types.infrastructure import Miner, TransactionResult
 from utils.types.exceptions import *
 from utils.miners import MinerManager
 from utils.logger import logger

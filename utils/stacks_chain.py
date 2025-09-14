@@ -7,7 +7,8 @@ from .stacks_core_api import StacksCoreAPI
 from .blockstack_cli import BlockstackCLI
 from .types.tokens import StacksToken
 from .logger import logger
-from .types.infrastructure import Account, TransferResult
+from .types.infrastructure import Account, TransactionResult
+from .types.api import ReadOnlyFunctionResult
 
 
 class StacksChain:
@@ -173,7 +174,7 @@ class StacksChain:
         memo: str = "",
         fee: Optional[StacksToken] = None,
         timeout: int = 120,
-    ) -> TransferResult:
+    ) -> TransactionResult:
         """Transfer tokens and wait for confirmation."""
         initial_nonce = self.get_current_nonce(sender_account.address)
         initial_height = self.get_current_height()
@@ -194,7 +195,7 @@ class StacksChain:
             initial_height=initial_height,
         )
 
-        return TransferResult(txid=txid, confirmed=confirmed)
+        return TransactionResult(txid=txid, confirmed=confirmed)
 
     def deploy_contract(
         self,
@@ -237,7 +238,7 @@ class StacksChain:
         contract_file: str,
         fee: Optional[StacksToken] = None,
         timeout: int = 120,
-    ) -> TransferResult:
+    ) -> TransactionResult:
         """Deploy contract and wait for confirmation."""
         initial_nonce = self.get_current_nonce(deployer_account.address)
         initial_height = self.get_current_height()
@@ -257,4 +258,88 @@ class StacksChain:
             initial_height=initial_height,
         )
 
-        return TransferResult(txid=txid, confirmed=confirmed)
+        return TransactionResult(txid=txid, confirmed=confirmed)
+
+    def call_contract_read_function(
+        self,
+        contract_address: str,
+        contract_name: str,
+        function_name: str,
+        sender: str,
+        function_args: Optional[list] = None,
+    ) -> ReadOnlyFunctionResult:
+        """Call read-only contract function."""
+        return self._api.call_read_only_function(
+            contract_address, contract_name, function_name, sender, function_args or []
+        )
+
+    def call_contract_write_function(
+        self,
+        caller_account: Account,
+        contract_address: str,
+        contract_name: str,
+        function_name: str,
+        function_args: Optional[list] = None,
+        fee: Optional[StacksToken] = None,
+        nonce: Optional[int] = None,
+    ) -> str:
+        """Call contract function (write operation)."""
+        if nonce is None:
+            nonce = self.get_current_nonce(caller_account.address)
+
+        if fee is None:
+            fee = StacksToken.from_microstx(50_000)
+
+        fee_microstx = fee.to_base_units()
+
+        try:
+            tx_hex = self._cli.generate_contract_call_tx_hex(
+                origin_sk=caller_account.private_key,
+                fee_rate=fee_microstx,
+                nonce=nonce,
+                contract_address=contract_address,
+                contract_name=contract_name,
+                function_name=function_name,
+                args=function_args,
+                testnet=True,
+            )
+        except Exception as e:
+            raise StacksException(f"CLI contract call failed: {str(e)}")
+
+        txid = self._api.post_raw_transaction(bytes.fromhex(tx_hex))
+
+        logger.success(f"Contract call submitted: {txid}")
+        return txid
+
+    def call_contract_write_function_and_confirm(
+        self,
+        caller_account: Account,
+        contract_address: str,
+        contract_name: str,
+        function_name: str,
+        function_args: Optional[list] = None,
+        fee: Optional[StacksToken] = None,
+        timeout: int = 120,
+    ) -> TransactionResult:
+        """Call contract function and wait for confirmation."""
+        initial_nonce = self.get_current_nonce(caller_account.address)
+        initial_height = self.get_current_height()
+
+        txid = self.call_contract_write_function(
+            caller_account=caller_account,
+            contract_address=contract_address,
+            contract_name=contract_name,
+            function_name=function_name,
+            function_args=function_args,
+            fee=fee,
+            nonce=initial_nonce,
+        )
+
+        confirmed = self.wait_for_confirmation(
+            txid=txid,
+            timeout=timeout,
+            initial_nonce=initial_nonce,
+            initial_height=initial_height,
+        )
+
+        return TransactionResult(txid=txid, confirmed=confirmed)

@@ -59,8 +59,8 @@ class Account(BaseModel):
         return f"http://localhost:{self.api_port}"
 
 
-class TransferResult(BaseModel):
-    """Result of a transfer and confirmation operation."""
+class TransactionResult(BaseModel):
+    """Result of a transaction and confirmation operation."""
 
     txid: str
     confirmed: bool
