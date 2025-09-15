@@ -103,15 +103,15 @@ class StacksChain:
                             txid, is_retry_context=True
                         )
 
-                        if tx_details.result == "(ok true)":
+                        if tx_details.result and tx_details.result.startswith("(ok "):
                             logger.debug(
-                                f"Transaction {txid} successful with result: '(ok true)'"
+                                f"Transaction {txid} successful with result: {tx_details.result}"
                             )
                             logger.success("Transaction confirmed!")
                             return True
                         else:
-                            logger.debug(
-                                f"Transaction {txid} completed with result: {tx_details.result}"
+                            logger.warning(
+                                f"Transaction {txid} completed but failed with result: {tx_details.result}"
                             )
                             return False  # Transaction completed but not successful
 

@@ -301,7 +301,6 @@ def main() -> bool:
         except Exception as e:
             logger.warning(f"Could not test raw transaction posting: {e}")
 
-        logger.success("All tests completed successfully!")
         return True
 
     except Exception as e:
