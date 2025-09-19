@@ -220,6 +220,8 @@ class StacksCoreAPI:
             response, response_type, is_retry_context, **parse_kwargs
         )
 
+    # TODO: Tolgo gli overloads e creo Types "Number" per int e "Bytes" per bytes --> Che dentro hanno già .value cosi non devo richiamare il valore con il punto (get_raw)
+    # TODO: Così facendo avrò un solo do get ed un solo do post con sempre T
     @overload
     def do_get(
         self,

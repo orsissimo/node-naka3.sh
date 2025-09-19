@@ -42,6 +42,7 @@ Blockstack CLI Functions (10 total - all covered):
 ---
 
 NOT WORKING - REMOVED:
+API:
   1. get_stacker_set - API Error (400): Unknown API error
   2. get_fee_estimate_for_transaction - SIP-003 codec error
   3. post_block_proposal - API Error (401): Unauthorized
@@ -49,3 +50,7 @@ NOT WORKING - REMOVED:
   5. get_constant_value - API Error (404): No such file or directory
   6. get_clarity_marf_value - API Error (404): No such file or directory
   7. get_clarity_metadata - API Error (404): No such file or directory
+
+CLI:
+  1. decode-microblock
+  2. decode-microblocks

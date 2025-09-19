@@ -163,3 +163,5 @@ if __name__ == "__main__":
     sys.exit(0 if success else 1)
 
 # TODO: (LATER): Potrei partire da alcuni test base (che estendono da alcuni file) - Che fanno da "template"
+# TODO: Creo classe Recipe che mi da il main (crea metodi protetti per la ricetta sottostante), il main fa try catch con cleanup, eccezioni ecc.. gli do super.miners
+# TODO: Uso TemplateMethod (325)

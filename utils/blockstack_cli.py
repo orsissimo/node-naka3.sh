@@ -255,6 +255,7 @@ class BlockstackCLI:
             cmd, AddressInfo, testnet, chain_id, "addresses command"
         )
 
+    # TODO: Remove microblock and micloblocks and make all other decodes working
     def _decode_helper(
         self, command: str, hex_data: str, *, testnet: bool, chain_id: Optional[str]
     ) -> Dict[str, Any]:
