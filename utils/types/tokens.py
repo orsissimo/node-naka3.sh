@@ -6,8 +6,6 @@ T = TypeVar("T", bound="TokenAmount")
 from pydantic import BaseModel, Field, validator
 from ..config import MICROSTX_PER_STX, SATOSHI_PER_BTC
 
-# TODO: (LATER) Devo gestire SOLO int (o meglio string?), i float (per STX e BTC) servono solo nel print
-
 
 class TokenType(BaseModel):
     """Token configuration with symbols and conversion rates."""

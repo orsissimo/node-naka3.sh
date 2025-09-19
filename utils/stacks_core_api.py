@@ -2,7 +2,7 @@
 
 import requests
 import json
-from typing import List, Optional, Dict, Any, TypeVar, Type, Union, cast, overload
+from typing import List, Optional, Dict, Any, TypeVar, Type
 from pydantic import BaseModel, ValidationError
 from .logger import logger, Colors
 from .types.api import (
@@ -19,6 +19,7 @@ from .types.api import (
     TransactionDetails,
 )
 from .types.exceptions import *
+from .types.wrappers import Integer, Bytes, String, SortitionList
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -166,6 +167,32 @@ class StacksCoreAPI:
 
         # Handle successful responses
         content_type = response.headers.get("Content-Type", "")
+        
+        # Handle special wrapper types that don't come from JSON
+        if response_type is not None:
+            if response_type is Integer:
+                if "application/json" in content_type:
+                    return Integer(value=response.json())
+                else:
+                    return Integer(value=int(response.text.strip('"')))
+            
+            if response_type is Bytes:
+                if "application/octet-stream" in content_type:
+                    return Bytes(value=response.content)
+                else:
+                    # Handle hex-encoded bytes in JSON responses
+                    data = response.json() if "application/json" in content_type else response.text
+                    if isinstance(data, str) and data.startswith("0x"):
+                        return Bytes(value=bytes.fromhex(data[2:]))
+                    return Bytes(value=response.content)
+            
+            if response_type is String:
+                return String(value=response.text.strip('"'))
+            
+            if response_type is SortitionList:
+                data = response.json() if "application/json" in content_type else response.text
+                return SortitionList.from_raw(data)
+        
         if "application/json" in content_type:
             data = response.json()
             # If response_type is provided, automatically parse the JSON response
@@ -184,11 +211,6 @@ class StacksCoreAPI:
         else:
             return response.text.strip('"')
 
-    def _parse_hex_balance(self, balance_hex: str) -> int:
-        """Convert hex balance string to integer."""
-        if balance_hex.startswith("0x"):
-            return int(balance_hex, 16)
-        return int(balance_hex)
 
     def _do_request(
         self,
@@ -220,71 +242,28 @@ class StacksCoreAPI:
             response, response_type, is_retry_context, **parse_kwargs
         )
 
-    # TODO: Tolgo gli overloads e creo Types "Number" per int e "Bytes" per bytes --> Che dentro hanno già .value cosi non devo richiamare il valore con il punto (get_raw)
-    # TODO: Così facendo avrò un solo do get ed un solo do post con sempre T
-    @overload
     def do_get(
         self,
         endpoint: str,
         response_type: Type[T],
         params: Optional[Dict] = None,
         is_retry_context: bool = False,
-        raw_response: bool = False,
         **parse_kwargs,
     ) -> T:
-        ...
-
-    @overload
-    def do_get(
-        self,
-        endpoint: str,
-        response_type: None = None,
-        params: Optional[Dict] = None,
-        is_retry_context: bool = False,
-        raw_response: bool = True,
-        **parse_kwargs,
-    ) -> Union[bytes, str, Any]:
-        ...
-
-    def do_get(
-        self,
-        endpoint: str,
-        response_type: Optional[Type[T]] = None,
-        params: Optional[Dict] = None,
-        is_retry_context: bool = False,
-        raw_response: bool = False,
-        **parse_kwargs,
-    ) -> Union[T, bytes, str, Any]:
         """
         Typed GET request.
         Returns typed object with automatic JSON parsing and exception handling.
-
-        Returns:
-            If raw_response=True: raw response (bytes, str, or dict based on content-type)
-            Otherwise: parsed Pydantic object of type response_type
+        Always requires a response_type and returns T.
         """
-        if raw_response:
-            # Return raw response based on content-type
-            return self._do_request(
-                "GET",
-                endpoint,
-                response_type=None,
-                params=params,
-                is_retry_context=is_retry_context,
-                **parse_kwargs,
-            )
-        else:
-            # Parse with Pydantic model (response_type required)
-            return self._do_request(
-                "GET",
-                endpoint,
-                response_type,
-                params=params,
-                is_retry_context=is_retry_context,
-                **parse_kwargs,
-            )
+        return self._do_request(
+            "GET",
+            endpoint,
+            response_type,
+            params=params,
+            is_retry_context=is_retry_context,
+            **parse_kwargs,
+        )
 
-    @overload
     def do_post(
         self,
         endpoint: str,
@@ -294,92 +273,47 @@ class StacksCoreAPI:
         headers: Optional[Dict] = None,
         params: Optional[Dict] = None,
         is_retry_context: bool = False,
-        raw_response: bool = False,
         **parse_kwargs,
     ) -> T:
-        ...
-
-    @overload
-    def do_post(
-        self,
-        endpoint: str,
-        response_type: None = None,
-        json_data: Optional[Dict] = None,
-        data: Optional[Any] = None,
-        headers: Optional[Dict] = None,
-        params: Optional[Dict] = None,
-        is_retry_context: bool = False,
-        raw_response: bool = True,
-        **parse_kwargs,
-    ) -> Union[bytes, str, Any]:
-        ...
-
-    def do_post(
-        self,
-        endpoint: str,
-        response_type: Optional[Type[T]] = None,
-        json_data: Optional[Dict] = None,
-        data: Optional[Any] = None,
-        headers: Optional[Dict] = None,
-        params: Optional[Dict] = None,
-        is_retry_context: bool = False,
-        raw_response: bool = False,
-        **parse_kwargs,
-    ) -> Union[T, bytes, str, Any]:
         """
         Typed POST request.
         Returns typed object with automatic JSON parsing and exception handling.
-
-        Returns:
-            If raw_response=True: raw response (bytes, str, or dict based on content-type)
-            Otherwise: parsed Pydantic object of type response_type
+        Always requires a response_type and returns T.
         """
-        if raw_response:
-            # Return raw response based on content-type
-            return self._do_request(
-                "POST",
-                endpoint,
-                response_type=None,
-                params=params,
-                json_data=json_data,
-                data=data,
-                headers=headers,
-                is_retry_context=is_retry_context,
-                **parse_kwargs,
-            )
-        else:
-            # Parse with Pydantic model (response_type required)
-            return self._do_request(
-                "POST",
-                endpoint,
-                response_type,
-                params=params,
-                json_data=json_data,
-                data=data,
-                headers=headers,
-                is_retry_context=is_retry_context,
-                **parse_kwargs,
-            )
+        return self._do_request(
+            "POST",
+            endpoint,
+            response_type,
+            params=params,
+            json_data=json_data,
+            data=data,
+            headers=headers,
+            is_retry_context=is_retry_context,
+            **parse_kwargs,
+        )
 
     # --- V2 Transactions, Accounts, and Info ---
     def get_info(self) -> "NodeInfo":
         """GET /v2/info - Get Core API information."""
         return self.do_get("/v2/info", NodeInfo)
 
-    def post_raw_transaction(self, raw_tx_bytes: bytes) -> str:
+    def post_raw_transaction(self, raw_tx_bytes: bytes) -> String:
         """POST /v2/transactions - Broadcast a raw transaction.
 
         Use bytes.fromhex(cli_hex) where cli_hex comes from CLI functions.
         """
-        return cast(
-            str,
-            self.do_post(
-                "/v2/transactions",
-                raw_response=True,
-                data=raw_tx_bytes,
-                headers={"Content-Type": "application/octet-stream"},
-            ),
+        return self.do_post(
+            "/v2/transactions",
+            String,
+            data=raw_tx_bytes,
+            headers={"Content-Type": "application/octet-stream"},
         )
+    
+    def _parse_hex_balance(self, balance_hex: str) -> int:
+        """Convert hex balance string to integer."""
+        if balance_hex.startswith("0x"):
+            return int(balance_hex, 16)
+        return int(balance_hex)
 
     def get_account_info(
         self, principal: str, *, proof: Optional[int] = None, tip: Optional[str] = None
@@ -503,34 +437,31 @@ class StacksCoreAPI:
         )
 
     # --- V2 Fees ---
-    def get_fee_rate_for_transfer(self) -> int:
+    def get_fee_rate_for_transfer(self) -> Integer:
         """GET /v2/fees/transfer - Get estimated fee rate for STX transfers.
 
         No parameters required. Returns integer fee rate in microstx per byte.
         """
-        return cast(int, self.do_get("/v2/fees/transfer", raw_response=True))
+        return self.do_get("/v2/fees/transfer", Integer)
 
     # --- V3 Blocks, Tenures, and Transactions ---
-    def get_block_by_id(self, block_id: str) -> bytes:
+    def get_block_by_id(self, block_id: str) -> Bytes:
         """GET /v3/blocks/{block_id} - Fetch a Nakamoto block by its ID hash.
 
         Expects block_id hash string (e.g. from node_info.stacks_tip). Returns raw block bytes.
         """
-        return cast(bytes, self.do_get(f"/v3/blocks/{block_id}", raw_response=True))
+        return self.do_get(f"/v3/blocks/{block_id}", Bytes)
 
     def get_block_by_height(
         self, block_height: int, *, tip: Optional[str] = None
-    ) -> bytes:
+    ) -> Bytes:
         """GET /v3/blocks/height/{block_height} - Fetch a Nakamoto block by height.
 
         Expects block_height int (e.g. from node_info.stacks_tip_height). Returns raw block bytes.
         """
         params = {"tip": tip} if tip else {}
-        return cast(
-            bytes,
-            self.do_get(
-                f"/v3/blocks/height/{block_height}", params=params, raw_response=True
-            ),
+        return self.do_get(
+            f"/v3/blocks/height/{block_height}", Bytes, params=params
         )
 
     def get_transaction_by_id(
@@ -553,17 +484,14 @@ class StacksCoreAPI:
         """GET /v3/tenures/info - Fetch metadata about the ongoing Nakamoto tenure."""
         return self.do_get("/v3/tenures/info", TenureInfo)
 
-    def get_tenure_blocks(self, block_id: str, *, stop: Optional[str] = None) -> bytes:
+    def get_tenure_blocks(self, block_id: str, *, stop: Optional[str] = None) -> Bytes:
         """GET /v3/tenures/{block_id} - Fetch a sequence of Nakamoto blocks in a tenure.
 
         Expects block_id as hex string (e.g. from node_info.stacks_tip). Optional stop block_id.
         Returns raw bytes containing sequence of blocks in the tenure.
         """
         params = {"stop": stop} if stop else {}
-        return cast(
-            bytes,
-            self.do_get(f"/v3/tenures/{block_id}", params=params, raw_response=True),
-        )
+        return self.do_get(f"/v3/tenures/{block_id}", Bytes, params=params)
 
     def get_sortitions(
         self, *, lookup_kind: Optional[str] = None, lookup: Optional[str] = None
@@ -577,9 +505,9 @@ class StacksCoreAPI:
             endpoint += f"/{lookup_kind}/{lookup}"
         elif lookup_kind:
             endpoint += f"/{lookup_kind}"
-        raw_data = self.do_get(endpoint, raw_response=True)
-        # Handle both single item and list responses
-        if isinstance(raw_data, list):
-            return [SortitionInfo.model_validate(item) for item in raw_data]
-        else:
-            return [SortitionInfo.model_validate(raw_data)]
+        
+        # Get sortition data using SortitionList wrapper
+        sortition_list = self.do_get(endpoint, SortitionList)
+        
+        # Parse each item into SortitionInfo
+        return [SortitionInfo.model_validate(item) for item in sortition_list.value]
