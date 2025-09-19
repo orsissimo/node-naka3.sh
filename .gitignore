@@ -13,6 +13,7 @@ __pycache__
 .claude
 */.claude
 CLAUDE.md
+AGENTS.md
 
 .DS_Store
 */.DS_Store

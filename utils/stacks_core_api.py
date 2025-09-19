@@ -21,7 +21,7 @@ from .types.api import (
 from .types.exceptions import *
 from .types.wrappers import Integer, Bytes, String, SortitionList
 
-T = TypeVar("T", bound=BaseModel)
+T = TypeVar("T")
 
 
 class StacksCoreAPI:
@@ -77,6 +77,11 @@ class StacksCoreAPI:
         if not data:
             raise StacksValidationException(
                 f"Empty or None data for {response_type.__name__}"
+            )
+
+        if not isinstance(response_type, type) or not issubclass(response_type, BaseModel):
+            raise TypeError(
+                f"response_type {response_type.__name__} must be a Pydantic BaseModel"
             )
 
         try:
@@ -172,23 +177,22 @@ class StacksCoreAPI:
         if response_type is not None:
             if response_type is Integer:
                 if "application/json" in content_type:
-                    return Integer(value=response.json())
-                else:
-                    return Integer(value=int(response.text.strip('"')))
-            
+                    return Integer(response.json())
+                return Integer(response.text.strip('"'))
+
             if response_type is Bytes:
                 if "application/octet-stream" in content_type:
-                    return Bytes(value=response.content)
+                    return Bytes(response.content)
                 else:
                     # Handle hex-encoded bytes in JSON responses
                     data = response.json() if "application/json" in content_type else response.text
                     if isinstance(data, str) and data.startswith("0x"):
-                        return Bytes(value=bytes.fromhex(data[2:]))
-                    return Bytes(value=response.content)
-            
+                        return Bytes(data)
+                    return Bytes(response.content)
+
             if response_type is String:
-                return String(value=response.text.strip('"'))
-            
+                return String(response.text.strip('"'))
+
             if response_type is SortitionList:
                 data = response.json() if "application/json" in content_type else response.text
                 return SortitionList.from_raw(data)

@@ -1,156 +1,117 @@
 #!/usr/bin/env python3
 
-from pydantic import BaseModel, Field
-from typing import TypeVar
+"""Lightweight wrapper types that behave like native primitives."""
 
-T = TypeVar("T", bound=BaseModel)
+from __future__ import annotations
+
+from typing import Any, Iterable
 
 
-class Integer(BaseModel):
-    """Wrapper type for integers returned from Stacks Core API."""
-    
-    _value: int = Field(alias="value", description="The integer value")
-    
-    def __init__(self, value: int, **kwargs):
-        super().__init__(_value=value, **kwargs)
-    
+class Integer(int):
+    """Integer flavored wrapper that keeps native ``int`` behaviour."""
+
+    __slots__ = ()
+
+    def __new__(cls, value: int | str | "Integer") -> "Integer":
+        if isinstance(value, str):
+            # Allow decimal or 0x-prefixed strings from RPC responses.
+            value = int(value, 0)
+        return super().__new__(cls, int(value))
+
     @property
     def value(self) -> int:
-        """Get the wrapped integer value."""
-        return self._value
-    
+        """Return the underlying integer."""
+        return int(self)
+
     @classmethod
-    def from_raw(cls, raw_value: int) -> "Integer":
-        """Create Integer from raw API response."""
-        return cls(value=raw_value)
-    
-    def __str__(self) -> str:
-        return str(self._value)
-    
-    def __repr__(self) -> str:
-        return f"Integer({self._value})"
-    
-    def __int__(self) -> int:
-        return self._value
-    
-    def __eq__(self, other) -> bool:
-        if isinstance(other, Integer):
-            return self._value == other._value
-        if isinstance(other, int):
-            return self._value == other
-        return False
-    
-    class Config:
-        allow_population_by_field_name = True
+    def from_raw(cls, raw_value: int | str) -> "Integer":
+        return cls(raw_value)
+
+    def __repr__(self) -> str:  # pragma: no cover - repr helper
+        return f"Integer({int(self)})"
 
 
-class Bytes(BaseModel):
-    """Wrapper type for bytes returned from Stacks Core API."""
-    
-    _value: bytes = Field(alias="value", description="The bytes value")
-    
-    def __init__(self, value: bytes, **kwargs):
-        super().__init__(_value=value, **kwargs)
-    
+class Bytes(bytes):
+    """Bytes wrapper that preserves ``bytes`` semantics."""
+
+    __slots__ = ()
+
+    def __new__(cls, value: bytes | bytearray | memoryview | Iterable[int] | str) -> "Bytes":
+        if isinstance(value, str):
+            if value.startswith("0x"):
+                value = bytes.fromhex(value[2:])
+            else:
+                value = value.encode()
+        elif isinstance(value, memoryview):
+            value = value.tobytes()
+        return super().__new__(cls, bytes(value))
+
     @property
     def value(self) -> bytes:
-        """Get the wrapped bytes value."""
-        return self._value
-    
+        """Return raw bytes."""
+        return bytes(self)
+
     @classmethod
-    def from_raw(cls, raw_value: bytes) -> "Bytes":
-        """Create Bytes from raw API response."""
-        return cls(value=raw_value)
-    
-    def __str__(self) -> str:
-        return f"Bytes({len(self._value)} bytes)"
-    
-    def __repr__(self) -> str:
-        return f"Bytes({self._value!r})"
-    
-    def __bytes__(self) -> bytes:
-        return self._value
-    
-    def __len__(self) -> int:
-        return len(self._value)
-    
-    def __eq__(self, other) -> bool:
-        if isinstance(other, Bytes):
-            return self._value == other._value
-        if isinstance(other, bytes):
-            return self._value == other
-        return False
-    
-    class Config:
-        allow_population_by_field_name = True
-        arbitrary_types_allowed = True
+    def from_raw(
+        cls, raw_value: bytes | bytearray | memoryview | Iterable[int] | str
+    ) -> "Bytes":
+        return cls(raw_value)
+
+    def __repr__(self) -> str:  # pragma: no cover - repr helper
+        return f"Bytes({bytes(self)!r})"
 
 
-class String(BaseModel):
-    """Wrapper type for strings returned from Stacks Core API."""
-    
-    _value: str = Field(alias="value", description="The string value")
-    
-    def __init__(self, value: str, **kwargs):
-        super().__init__(_value=value, **kwargs)
-    
+class String(str):
+    """String wrapper with normal ``str`` behaviour."""
+
+    __slots__ = ()
+
+    def __new__(cls, value: str | bytes | bytearray | memoryview) -> "String":
+        if isinstance(value, memoryview):
+            value = value.tobytes()
+        if isinstance(value, (bytes, bytearray)):
+            value = bytes(value).decode()
+        return super().__new__(cls, value)
+
     @property
     def value(self) -> str:
-        """Get the wrapped string value."""
-        return self._value
-    
+        """Return the underlying string."""
+        return str(self)
+
     @classmethod
-    def from_raw(cls, raw_value: str) -> "String":
-        """Create String from raw API response."""
-        return cls(value=raw_value)
-    
-    def __str__(self) -> str:
-        return self._value
-    
-    def __repr__(self) -> str:
-        return f"String({self._value!r})"
-    
-    def __eq__(self, other) -> bool:
-        if isinstance(other, String):
-            return self._value == other._value
-        if isinstance(other, str):
-            return self._value == other
-        return False
-    
-    class Config:
-        allow_population_by_field_name = True
+    def from_raw(cls, raw_value: str | bytes | bytearray | memoryview) -> "String":
+        return cls(raw_value)
+
+    def __repr__(self) -> str:  # pragma: no cover - repr helper
+        return f"String({str(self)!r})"
 
 
-class SortitionList(BaseModel):
-    """Wrapper type for sortition responses that can be single item or list."""
-    
-    _value: list = Field(alias="value", description="The list of sortition items")
-    
-    def __init__(self, value: list, **kwargs):
-        super().__init__(_value=value, **kwargs)
-    
+class SortitionList(list):
+    """List-like wrapper that normalises single item or list responses."""
+
+    __slots__ = ()
+
+    def __init__(self, value: Iterable[Any] | Any):
+        if isinstance(value, SortitionList):
+            value = list(value)
+        elif not isinstance(value, Iterable) or isinstance(value, (str, bytes, bytearray)):
+            value = [value]
+        super().__init__(value)
+
     @property
-    def value(self) -> list:
-        """Get the wrapped list value."""
-        return self._value
-    
+    def value(self) -> list[Any]:
+        """Return the underlying list."""
+        return list(self)
+
     @classmethod
-    def from_raw(cls, raw_value) -> "SortitionList":
-        """Create SortitionList from raw API response (handles both single item and list)."""
+    def from_raw(cls, raw_value: Any) -> "SortitionList":
+        if raw_value is None:
+            return cls([])
+        if isinstance(raw_value, SortitionList):
+            return cls(raw_value)
         if isinstance(raw_value, list):
-            return cls(value=raw_value)
-        else:
-            return cls(value=[raw_value])
-    
-    def __len__(self) -> int:
-        return len(self._value)
-    
-    def __iter__(self):
-        return iter(self._value)
-    
-    def __getitem__(self, index):
-        return self._value[index]
-    
-    class Config:
-        allow_population_by_field_name = True
-        arbitrary_types_allowed = True
+            return cls(raw_value)
+        return cls([raw_value])
+
+    def __repr__(self) -> str:  # pragma: no cover - repr helper
+        return f"SortitionList({list(self)!r})"
