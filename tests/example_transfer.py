@@ -2,32 +2,29 @@
 
 import os
 import sys
-import json
 
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from utils.config import account_manager
-from utils.types.infrastructure import Miner, TransactionResult
+from utils.types.infrastructure import Miner
 from utils.types.exceptions import *
-from utils.miners import MinerManager
 from utils.logger import logger
 from utils.stacks_chain import StacksChain
 from utils.types.tokens import StacksToken
 from utils.asserts import check_eq
+from utils.templates.recipe import RecipeTemplate
 
 
-def main():
-    logger.header("STX TOKEN TRANSFER TEST")
+class TransferRecipe(RecipeTemplate):
+    def _run_recipe(self) -> bool:
+        logger.header("STX TOKEN TRANSFER TEST")
 
-    miners = MinerManager()
-    sender_account = account_manager.get(Miner.MINER1)
-    recipient_account = account_manager.get(Miner.MINER2)
-    chain = StacksChain(sender_account.api_url)
+        sender_account = account_manager.get(Miner.MINER1)
+        recipient_account = account_manager.get(Miner.MINER2)
+        chain = StacksChain(sender_account.api_url)
 
-    try:
-        logger.info("Starting miners...")
-        if not miners.snapshot_restore_auto():
+        if not self.miners.snapshot_restore_auto():
             raise StacksException("Failed to start miners")
 
         logger.header("Step 1: Check initial balances")
@@ -145,23 +142,8 @@ def main():
 
         return True
 
-    except Exception as e:
-        logger.error(f"TEST FAILED - Unexpected Error: {str(e)}")
-        logger.error(f"Error type: {type(e).__name__}")
-        return False
-
-    finally:
-        logger.header("Cleaning up...")
-        miners.stop()
-        miners.cleanup()
-
 
 if __name__ == "__main__":
-    import sys
-
-    success = main()
+    recipe = TransferRecipe()
+    success = recipe.execute()
     sys.exit(0 if success else 1)
-
-# TODO: (LATER): Potrei partire da alcuni test base (che estendono da alcuni file) - Che fanno da "template"
-# TODO: Creo classe Recipe che mi da il main (crea metodi protetti per la ricetta sottostante), il main fa try catch con cleanup, eccezioni ecc.. gli do super.miners
-# TODO: Uso TemplateMethod (325)
