@@ -79,7 +79,9 @@ class StacksCoreAPI:
                 f"Empty or None data for {response_type.__name__}"
             )
 
-        if not isinstance(response_type, type) or not issubclass(response_type, BaseModel):
+        if not isinstance(response_type, type) or not issubclass(
+            response_type, BaseModel
+        ):
             raise TypeError(
                 f"response_type {response_type.__name__} must be a Pydantic BaseModel"
             )
@@ -172,7 +174,7 @@ class StacksCoreAPI:
 
         # Handle successful responses
         content_type = response.headers.get("Content-Type", "")
-        
+
         # Handle special wrapper types that don't come from JSON
         if response_type is not None:
             if response_type is Integer:
@@ -185,7 +187,11 @@ class StacksCoreAPI:
                     return Bytes(response.content)
                 else:
                     # Handle hex-encoded bytes in JSON responses
-                    data = response.json() if "application/json" in content_type else response.text
+                    data = (
+                        response.json()
+                        if "application/json" in content_type
+                        else response.text
+                    )
                     if isinstance(data, str) and data.startswith("0x"):
                         return Bytes(data)
                     return Bytes(response.content)
@@ -194,9 +200,13 @@ class StacksCoreAPI:
                 return String(response.text.strip('"'))
 
             if response_type is SortitionList:
-                data = response.json() if "application/json" in content_type else response.text
+                data = (
+                    response.json()
+                    if "application/json" in content_type
+                    else response.text
+                )
                 return SortitionList.from_raw(data)
-        
+
         if "application/json" in content_type:
             data = response.json()
             # If response_type is provided, automatically parse the JSON response
@@ -214,7 +224,6 @@ class StacksCoreAPI:
             return response.content
         else:
             return response.text.strip('"')
-
 
     def _do_request(
         self,
@@ -312,7 +321,7 @@ class StacksCoreAPI:
             data=raw_tx_bytes,
             headers={"Content-Type": "application/octet-stream"},
         )
-    
+
     def _parse_hex_balance(self, balance_hex: str) -> int:
         """Convert hex balance string to integer."""
         if balance_hex.startswith("0x"):
@@ -464,9 +473,7 @@ class StacksCoreAPI:
         Expects block_height int (e.g. from node_info.stacks_tip_height). Returns raw block bytes.
         """
         params = {"tip": tip} if tip else {}
-        return self.do_get(
-            f"/v3/blocks/height/{block_height}", Bytes, params=params
-        )
+        return self.do_get(f"/v3/blocks/height/{block_height}", Bytes, params=params)
 
     def get_transaction_by_id(
         self, txid: str, is_retry_context: bool = False
@@ -509,9 +516,9 @@ class StacksCoreAPI:
             endpoint += f"/{lookup_kind}/{lookup}"
         elif lookup_kind:
             endpoint += f"/{lookup_kind}"
-        
+
         # Get sortition data using SortitionList wrapper
         sortition_list = self.do_get(endpoint, SortitionList)
-        
+
         # Parse each item into SortitionInfo
         return [SortitionInfo.model_validate(item) for item in sortition_list.value]

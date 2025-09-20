@@ -36,7 +36,9 @@ class Bytes(bytes):
 
     __slots__ = ()
 
-    def __new__(cls, value: bytes | bytearray | memoryview | Iterable[int] | str) -> "Bytes":
+    def __new__(
+        cls, value: bytes | bytearray | memoryview | Iterable[int] | str
+    ) -> "Bytes":
         if isinstance(value, str):
             if value.startswith("0x"):
                 value = bytes.fromhex(value[2:])
@@ -94,7 +96,9 @@ class SortitionList(list):
     def __init__(self, value: Iterable[Any] | Any):
         if isinstance(value, SortitionList):
             value = list(value)
-        elif not isinstance(value, Iterable) or isinstance(value, (str, bytes, bytearray)):
+        elif not isinstance(value, Iterable) or isinstance(
+            value, (str, bytes, bytearray)
+        ):
             value = [value]
         super().__init__(value)
 

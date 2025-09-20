@@ -154,7 +154,7 @@ def main() -> bool:
             )
             logger.success("generate_token_transfer_tx_hex")
 
-        # Decode functions
+        # Decode functions (only decode tx for now)
         if account_info and hasattr(account_info, "nonce"):
             try:
                 # Generate a real transaction hex without posting it
@@ -176,10 +176,6 @@ def main() -> bool:
                 logger.success("decode_tx")
             except Exception as e:
                 logger.warning(f"Could not test decode_tx: {e}")
-
-        logger.info("Testing decode_microblocks...")
-        cli.decode_microblocks("00" * 400, testnet=True)
-        logger.success("decode_microblocks")
 
         # Contract operations via CLI - deploy real counter contract
         if account_info and hasattr(account_info, "nonce"):
@@ -218,24 +214,38 @@ def main() -> bool:
                     # Test read-only function calls on deployed counter contract
                     logger.info("Testing contract read functions...")
                     chain.call_contract_read_function(
-                        contract_address, contract_name, "get-counter", miner1_account.address
+                        contract_address,
+                        contract_name,
+                        "get-counter",
+                        miner1_account.address,
                     )
                     logger.success("get-counter read function")
 
                     chain.call_contract_read_function(
-                        contract_address, contract_name, "get-last-caller", miner1_account.address
+                        contract_address,
+                        contract_name,
+                        "get-last-caller",
+                        miner1_account.address,
                     )
                     logger.success("get-last-caller read function")
 
                     # Test map entry with actual counter-history map after increment
-                    logger.info("Calling increment via contract call to populate map...")
-                    increment_result = chain.call_contract_write_function_and_confirm(
-                        miner1_account, contract_address, contract_name, "increment", timeout=120
+                    logger.info(
+                        "Calling increment via contract call to populate map..."
                     )
-                    logger.info(f"Increment transaction posted: {increment_result.txid}")
+                    increment_result = chain.call_contract_write_function_and_confirm(
+                        miner1_account,
+                        contract_address,
+                        contract_name,
+                        "increment",
+                        timeout=120,
+                    )
+                    logger.info(
+                        f"Increment transaction posted: {increment_result.txid}"
+                    )
                     if increment_result.confirmed:
                         logger.success("Increment confirmed, map should now have data")
-                        
+
                         logger.info("Testing get_map_entry...")
                         api.get_map_entry(
                             contract_address,
@@ -245,11 +255,17 @@ def main() -> bool:
                         )
                         logger.success("get_map_entry")
                     else:
-                        logger.warning("Increment not confirmed, skipping map entry test")
+                        logger.warning(
+                            "Increment not confirmed, skipping map entry test"
+                        )
 
                     # Test contract call and confirmation
                     call_result = chain.call_contract_write_function_and_confirm(
-                        miner1_account, contract_address, contract_name, "increment", timeout=60
+                        miner1_account,
+                        contract_address,
+                        contract_name,
+                        "increment",
+                        timeout=60,
                     )
 
                     logger.info(f"Contract call transaction posted: {call_result.txid}")
@@ -262,19 +278,27 @@ def main() -> bool:
 
                         logger.info("Testing counter state after increment...")
                         chain.call_contract_read_function(
-                            contract_address, contract_name, "get-counter", miner1_account.address
+                            contract_address,
+                            contract_name,
+                            "get-counter",
+                            miner1_account.address,
                         )
                         logger.success("get-counter after increment")
 
                         chain.call_contract_read_function(
-                            contract_address, contract_name, "get-last-caller", miner1_account.address
+                            contract_address,
+                            contract_name,
+                            "get-last-caller",
+                            miner1_account.address,
                         )
                         logger.success("get-last-caller after increment")
                     else:
                         logger.warning("Contract call not confirmed")
 
                 else:
-                    logger.warning("Contract deployment not confirmed, skipping contract API tests")
+                    logger.warning(
+                        "Contract deployment not confirmed, skipping contract API tests"
+                    )
 
             except Exception as deploy_error:
                 logger.warning(f"Could not deploy contract: {deploy_error}")
@@ -295,7 +319,7 @@ def main() -> bool:
             )
             hex_str = raw_tx_hex[2:] if raw_tx_hex.startswith("0x") else raw_tx_hex
             raw_tx_bytes = bytes.fromhex(hex_str)
-            
+
             api.post_raw_transaction(raw_tx_bytes)
             logger.success("post_raw_transaction")
         except Exception as e:

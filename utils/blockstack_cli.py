@@ -255,11 +255,11 @@ class BlockstackCLI:
             cmd, AddressInfo, testnet, chain_id, "addresses command"
         )
 
-    # TODO: Remove microblock and micloblocks and make all other decodes working
     def _decode_helper(
         self, command: str, hex_data: str, *, testnet: bool, chain_id: Optional[str]
     ) -> Dict[str, Any]:
-        cmd = [command, hex_data]
+        hex_arg = hex_data if hex_data.startswith("0x") else f"0x{hex_data}"
+        cmd = [command, hex_arg]
         stdout = self._execute_command_for_hex(
             cmd, testnet, chain_id, f"{command} command"
         )
@@ -285,6 +285,7 @@ class BlockstackCLI:
             "decode-tx", tx_hex, testnet=testnet, chain_id=chain_id
         )
 
+    # FIXME: Unused and untested for now
     def decode_header(
         self, header_hex: str, *, testnet: bool = False, chain_id: Optional[str] = None
     ) -> Dict[str, Any]:
@@ -296,6 +297,7 @@ class BlockstackCLI:
             "decode-header", header_hex, testnet=testnet, chain_id=chain_id
         )
 
+    # FIXME: Unused and untested for now
     def decode_block(
         self, block_hex: str, *, testnet: bool = False, chain_id: Optional[str] = None
     ) -> Dict[str, Any]:
@@ -305,34 +307,4 @@ class BlockstackCLI:
         """
         return self._decode_helper(
             "decode-block", block_hex, testnet=testnet, chain_id=chain_id
-        )
-
-    def decode_microblock(
-        self,
-        microblock_hex: str,
-        *,
-        testnet: bool = False,
-        chain_id: Optional[str] = None,
-    ) -> Dict[str, Any]:
-        """CLI: decode-microblock - Decode a raw microblock hex.
-
-        Returns dict with decoded microblock structure and transactions.
-        """
-        return self._decode_helper(
-            "decode-microblock", microblock_hex, testnet=testnet, chain_id=chain_id
-        )
-
-    def decode_microblocks(
-        self,
-        microblocks_hex: str,
-        *,
-        testnet: bool = False,
-        chain_id: Optional[str] = None,
-    ) -> Dict[str, Any]:
-        """CLI: decode-microblocks - Decode a sequence of microblocks hex.
-
-        Returns dict with decoded microblocks sequence and contained transactions.
-        """
-        return self._decode_helper(
-            "decode-microblocks", microblocks_hex, testnet=testnet, chain_id=chain_id
         )
