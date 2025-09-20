@@ -14,9 +14,6 @@ from .types.api import ReadOnlyFunctionResult
 class StacksChain:
     """Façade combining API, CLI for high-level blockchain operations."""
 
-    # TODO: (LATER) La gestione attuale la faccio attraverso un adapter, così se devo ricreare un "sender" e "recipient" li faccio con l'adapter che "autofilla" i parametri
-    # TODO: (LATER) Potremmo poi fare l'oggetto chain come oggetto composto da più "chains" così che poi le interrogo in parallelo e do per vera la risposta che ottengo piu volte
-
     def __init__(self, base_url: str):
         self._api = StacksCoreAPI(base_url=base_url)
         self._cli = BlockstackCLI()

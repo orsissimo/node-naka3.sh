@@ -181,7 +181,7 @@ def main() -> bool:
         if account_info and hasattr(account_info, "nonce"):
             contract_file = "contracts/contract-counter.clar"
             try:
-                # Deploy the counter contract using chain facade
+                # Deploy the counter contract using chain façade
                 logger.info("Deploying counter contract...")
                 deploy_result = chain.deploy_and_confirm(
                     deployer_account=miner1_account,
