@@ -258,8 +258,13 @@ class BlockstackCLI:
     def _decode_helper(
         self, command: str, hex_data: str, *, testnet: bool, chain_id: Optional[str]
     ) -> Dict[str, Any]:
-        hex_arg = hex_data if hex_data.startswith("0x") else f"0x{hex_data}"
-        cmd = [command, hex_arg]
+        if not isinstance(hex_data, str) or not hex_data:
+            raise StacksValidationException(
+                f"{command} requires a non-empty hex string"
+            )
+
+        clean_hex = hex_data[2:] if hex_data.startswith("0x") else hex_data
+        cmd = [command, clean_hex]
         stdout = self._execute_command_for_hex(
             cmd, testnet, chain_id, f"{command} command"
         )

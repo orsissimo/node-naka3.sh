@@ -11,31 +11,31 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from utils.config import account_manager
 from utils.types.infrastructure import Miner, TransactionResult
 from utils.types.exceptions import *
-from utils.miners import MinerManager
 from utils.logger import logger
 from utils.stacks_chain import StacksChain
 from utils.stacks_core_api import StacksCoreAPI
 from utils.blockstack_cli import BlockstackCLI
 from utils.types.tokens import StacksToken
+from utils.templates.recipe import RecipeTemplate
 
 
-def main() -> bool:
-    logger.header("COMPREHENSIVE STACKS CORE API & BLOCKSTACK CLI TEST")
+class ApiCliUsageRecipe(RecipeTemplate):
+    def _run_recipe(self) -> bool:
+        logger.header("COMPREHENSIVE STACKS CORE API & BLOCKSTACK CLI TEST")
 
-    miners = MinerManager()
+        miners = self.miners
 
-    # Setup accounts
-    miner1_account = account_manager.get(Miner.MINER1)
-    miner2_account = account_manager.get(Miner.MINER2)
-    chain = StacksChain(miner1_account.api_url)
-    api = StacksCoreAPI(miner1_account.api_url)
-    cli = BlockstackCLI()
+        # Setup accounts
+        miner1_account = account_manager.get(Miner.MINER1)
+        miner2_account = account_manager.get(Miner.MINER2)
+        chain = StacksChain(miner1_account.api_url)
+        api = StacksCoreAPI(miner1_account.api_url)
+        cli = BlockstackCLI()
 
-    # Initialize contract variables for API testing
-    contract_address: str = ""
-    contract_name: str = "counter"
+        # Initialize contract variables for API testing
+        contract_address: str = ""
+        contract_name: str = "counter"
 
-    try:
         logger.info("Starting miners...")
         if not miners.snapshot_restore_auto():
             raise StacksException("Failed to start miners")
@@ -327,17 +327,8 @@ def main() -> bool:
 
         return True
 
-    except Exception as e:
-        logger.error(f"TEST FAILED - Unexpected Error: {str(e)}")
-        logger.error(f"Error type: {type(e).__name__}")
-        return False
-
-    finally:
-        logger.header("Cleaning up...")
-        miners.stop()
-        miners.cleanup()
-
 
 if __name__ == "__main__":
-    success = main()
+    recipe = ApiCliUsageRecipe()
+    success = recipe.execute()
     sys.exit(0 if success else 1)
