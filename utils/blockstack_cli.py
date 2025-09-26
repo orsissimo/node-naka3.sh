@@ -96,7 +96,7 @@ class BlockstackCLI:
         fee_rate: int,
         nonce: int,
         contract_name: str,
-        file_name: str, # Path to the .clar file
+        file_name: str,  # Path to the .clar file
         *,
         testnet: bool = True,
     ) -> String:
