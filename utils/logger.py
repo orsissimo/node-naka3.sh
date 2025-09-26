@@ -146,7 +146,7 @@ class Logger:
         self._min_level = self._validate_log_level(level)
 
 
-# Create logger instance with environment-based configuration
+# Global logger instance with environment-based configuration
 logger = Logger()
 
 # Export for easy access

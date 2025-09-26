@@ -1,8 +1,6 @@
 import subprocess
 import shlex
-import json
-from typing import List, Optional, Tuple, Dict, Any, TypeVar, Type, cast
-from pydantic import BaseModel
+from typing import List, Optional, TypeVar, Type, cast
 from .logger import logger
 from .parsers import parse_cli_response
 from .types.api import AddressInfo, SecretKeyInfo

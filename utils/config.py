@@ -1,9 +1,5 @@
-from typing import Dict, List, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from .types.tokens import TokenAmount, StacksToken
-from .types.api import AccountInfo
-from .types.infrastructure import Account, Miner, MiningMode, TransactionResult
+from typing import Dict, List
+from .types.infrastructure import Account, Miner
 
 
 # Constants

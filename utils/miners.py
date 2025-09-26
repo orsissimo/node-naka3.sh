@@ -108,18 +108,14 @@ class MinerManager:
         )
 
     def start(self, mode: MiningMode) -> bool:
-        """Start miners from scratch in specified mode.
-
-        Args:
-            mode: Mining mode - MiningMode.AUTO or MiningMode.MANUAL (required)
-        """
+        """Start miners in the specified mining mode."""
         if not isinstance(mode, MiningMode):
             raise ValueError(
-                f"Invalid mode '{mode}'. Use MiningMode.AUTO or MiningMode.MANUAL"
+                f"Invalid mode '{mode}'."
             )
 
         logger.info(
-            f"Starting three miners from scratch in {mode.value} mode...", Colors.ORANGE
+            f"Starting three miners in {mode.value} mode...", Colors.ORANGE
         )
         try:
             cmd = ["./three-miners.sh", "start", mode.value]
@@ -138,11 +134,11 @@ class MinerManager:
             return True
 
         except Exception as e:
-            logger.error(f"Failed to start from scratch: {str(e)}")
+            logger.error(f"Failed to start miners: {str(e)}")
             if self._miner_process and self._miner_process.poll() is None:
                 self._miner_process.terminate()
             raise StacksException(
-                f"Failed to start miners from scratch: {str(e)}"
+                f"Failed to start miners: {str(e)}"
             ) from e
 
     def start_auto(self) -> bool:
@@ -166,11 +162,7 @@ class MinerManager:
             raise StacksException(f"Failed to create snapshot: {str(e)}") from e
 
     def snapshot_restore(self, mode: MiningMode) -> bool:
-        """Restore snapshot in specified mode (required).
-
-        Args:
-            mode: Mining mode - MiningMode.AUTO or MiningMode.MANUAL
-        """
+        """Restore snapshot in the specified mining mode."""
         logger.info(f"Restoring snapshot in {mode.value} mode...", Colors.ORANGE)
         try:
             cmd = ["./three-miners.sh", "snapshot", "restore", mode.value]
@@ -184,7 +176,7 @@ class MinerManager:
             )
             self._running = True
 
-            # Wait for miners to be ready after snapshot restore
+            # Wait for miners to be ready after snapshot restore: quick check → health check → patient wait
             try:
                 self.wait_for_miners_ready(timeout=15)
             except StacksTimeoutException:

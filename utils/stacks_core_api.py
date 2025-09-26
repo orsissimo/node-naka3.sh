@@ -3,22 +3,9 @@
 import requests
 import json
 from typing import List, Optional, Dict, Any, TypeVar, Type, Union
-from pydantic import BaseModel
 from .logger import logger, Colors
 from .parsers import parse_api_response
-from .types.api import (
-    AccountInfo,
-    ContractInterface,
-    ContractSource,
-    MapEntry,
-    NodeInfo,
-    PoxInfo,
-    ReadOnlyFunctionResult,
-    SortitionInfo,
-    TenureInfo,
-    TraitImplementationResponse,
-    TransactionDetails,
-)
+from .types.api import *
 from .types.exceptions import *
 from .types.wrappers import Integer, Bytes, String, SortitionList
 
@@ -26,8 +13,6 @@ T = TypeVar("T")
 
 
 class StacksCoreAPI:
-    """1:1 Python port of Stacks 3.0+ RPC API with automatic JSON parsing."""
-
     def __init__(
         self,
         base_url: str = "http://localhost:20443",
