@@ -154,29 +154,6 @@ class ApiCliUsageRecipe(RecipeTemplate):
             )
             logger.success("generate_token_transfer_tx_hex")
 
-        # Decode functions (only decode tx for now)
-        if account_info and hasattr(account_info, "nonce"):
-            try:
-                # Generate a real transaction hex without posting it
-                real_tx_hex = cli.generate_token_transfer_tx_hex(
-                    miner1_account.private_key,
-                    1000,  # fee rate
-                    account_info.nonce + 10,  # Use future nonce
-                    miner2_account.address,
-                    5_000,  # small amount in µSTX
-                    "Decode test transaction",
-                    testnet=True,
-                )
-                clean_tx_hex = (
-                    real_tx_hex[2:] if real_tx_hex.startswith("0x") else real_tx_hex
-                )
-
-                logger.info("Testing decode_tx...")
-                cli.decode_tx(clean_tx_hex, testnet=True)
-                logger.success("decode_tx")
-            except Exception as e:
-                logger.warning(f"Could not test decode_tx: {e}")
-
         # Contract operations via CLI - deploy real counter contract
         if account_info and hasattr(account_info, "nonce"):
             contract_file = "contracts/contract-counter.clar"
