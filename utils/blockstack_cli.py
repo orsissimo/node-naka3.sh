@@ -1,94 +1,36 @@
 import subprocess
 import shlex
 import json
-from typing import List, Optional, Tuple, Dict, Any, TypeVar, Type
-from pydantic import BaseModel, ValidationError
+from typing import List, Optional, Tuple, Dict, Any, TypeVar, Type, cast
+from pydantic import BaseModel
 from .logger import logger
+from .parsers import parse_cli_response
 from .types.api import AddressInfo, SecretKeyInfo
+from .types.wrappers import String
 from .types.exceptions import *
 
-T = TypeVar("T", bound=BaseModel)
+T = TypeVar("T")
 
 
 class BlockstackCLI:
-    """
-    Core 1:1 CLI executor for blockstack-cli commands with automatic
-    JSON→typed object parsing. This class provides direct access to
-    all CLI commands without additional abstraction layers.
-    """
-
     def __init__(self, cli_path: str = "blockstack-cli"):
         self._cli_path = self._validate_cli_path(cli_path)
 
     def _validate_cli_path(self, cli_path: str) -> str:
-        """Validate CLI path"""
         if not cli_path:
             raise ValueError("CLI path cannot be empty")
         if not isinstance(cli_path, str):
             raise TypeError("CLI path must be a string")
-        # Strip whitespace and ensure no path injection
-        cli_path = cli_path.strip()
+        cli_path = cli_path.strip()  # Strip whitespace and ensure no path injection
         if not cli_path:
             raise ValueError("CLI path cannot be only whitespace")
         return cli_path
 
     @property
     def cli_path(self) -> str:
-        """Get the CLI executable path (read-only)"""
         return self._cli_path
 
-    def _parse_json_response(self, stdout: str, response_type: Type[T]) -> T:
-        """
-        Automatic JSON→typed object parsing.
-        Raises exceptions instead of returning None for better error handling.
-        """
-        if not stdout or not stdout.strip():
-            raise StacksValidationException(
-                f"Empty or None stdout for {response_type.__name__}"
-            )
-
-        json_data = None
-        try:
-            # Parse JSON from stdout
-            json_data = json.loads(stdout.strip())
-            logger.debug(f"Parsed JSON data: {json_data}")
-
-            # Automatic validation and object creation via Pydantic
-            parsed_object = response_type.model_validate(json_data)
-            logger.debug(f"Successfully created {response_type.__name__} object")
-            return parsed_object
-
-        except json.JSONDecodeError as e:
-            logger.error(f"JSON decode error for {response_type.__name__}: {e}")
-            logger.error(f"Raw stdout: {repr(stdout)}")
-            raise StacksValidationException(
-                f"JSON decode error for {response_type.__name__}: {e}"
-            ) from e
-        except ValidationError as e:
-            logger.error(f"Pydantic validation error for {response_type.__name__}: {e}")
-            logger.error(f"JSON data: {json_data if json_data is not None else 'N/A'}")
-            raise StacksValidationException(
-                f"Validation failed for {response_type.__name__}: {e}"
-            ) from e
-        except Exception as e:
-            logger.error(f"Unexpected error parsing {response_type.__name__}: {e}")
-            raise StacksCLIException(
-                f"Unexpected error parsing {response_type.__name__}: {e}"
-            ) from e
-
-    def _execute_command_for_hex(
-        self,
-        command_parts: List[str],
-        testnet: bool = True,
-        chain_id: Optional[str] = None,
-        operation_name: str = "CLI operation",
-    ) -> str:
-        stdout, stderr, returncode = self._run_command(command_parts, testnet, chain_id)
-        if not stdout:
-            raise StacksCLIException(f"{operation_name} returned empty output")
-        return stdout.strip()
-
-    def _execute_command_for_json(
+    def _execute_command(
         self,
         command_parts: List[str],
         response_type: Type[T],
@@ -96,14 +38,7 @@ class BlockstackCLI:
         chain_id: Optional[str] = None,
         operation_name: str = "CLI operation",
     ) -> T:
-        stdout, stderr, returncode = self._run_command(command_parts, testnet, chain_id)
-        if not stdout:
-            raise StacksCLIException(f"{operation_name} returned empty output")
-        return self._parse_json_response(stdout, response_type)
-
-    def _run_command(
-        self, command_parts: List[str], testnet: bool, chain_id: Optional[str]
-    ) -> Tuple[Optional[str], Optional[str], int]:
+        """Execute CLI command and return parsed object."""
         base_cmd = [self._cli_path]
         if testnet:
             base_cmd.append(f"--testnet{f'={chain_id}' if chain_id else ''}")
@@ -118,7 +53,6 @@ class BlockstackCLI:
             )
             stdout = process.stdout.strip() if process.stdout else None
             stderr = process.stderr.strip() if process.stderr else None
-
             if process.returncode != 0:
                 logger.error(f"Command failed with exit code {process.returncode}")
                 if stderr:
@@ -128,14 +62,20 @@ class BlockstackCLI:
                     return_code=process.returncode,
                     stderr=stderr,
                 )
-
             logger.debug(f"Return Code: {process.returncode}")
-            if stdout:
-                logger.debug(f"STDOUT:\n{stdout}")
             if stderr:
                 logger.warning(f"STDERR:\n{stderr}")
+            if stdout:
+                logger.debug(f"STDOUT:\n{stdout}")
+            else:
+                raise StacksCLIException(f"{operation_name} returned empty output")
+            if response_type is String:
+                return cast(
+                    T, String(stdout.strip())
+                )  # FIXME: I don't like 'cast' that much
+            else:
+                return parse_cli_response(stdout, response_type)  # type: ignore # FIXME: Can we avoid this ignore?
 
-            return stdout, stderr, process.returncode
         except FileNotFoundError as e:
             logger.error(
                 f"Executable not found at '{self._cli_path}'. "
@@ -156,14 +96,11 @@ class BlockstackCLI:
         fee_rate: int,
         nonce: int,
         contract_name: str,
-        file_name: str,
+        file_name: str, # Path to the .clar file
         *,
         testnet: bool = True,
-    ) -> str:
-        """CLI: publish - Generate contract deployment transaction hex.
-
-        File_name must be path to .clar file. Returns transaction hex for use with api.post_raw_transaction(bytes.fromhex(result)).
-        """
+    ) -> String:
+        """CLI: publish - Generate contract deployment transaction hex."""
         cmd = [
             "publish",
             publisher_sk,
@@ -172,7 +109,7 @@ class BlockstackCLI:
             contract_name,
             file_name,
         ]
-        return self._execute_command_for_hex(cmd, testnet, None, "Contract publish")
+        return self._execute_command(cmd, String, testnet, None, "Publish contract")
 
     def generate_contract_call_tx_hex(
         self,
@@ -185,11 +122,8 @@ class BlockstackCLI:
         args: Optional[List[str]] = None,
         *,
         testnet: bool = True,
-    ) -> str:
-        """CLI: contract-call - Generate contract function call transaction hex.
-
-        Args must be Clarity values (e.g. 'u100', '"hello"'). Returns transaction hex for use with api.post_raw_transaction(bytes.fromhex(result)).
-        """
+    ) -> String:
+        """CLI: contract-call - Generate contract function call transaction hex. Args must be Clarity values (e.g. 'u100', '"hello"')."""
         cmd = [
             "contract-call",
             origin_sk,
@@ -202,18 +136,15 @@ class BlockstackCLI:
         if args:
             for arg in args:
                 cmd.extend(["-e", arg])
-        return self._execute_command_for_hex(cmd, testnet, None, "Contract call")
+        return self._execute_command(cmd, String, testnet, None, "Contract call")
 
     def generate_sk(
         self, *, testnet: bool = False, chain_id: Optional[str] = None
     ) -> SecretKeyInfo:
-        """CLI: generate-sk - Generate a new secret key.
-
-        Returns SecretKeyInfo with secret_key, stacks_address, and btc_address fields.
-        """
+        """CLI: generate-sk - Generate a new secret key."""
         cmd = ["generate-sk"]
-        return self._execute_command_for_json(
-            cmd, SecretKeyInfo, testnet, chain_id, "generate-sk"
+        return self._execute_command(
+            cmd, SecretKeyInfo, testnet, chain_id, "Generate Secret Key"
         )
 
     def generate_token_transfer_tx_hex(
@@ -226,11 +157,8 @@ class BlockstackCLI:
         memo: Optional[str] = None,
         *,
         testnet: bool = True,
-    ) -> str:
-        """CLI: token-transfer - Generate STX token transfer transaction hex.
-
-        Amount is in microstx. Returns transaction hex for use with api.post_raw_transaction(bytes.fromhex(result)).
-        """
+    ) -> String:
+        """CLI: token-transfer - Generate STX token transfer transaction hex. Amount is in microstx."""
         cmd = [
             "token-transfer",
             origin_sk,
@@ -241,20 +169,19 @@ class BlockstackCLI:
         ]
         if memo:
             cmd.append(memo)
-        return self._execute_command_for_hex(cmd, testnet, None, "Token transfer")
+        return self._execute_command(cmd, String, testnet, None, "Transfer token")
 
     def get_addresses(
         self, secret_key: str, *, testnet: bool = False, chain_id: Optional[str] = None
     ) -> AddressInfo:
-        """CLI: addresses - Get addresses from secret key.
-
-        Returns AddressInfo with stacks_address and btc_address fields.
-        """
+        """CLI: addresses - Get addresses from secret key."""
         cmd = ["addresses", secret_key]
-        return self._execute_command_for_json(
-            cmd, AddressInfo, testnet, chain_id, "addresses command"
+        return self._execute_command(
+            cmd, AddressInfo, testnet, chain_id, "Get addresses"
         )
 
+
+    # TODO: Could be handled better
     def _decode_helper(
         self, command: str, hex_data: str, *, testnet: bool, chain_id: Optional[str]
     ) -> Dict[str, Any]:
@@ -265,8 +192,8 @@ class BlockstackCLI:
 
         clean_hex = hex_data[2:] if hex_data.startswith("0x") else hex_data
         cmd = [command, clean_hex]
-        stdout = self._execute_command_for_hex(
-            cmd, testnet, chain_id, f"{command} command"
+        stdout = self._execute_command(
+            cmd, String, testnet, chain_id, f"{command} command"
         )
         try:
             return json.loads(stdout)

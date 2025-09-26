@@ -2,9 +2,10 @@
 
 import requests
 import json
-from typing import List, Optional, Dict, Any, TypeVar, Type
-from pydantic import BaseModel, ValidationError
+from typing import List, Optional, Dict, Any, TypeVar, Type, Union
+from pydantic import BaseModel
 from .logger import logger, Colors
+from .parsers import parse_api_response
 from .types.api import (
     AccountInfo,
     ContractInterface,
@@ -71,39 +72,6 @@ class StacksCoreAPI:
     def timeout(self, value: int) -> None:
         """Set the request timeout with validation"""
         self._timeout = self._validate_timeout(value)
-
-    def _parse_json_response(self, data: Dict[str, Any], response_type: Type[T]) -> T:
-        """Automatic JSON→typed object parsing with exception handling."""
-        if not data:
-            raise StacksValidationException(
-                f"Empty or None data for {response_type.__name__}"
-            )
-
-        if not isinstance(response_type, type) or not issubclass(
-            response_type, BaseModel
-        ):
-            raise TypeError(
-                f"response_type {response_type.__name__} must be a Pydantic BaseModel"
-            )
-
-        try:
-            logger.debug(f"Parsing JSON data for {response_type.__name__}: {data}")
-
-            parsed_object = response_type.model_validate(data)
-            logger.debug(f"Successfully created {response_type.__name__} object")
-            return parsed_object
-
-        except ValidationError as e:
-            logger.error(f"Pydantic validation error for {response_type.__name__}: {e}")
-            logger.error(f"JSON data: {data}")
-            raise StacksValidationException(
-                f"Validation failed for {response_type.__name__}: {e}"
-            ) from e
-        except Exception as e:
-            logger.error(f"Unexpected error parsing {response_type.__name__}: {e}")
-            raise StacksAPIException(
-                f"Unexpected error parsing {response_type.__name__}: {e}"
-            ) from e
 
     def _send_request(self, method: str, endpoint: str, **kwargs) -> requests.Response:
         """Make raw API request and return response object for centralized handling"""
@@ -218,7 +186,7 @@ class StacksCoreAPI:
                         data[key] = value(data)
                     else:
                         data[key] = value
-                return self._parse_json_response(data, response_type)
+                return parse_api_response(data, response_type)  # type: ignore # TODO: Can we avoid this ignore?
             return data
         elif "application/octet-stream" in content_type:
             return response.content
@@ -322,11 +290,35 @@ class StacksCoreAPI:
             headers={"Content-Type": "application/octet-stream"},
         )
 
-    def _parse_hex_balance(self, balance_hex: str) -> int:
-        """Convert hex balance string to integer."""
-        if balance_hex.startswith("0x"):
-            return int(balance_hex, 16)
-        return int(balance_hex)
+    def _parse_hex_balance(self, balance_hex: Union[str, int, None]) -> int:
+        """Converts hex balance string to integer"""
+        if balance_hex is None:
+            logger.warning("Received None balance from API, defaulting to 0")
+            return 0
+
+        if not isinstance(balance_hex, str):
+            logger.warning(
+                f"Received non-string balance: {type(balance_hex)} = {balance_hex}, attempting conversion"
+            )
+            balance_hex = str(balance_hex)
+
+        balance_hex = balance_hex.strip()
+        if not balance_hex:
+            logger.warning("Received empty balance string from API, defaulting to 0")
+            return 0
+
+        try:
+            if balance_hex.startswith("0x"):
+                return int(balance_hex, 16)
+            return int(balance_hex)
+        except ValueError as e:
+            logger.error(f"Failed to parse balance '{balance_hex}' as integer: {e}")
+            logger.error(
+                "This might indicate an API format change - please verify against latest API docs"
+            )
+            raise StacksValidationException(
+                f"Unable to parse balance value '{balance_hex}' as integer"
+            ) from e
 
     def get_account_info(
         self, principal: str, *, proof: Optional[int] = None, tip: Optional[str] = None
