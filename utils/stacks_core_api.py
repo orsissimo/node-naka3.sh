@@ -26,37 +26,59 @@ class StacksCoreAPI:
             self._session.headers.update({"Authorization": f"Basic {auth_token}"})
 
     def _validate_url(self, url: str) -> str:
-        """Validate and normalize the base URL"""
         if not url:
             raise ValueError("Base URL cannot be empty")
-
         url = url.rstrip("/")
-
         if not (url.startswith("http://") or url.startswith("https://")):
             raise ValueError("Base URL must start with http:// or https://")
-
         return url
 
     def _validate_timeout(self, timeout: int) -> int:
-        """Validate timeout value"""
         if timeout <= 0:
             raise ValueError("Timeout must be a positive integer")
         return timeout
 
     @property
     def base_url(self) -> str:
-        """Get the base URL (read-only)"""
         return self._base_url
 
     @property
     def timeout(self) -> int:
-        """Get the request timeout"""
         return self._timeout
 
     @timeout.setter
     def timeout(self, value: int) -> None:
-        """Set the request timeout with validation"""
         self._timeout = self._validate_timeout(value)
+
+    def _parse_hex_balance(self, balance_hex: Union[str, int, None]) -> int:
+        """Convert hex balance string to integer."""
+        if balance_hex is None:
+            logger.warning("Received None balance from API, defaulting to 0")
+            return 0
+
+        if not isinstance(balance_hex, str):
+            logger.warning(
+                f"Received non-string balance: {type(balance_hex)} = {balance_hex}, attempting conversion"
+            )
+            balance_hex = str(balance_hex)
+
+        balance_hex = balance_hex.strip()
+        if not balance_hex:
+            logger.warning("Received empty balance string from API, defaulting to 0")
+            return 0
+
+        try:
+            if balance_hex.startswith("0x"):
+                return int(balance_hex, 16)
+            return int(balance_hex)
+        except ValueError as e:
+            logger.error(f"Failed to parse balance '{balance_hex}' as integer: {e}")
+            logger.error(
+                "This might indicate an API format change - please verify against latest API docs"
+            )
+            raise StacksValidationException(
+                f"Unable to parse balance value '{balance_hex}' as integer"
+            ) from e
 
     def _send_request(self, method: str, endpoint: str, **kwargs) -> requests.Response:
         """Make raw API request and return response object for centralized handling"""
@@ -259,15 +281,12 @@ class StacksCoreAPI:
         )
 
     # --- V2 Transactions, Accounts, and Info ---
-    def get_info(self) -> "NodeInfo":
+    def get_info(self) -> NodeInfo:
         """GET /v2/info - Get Core API information."""
         return self.do_get("/v2/info", NodeInfo)
 
     def post_raw_transaction(self, raw_tx_bytes: bytes) -> String:
-        """POST /v2/transactions - Broadcast a raw transaction.
-
-        Use bytes.fromhex(cli_hex) where cli_hex comes from CLI functions.
-        """
+        """POST /v2/transactions - Broadcast a raw transaction. Use bytes.fromhex(cli_hex) where cli_hex comes from CLI functions."""
         return self.do_post(
             "/v2/transactions",
             String,
@@ -275,43 +294,10 @@ class StacksCoreAPI:
             headers={"Content-Type": "application/octet-stream"},
         )
 
-    def _parse_hex_balance(self, balance_hex: Union[str, int, None]) -> int:
-        """Converts hex balance string to integer"""
-        if balance_hex is None:
-            logger.warning("Received None balance from API, defaulting to 0")
-            return 0
-
-        if not isinstance(balance_hex, str):
-            logger.warning(
-                f"Received non-string balance: {type(balance_hex)} = {balance_hex}, attempting conversion"
-            )
-            balance_hex = str(balance_hex)
-
-        balance_hex = balance_hex.strip()
-        if not balance_hex:
-            logger.warning("Received empty balance string from API, defaulting to 0")
-            return 0
-
-        try:
-            if balance_hex.startswith("0x"):
-                return int(balance_hex, 16)
-            return int(balance_hex)
-        except ValueError as e:
-            logger.error(f"Failed to parse balance '{balance_hex}' as integer: {e}")
-            logger.error(
-                "This might indicate an API format change - please verify against latest API docs"
-            )
-            raise StacksValidationException(
-                f"Unable to parse balance value '{balance_hex}' as integer"
-            ) from e
-
     def get_account_info(
         self, principal: str, *, proof: Optional[int] = None, tip: Optional[str] = None
     ) -> AccountInfo:
-        """GET /v2/accounts/{principal} - Get account information.
-
-        Expects principal as address string (e.g. from account.address).
-        """
+        """GET /v2/accounts/{principal} - Get account information. Expects principal as address string."""
         params = {
             k: v for k, v in {"proof": proof, "tip": tip}.items() if v is not None
         }
@@ -323,7 +309,7 @@ class StacksCoreAPI:
             balance=lambda data: self._parse_hex_balance(data.get("balance", "0x0")),
         )
 
-    def get_pox_info(self, *, tip: Optional[str] = None) -> "PoxInfo":
+    def get_pox_info(self, *, tip: Optional[str] = None) -> PoxInfo:
         """GET /v2/pox - Get Proof of Transfer (PoX) information."""
         return self.do_get("/v2/pox", PoxInfo, params={"tip": tip} if tip else {})
 
@@ -337,9 +323,9 @@ class StacksCoreAPI:
         arguments: List[str],
         *,
         tip: Optional[str] = None,
-    ) -> "ReadOnlyFunctionResult":
-        """POST /v2/contracts/call-read/{...} - Call a read-only function.
-
+    ) -> ReadOnlyFunctionResult:
+        """
+        POST /v2/contracts/call-read/{...} - Call a read-only function.
         Note: 'arguments' parameter must be hex-encoded Clarity values (use clarity-cli to encode: e.g. 'u100' -> '0x0100000000000000000000000000000064').
         """
         endpoint = f"/v2/contracts/call-read/{contract_address}/{contract_name}/{function_name}"
@@ -357,7 +343,7 @@ class StacksCoreAPI:
         *,
         proof: Optional[int] = None,
         tip: Optional[str] = None,
-    ) -> "ContractSource":
+    ) -> ContractSource:
         """GET /v2/contracts/source/{...} - Get contract source code."""
         params = {
             k: v for k, v in {"proof": proof, "tip": tip}.items() if v is not None
@@ -370,7 +356,7 @@ class StacksCoreAPI:
 
     def get_contract_interface(
         self, contract_address: str, contract_name: str, *, tip: Optional[str] = None
-    ) -> "ContractInterface":
+    ) -> ContractInterface:
         """GET /v2/contracts/interface/{...} - Get contract interface."""
         return self.do_get(
             f"/v2/contracts/interface/{contract_address}/{contract_name}",
@@ -388,8 +374,8 @@ class StacksCoreAPI:
         proof: Optional[int] = None,
         tip: Optional[str] = None,
     ) -> Optional[MapEntry]:
-        """POST /v2/map_entry/{...} - Get a data-map entry.
-
+        """
+        POST /v2/map_entry/{...} - Get a data-map entry.
         Note: 'key_hex_json_string' must be hex-encoded Clarity value (use clarity-cli to encode: e.g. 'u100' -> '0x0100000000000000000000000000000064').
         """
         endpoint = f"/v2/map_entry/{contract_address}/{contract_name}/{map_name}"
@@ -416,7 +402,7 @@ class StacksCoreAPI:
         trait_name: str,
         *,
         tip: Optional[str] = None,
-    ) -> "TraitImplementationResponse":
+    ) -> TraitImplementationResponse:
         """GET /v2/traits/{...} - Check if a contract implements a trait."""
         endpoint = (
             f"/v2/traits/{contract_address}/{contract_name}/"
@@ -428,37 +414,25 @@ class StacksCoreAPI:
 
     # --- V2 Fees ---
     def get_fee_rate_for_transfer(self) -> Integer:
-        """GET /v2/fees/transfer - Get estimated fee rate for STX transfers.
-
-        No parameters required. Returns integer fee rate in microstx per byte.
-        """
+        """GET /v2/fees/transfer - Get estimated fee rate for STX transfers."""
         return self.do_get("/v2/fees/transfer", Integer)
 
     # --- V3 Blocks, Tenures, and Transactions ---
     def get_block_by_id(self, block_id: str) -> Bytes:
-        """GET /v3/blocks/{block_id} - Fetch a Nakamoto block by its ID hash.
-
-        Expects block_id hash string (e.g. from node_info.stacks_tip). Returns raw block bytes.
-        """
+        """GET /v3/blocks/{block_id} - Fetch a Nakamoto block by its ID hash. Expects block_id hash string. Returns raw block bytes."""
         return self.do_get(f"/v3/blocks/{block_id}", Bytes)
 
     def get_block_by_height(
         self, block_height: int, *, tip: Optional[str] = None
     ) -> Bytes:
-        """GET /v3/blocks/height/{block_height} - Fetch a Nakamoto block by height.
-
-        Expects block_height int. Returns raw block bytes.
-        """
+        """GET /v3/blocks/height/{block_height} - Fetch a Nakamoto block by height. Expects block_height int. Returns raw block bytes."""
         params = {"tip": tip} if tip else {}
         return self.do_get(f"/v3/blocks/height/{block_height}", Bytes, params=params)
 
     def get_transaction_by_id(
         self, txid: str, is_retry_context: bool = False
-    ) -> "TransactionDetails":
-        """GET /v3/transaction/{txid} - Retrieve transaction details.
-
-        Expects txid string (e.g. from transfer_result.txid).
-        """
+    ) -> TransactionDetails:
+        """GET /v3/transaction/{txid} - Retrieve transaction details. Expects txid string (e.g. from transfer_result.txid)."""
         return self.do_get(
             f"/v3/transaction/{txid}",
             TransactionDetails,
@@ -468,26 +442,22 @@ class StacksCoreAPI:
             tx_type="unknown",
         )
 
-    def get_tenure_info(self) -> Optional["TenureInfo"]:
+    def get_tenure_info(self) -> Optional[TenureInfo]:
         """GET /v3/tenures/info - Fetch metadata about the ongoing Nakamoto tenure."""
         return self.do_get("/v3/tenures/info", TenureInfo)
 
     def get_tenure_blocks(self, block_id: str, *, stop: Optional[str] = None) -> Bytes:
-        """GET /v3/tenures/{block_id} - Fetch a sequence of Nakamoto blocks in a tenure.
-
-        Expects block_id as hex string (e.g. from node_info.stacks_tip). Optional stop block_id.
-        Returns raw bytes containing sequence of blocks in the tenure.
+        """
+        GET /v3/tenures/{block_id} - Fetch a sequence of Nakamoto blocks in a tenure.
+        Expects block_id as hex string. Returns raw bytes containing sequence of blocks in the tenure.
         """
         params = {"stop": stop} if stop else {}
         return self.do_get(f"/v3/tenures/{block_id}", Bytes, params=params)
 
     def get_sortitions(
         self, *, lookup_kind: Optional[str] = None, lookup: Optional[str] = None
-    ) -> List["SortitionInfo"]:
-        """GET /v3/sortitions/{lookup_kind}/{lookup} - Fetch burnchain block info.
-
-        Optional lookup_kind and lookup parameters for filtering.
-        """
+    ) -> List[SortitionInfo]:
+        """GET /v3/sortitions/{lookup_kind}/{lookup} - Fetch burnchain block info."""
         endpoint = "/v3/sortitions"
         if lookup_kind and lookup:
             endpoint += f"/{lookup_kind}/{lookup}"
