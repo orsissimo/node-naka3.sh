@@ -141,7 +141,7 @@ class ApiCliUsageRecipe(RecipeTemplate):
 
         # Token transfer via CLI
         if account_info and hasattr(account_info, "nonce"):
-            nonce = account_info.nonce + 1
+            nonce = chain.get_current_nonce(miner1_account.address) + 1
             logger.info("Testing generate_token_transfer_tx_hex...")
             cli.generate_token_transfer_tx_hex(
                 miner1_account.private_key,

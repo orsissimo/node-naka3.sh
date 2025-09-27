@@ -39,72 +39,43 @@ class MinerManager:
         return len(self._apis)
 
     def wait_for_miners_ready(self, timeout: int = 45) -> bool:
-        logger.info("Verifying all miner endpoints are ready...", Colors.ORANGE)
-        time.sleep(10)
-
+        logger.info(f"Waiting for {len(self._apis)} miners to be ready...", Colors.ORANGE)
+        time.sleep(15)
+        
         start_time = time.time()
-        miners_to_check = list(self._apis.keys())
-        sleep_interval = 1  # Start with 1 second
-        ready_miners = []  # Initialize to prevent unbound variable
-
+        poll_interval = 2
+        ready_miners = []
+        
         while time.time() - start_time < timeout:
             ready_miners = []
-            progress_made = False
-
+            failed_miners = []
+            
             for miner_name, api in self._apis.items():
                 try:
                     if api.get_info():
                         ready_miners.append(miner_name)
-                        if miner_name not in getattr(self, "_ready_miners", set()):
-                            progress_made = True
-                except (
-                    StacksNetworkException,
-                    StacksTimeoutException,
-                    StacksAPIException,
-                ) as e:
-                    # Log transient API failures as warnings during readiness check
-                    remaining_time = timeout - (time.time() - start_time)
-                    if remaining_time > 5:  # Only warn if we have time left to retry
-                        logger.warning(
-                            f"Miner {miner_name} not ready yet (will retry): {type(e).__name__}"
-                        )
-                    # Continue checking other miners
-
-            # Track ready miners to detect progress
-            if not hasattr(self, "_ready_miners"):
-                self._ready_miners = set()
-
-            if ready_miners:
-                new_ready = set(ready_miners) - self._ready_miners
-                if new_ready:
-                    progress_made = True
-                    for miner in new_ready:
-                        logger.info(f"Miner {miner} is now ready", Colors.ORANGE)
-                self._ready_miners.update(ready_miners)
-
-            if len(ready_miners) == len(miners_to_check):
-                logger.info(
-                    f"All {len(miners_to_check)} miners are ready.", Colors.ORANGE
-                )
+                except (StacksNetworkException, StacksTimeoutException, StacksAPIException):
+                    failed_miners.append(miner_name)
+            
+            if len(ready_miners) == len(self._apis):
+                logger.info(f"All {len(self._apis)} miners are ready.", Colors.ORANGE)
                 return True
-
-            # Adaptive polling: faster when making progress, slower when not
-            if progress_made:
-                sleep_interval = 1  # Reset to fast polling
-            else:
-                sleep_interval = min(sleep_interval * 1.2, 4)  # Gradual backoff, max 4s
-
-            logger.debug(
-                f"Miners ready: {len(ready_miners)}/{len(miners_to_check)}. "
-                f"Waiting {sleep_interval:.1f}s..."
-            )
-            time.sleep(sleep_interval)
-
+            
+            elapsed = time.time() - start_time
+            if elapsed > 0 and int(elapsed) % 10 == 0:
+                logger.debug(
+                    f"Miners ready: {len(ready_miners)}/{len(self._apis)} "
+                    f"({timeout - int(elapsed)}s remaining)"
+                )
+            
+            time.sleep(poll_interval)
+        
+        # Timeout reached
         logger.error(
-            f"Timeout: Only {len(ready_miners)}/{len(miners_to_check)} miners became ready."
+            f"Timeout after {timeout}s: Only {len(ready_miners)}/{len(self._apis)} miners ready"
         )
         raise StacksTimeoutException(
-            f"Timeout: Only {len(ready_miners)}/{len(miners_to_check)} miners became ready"
+            f"Timeout: Only {len(ready_miners)}/{len(self._apis)} miners became ready"
         )
 
     def start(self, mode: MiningMode) -> bool:

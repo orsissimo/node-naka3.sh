@@ -447,7 +447,7 @@ class StacksCoreAPI:
     ) -> Bytes:
         """GET /v3/blocks/height/{block_height} - Fetch a Nakamoto block by height.
 
-        Expects block_height int (e.g. from node_info.stacks_tip_height). Returns raw block bytes.
+        Expects block_height int. Returns raw block bytes.
         """
         params = {"tip": tip} if tip else {}
         return self.do_get(f"/v3/blocks/height/{block_height}", Bytes, params=params)
