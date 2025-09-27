@@ -39,37 +39,43 @@ class MinerManager:
         return len(self._apis)
 
     def wait_for_miners_ready(self, timeout: int = 45) -> bool:
-        logger.info(f"Waiting for {len(self._apis)} miners to be ready...", Colors.ORANGE)
+        logger.info(
+            f"Waiting for {len(self._apis)} miners to be ready...", Colors.ORANGE
+        )
         time.sleep(15)
-        
+
         start_time = time.time()
         poll_interval = 2
         ready_miners = []
-        
+
         while time.time() - start_time < timeout:
             ready_miners = []
             failed_miners = []
-            
+
             for miner_name, api in self._apis.items():
                 try:
                     if api.get_info():
                         ready_miners.append(miner_name)
-                except (StacksNetworkException, StacksTimeoutException, StacksAPIException):
+                except (
+                    StacksNetworkException,
+                    StacksTimeoutException,
+                    StacksAPIException,
+                ):
                     failed_miners.append(miner_name)
-            
+
             if len(ready_miners) == len(self._apis):
                 logger.info(f"All {len(self._apis)} miners are ready.", Colors.ORANGE)
                 return True
-            
+
             elapsed = time.time() - start_time
             if elapsed > 0 and int(elapsed) % 10 == 0:
                 logger.debug(
                     f"Miners ready: {len(ready_miners)}/{len(self._apis)} "
                     f"({timeout - int(elapsed)}s remaining)"
                 )
-            
+
             time.sleep(poll_interval)
-        
+
         # Timeout reached
         logger.error(
             f"Timeout after {timeout}s: Only {len(ready_miners)}/{len(self._apis)} miners ready"
@@ -81,13 +87,9 @@ class MinerManager:
     def start(self, mode: MiningMode) -> bool:
         """Start miners in the specified mining mode."""
         if not isinstance(mode, MiningMode):
-            raise ValueError(
-                f"Invalid mode '{mode}'."
-            )
+            raise ValueError(f"Invalid mode '{mode}'.")
 
-        logger.info(
-            f"Starting three miners in {mode.value} mode...", Colors.ORANGE
-        )
+        logger.info(f"Starting three miners in {mode.value} mode...", Colors.ORANGE)
         try:
             cmd = ["./three-miners.sh", "start", mode.value]
 
@@ -108,9 +110,7 @@ class MinerManager:
             logger.error(f"Failed to start miners: {str(e)}")
             if self._miner_process and self._miner_process.poll() is None:
                 self._miner_process.terminate()
-            raise StacksException(
-                f"Failed to start miners: {str(e)}"
-            ) from e
+            raise StacksException(f"Failed to start miners: {str(e)}") from e
 
     def start_auto(self) -> bool:
         return self.start(MiningMode.AUTO)

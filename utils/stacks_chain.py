@@ -29,51 +29,67 @@ class StacksChain:
     def get_stx_balance(self, address: str) -> StacksToken:
         account_info = self._api.get_account_info(address)
         return account_info.balance_amount
-    
+
     def wait_for_confirmation(
         self,
         txid: str,
         timeout: int = 120,
     ) -> bool:
         initial_height = self.get_current_height()
-        
+
         start_time = time.time()
         poll_interval = 2
-        
+
         while time.time() - start_time < timeout:
             try:
                 current_height = self.get_current_height()
-                
+
                 if current_height > initial_height:
-                    logger.debug(f"Checking transaction {txid} at block height {current_height}")
-                    
+                    logger.debug(
+                        f"Checking transaction {txid} at block height {current_height}"
+                    )
+
                     try:
-                        tx_details = self._api.get_transaction_by_id(txid, is_retry_context=True)
-                        
+                        tx_details = self._api.get_transaction_by_id(
+                            txid, is_retry_context=True
+                        )
+
                         # Transaction found - check result
                         if tx_details.result and tx_details.result.startswith("(ok "):
-                            logger.success(f"Transaction {txid} confirmed successfully!")
+                            logger.success(
+                                f"Transaction {txid} confirmed successfully!"
+                            )
                             return True
                         else:
-                            logger.warning(f"Transaction {txid} failed with result: {tx_details.result}")
+                            logger.warning(
+                                f"Transaction {txid} failed with result: {tx_details.result}"
+                            )
                             return False
-                            
+
                     except StacksAPIException as e:
                         if not e.is_not_found():
                             raise  # Re-raise if it's not a "not found" error
                         # Transaction not found yet - continue waiting
-                        
+
                     initial_height = current_height
-                
-            except (StacksNetworkException, StacksTimeoutException, StacksAPIException) as e:
+
+            except (
+                StacksNetworkException,
+                StacksTimeoutException,
+                StacksAPIException,
+            ) as e:
                 # Log error but continue trying - network issues are expected
-                logger.debug(f"Network error during confirmation wait: {type(e).__name__}")
-            
+                logger.debug(
+                    f"Network error during confirmation wait: {type(e).__name__}"
+                )
+
             time.sleep(poll_interval)
-        
+
         # Timeout reached
         logger.error(f"Transaction confirmation timeout after {timeout}s")
-        raise StacksTimeoutException(f"Transaction confirmation timeout after {timeout}s")
+        raise StacksTimeoutException(
+            f"Transaction confirmation timeout after {timeout}s"
+        )
 
     def transfer_tokens(
         self,
@@ -260,13 +276,13 @@ class StacksChain:
         return TransactionResult(txid=txid, confirmed=confirmed)
 
     def call_contract_read_function(
-            self,
-            contract_address: str,
-            contract_name: str,
-            function_name: str,
-            sender: str,
-            function_args: Optional[list] = None,
-        ) -> ReadOnlyFunctionResult:
-            return self._api.call_read_only_function(
-                contract_address, contract_name, function_name, sender, function_args or []
-            )
+        self,
+        contract_address: str,
+        contract_name: str,
+        function_name: str,
+        sender: str,
+        function_args: Optional[list] = None,
+    ) -> ReadOnlyFunctionResult:
+        return self._api.call_read_only_function(
+            contract_address, contract_name, function_name, sender, function_args or []
+        )
