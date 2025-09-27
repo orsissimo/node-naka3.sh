@@ -98,7 +98,8 @@ class Logger:
         print(f"{'=' * 60}")
 
     def info(self, message: str, color: Optional[str] = None) -> None:
-        """Log general information with f-string key-value support.
+        """
+        Log general information with f-string key-value support.
 
         Usage:
           logger.info("Starting process")

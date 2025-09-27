@@ -85,10 +85,13 @@ class ApiCliUsageRecipe(RecipeTemplate):
             logger.warning(f"Could not create test transaction: {e}")
 
         # V3 Transaction Operations (if we have a transaction)
+        transaction_details = None
         if transfer_result and transfer_result.txid:
             logger.info("Testing get_transaction_by_id...")
-            api.get_transaction_by_id(transfer_result.txid)
+            transaction_details = api.get_transaction_by_id(transfer_result.txid)
             logger.success("get_transaction_by_id")
+        else:
+            logger.warning("⚠ get_transaction_by_id test skipped (no transfer transaction available)")
 
         # V3 Block Operations
         if node_info and hasattr(node_info, "stacks_tip_height"):
@@ -97,11 +100,33 @@ class ApiCliUsageRecipe(RecipeTemplate):
                 logger.info("Testing get_block_by_height...")
                 api.get_block_by_height(current_height)
                 logger.success("get_block_by_height")
+            else:
+                logger.warning("⚠ get_block_by_height test skipped (current height is 0)")
+        else:
+            logger.warning("⚠ get_block_by_height test skipped (no node info or stacks tip height available)")
+        
+        # Test get_block_by_id using block hash from transaction details
+        if transaction_details and hasattr(transaction_details, 'index_block_hash') and transaction_details.index_block_hash:
+            logger.info("Testing get_block_by_id...")
+            api.get_block_by_id(transaction_details.index_block_hash)
+            logger.success("get_block_by_id")
+        else:
+            logger.info("Testing get_block_by_id...")
+            logger.warning("⚠ get_block_by_id test skipped (no valid block hash available from transaction)")
 
         # V3 Tenure Operations
         logger.info("Testing get_tenure_info...")
         tenure_info = api.get_tenure_info()
         logger.success("get_tenure_info")
+        
+        # Test get_tenure_blocks using tenure start block ID
+        if tenure_info and hasattr(tenure_info, 'tenure_start_block_id') and tenure_info.tenure_start_block_id:
+            logger.info("Testing get_tenure_blocks...")
+            api.get_tenure_blocks(tenure_info.tenure_start_block_id)
+            logger.success("get_tenure_blocks")
+        else:
+            logger.info("Testing get_tenure_blocks...")
+            logger.warning("get_tenure_blocks test skipped (no valid tenure start block ID available)")
 
         # V3 Sortition Operations
         logger.info("Testing get_sortitions...")
@@ -153,6 +178,8 @@ class ApiCliUsageRecipe(RecipeTemplate):
                 testnet=True,
             )
             logger.success("generate_token_transfer_tx_hex")
+        else:
+            logger.warning("⚠ generate_token_transfer_tx_hex test skipped (no account info or nonce available)")
 
         # Contract operations via CLI - deploy real counter contract
         if account_info and hasattr(account_info, "nonce"):
@@ -187,6 +214,17 @@ class ApiCliUsageRecipe(RecipeTemplate):
                     logger.info("Testing get_contract_interface...")
                     api.get_contract_interface(contract_address, contract_name)
                     logger.success("get_contract_interface")
+                    
+                    # Test trait implementation check - counter contract defines its own trait
+                    logger.info("Testing get_is_trait_implemented...")
+                    api.get_is_trait_implemented(
+                        contract_address,
+                        contract_name,
+                        contract_address,  # Same contract defines the trait
+                        contract_name,     # Same contract name
+                        "counter-trait"    # Trait defined in the contract
+                    )
+                    logger.success("get_is_trait_implemented")
 
                     # Test read-only function calls on deployed counter contract
                     logger.info("Testing contract read functions...")
@@ -279,6 +317,8 @@ class ApiCliUsageRecipe(RecipeTemplate):
 
             except Exception as deploy_error:
                 logger.warning(f"Could not deploy contract: {deploy_error}")
+        else:
+            logger.warning("⚠ Contract deployment tests skipped (no account info or nonce available)")
 
         # Test raw transaction posting via API with valid transaction bytes
         try:

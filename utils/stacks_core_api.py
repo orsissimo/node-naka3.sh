@@ -193,7 +193,7 @@ class StacksCoreAPI:
                         data[key] = value(data)
                     else:
                         data[key] = value
-                return parse_api_response(data, response_type)  # type: ignore # TODO: Can we avoid this ignore?
+                return parse_api_response(data, response_type)  # type: ignore # FIXME: Can we avoid this ignore?
             return data
         elif "application/octet-stream" in content_type:
             return response.content
