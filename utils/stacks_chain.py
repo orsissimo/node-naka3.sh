@@ -8,7 +8,7 @@ from .blockstack_cli import BlockstackCLI
 from .types.tokens import StacksToken
 from .logger import logger
 from .types.infrastructure import Account, TransactionResult
-from .types.api import ReadOnlyFunctionResult
+from .types.api import ReadOnlyFunctionResult, AccountInfo
 
 
 class StacksChain:
@@ -18,6 +18,13 @@ class StacksChain:
         self._api = StacksCoreAPI(base_url=base_url)
         self._cli = BlockstackCLI()
 
+    def get_account_info(self, address: str) -> AccountInfo:
+        return self._api.get_account_info(address)
+
+    def get_stx_balance(self, address: str) -> StacksToken:
+        account_info = self._api.get_account_info(address)
+        return account_info.balance_amount
+
     def get_current_nonce(self, address: str) -> int:
         account_info = self._api.get_account_info(address)
         return account_info.nonce
@@ -25,10 +32,6 @@ class StacksChain:
     def get_current_height(self) -> int:
         node_info = self._api.get_info()
         return node_info.stacks_tip_height
-
-    def get_stx_balance(self, address: str) -> StacksToken:
-        account_info = self._api.get_account_info(address)
-        return account_info.balance_amount
 
     def wait_for_confirmation(
         self,
