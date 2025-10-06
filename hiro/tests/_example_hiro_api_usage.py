@@ -5,8 +5,8 @@ import sys
 import json
 from datetime import datetime
 
-# Add utils to path
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+# Add project root to path
+sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
 
 from utils.logger import logger
 from hiro.hiro_api import StacksMainnetAPI

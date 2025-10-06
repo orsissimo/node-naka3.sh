@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+"""
+STX Transfer Example
+
+This script demonstrates:
+1. Checking account balances
+2. Executing STX transfers
+3. Verifying transaction confirmation
+"""
 
 import os
 import sys
@@ -122,7 +130,7 @@ class TransferRecipe(RecipeTemplate):
                 logger.error(f"Transfer #{i+1} failed: {str(e)}")
                 continue
 
-        logger.header("FINAL RESULT")
+        logger.header("SUMMARY")
         final_sender_balance = chain.get_stx_balance(sender_account.address)
         final_recipient_balance = chain.get_stx_balance(recipient_account.address)
         total_sender_change = final_sender_balance - sender_initial_balance
