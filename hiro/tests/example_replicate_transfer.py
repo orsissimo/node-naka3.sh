@@ -26,7 +26,7 @@ from hiro.hiro_api import StacksMainnetAPI
 class ReplicateTransactionRecipe(RecipeTemplate):
     def _run_recipe(self) -> bool:
         # Configuration
-        ORIGINAL_TX_ID = "0x72a9ea0d0b1bfec1609913b83b21d1a5cd4a7848d1a2f3e28062e44d9b9fe4e2"
+        ORIGINAL_TX_ID = "0x65e35f27826de006f73f9813b821a1f27a2b93d8d68e13726e69323dfa2b4330"
 
         logger.header("REPLICATE MAINNET TRANSACTION")
 
