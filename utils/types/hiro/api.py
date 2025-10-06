@@ -99,9 +99,29 @@ class PostCondition(BaseModel):
         populate_by_name = True
 
 
+class SmartContractData(BaseModel):
+    """Smart contract deployment data."""
+    contract_id: str
+    source_code: Optional[str] = None
+
+    class Config:
+        populate_by_name = True
+
+
+class ContractCallData(BaseModel):
+    """Contract call data."""
+    contract_id: str
+    function_name: str
+    function_signature: Optional[str] = None
+    function_args: Optional[List[Dict[str, Any]]] = Field(default_factory=list)
+
+    class Config:
+        populate_by_name = True
+
+
 class Transaction(BaseModel):
     """Transaction response from the API."""
-    
+
     tx_id: str
     nonce: int
     fee_rate: str
@@ -136,7 +156,11 @@ class Transaction(BaseModel):
     execution_cost_write_count: int
     execution_cost_write_length: int
     tx_type: TransactionType
-    
+
+    # Transaction type-specific fields
+    smart_contract: Optional[SmartContractData] = None
+    contract_call: Optional[ContractCallData] = None
+
     class Config:
         populate_by_name = True
 
