@@ -1,0 +1,809 @@
+{
+  "test_timestamp": "2025-10-06T14:01:47.979053",
+  "base_url": "https://api.mainnet.hiro.so",
+  "endpoints_tested": {
+    "get_status": {
+      "endpoint": "/extended",
+      "method": "GET",
+      "success": true,
+      "response": {
+        "server_version": "stacks-blockchain-api v8.13.0 (master:eaa42cee6)",
+        "status": "ready",
+        "pox_v1_unlock_height": 781552,
+        "pox_v2_unlock_height": 787652,
+        "pox_v3_unlock_height": 840361,
+        "chain_tip": {
+          "block_height": 4003613,
+          "block_hash": "0x8716cd7f290d55e6890234ca932a81734ee19781a4ae2842ba40196e0625265a",
+          "index_block_hash": "0x4d348ac437dbb978deb2c12da278d3d138cfa8e2d2296b06cf0639ece028e54d",
+          "microblock_hash": null,
+          "microblock_sequence": null,
+          "burn_block_height": 917901
+        }
+      }
+    },
+    "get_transaction_list": {
+      "endpoint": "/extended/v1/tx/",
+      "method": "GET",
+      "parameters": {
+        "limit": 5
+      },
+      "success": true,
+      "response": {
+        "limit": 5,
+        "offset": 0,
+        "total": 18831059,
+        "results": [
+          {
+            "tx_id": "0x8effbdcbfdd316d21785d24752e67d2e60b7d995d8890b3f957399b163e51df8",
+            "nonce": 7365,
+            "fee_rate": "300",
+            "sender_address": "SP2TJMQFBCKNNFFN632BCP6YRH17D1RBRB42MKSDD",
+            "sponsored": false,
+            "sponsor_address": null,
+            "post_condition_mode": "deny",
+            "post_conditions": [],
+            "anchor_mode": "any",
+            "is_unanchored": false,
+            "block_hash": "0x8716cd7f290d55e6890234ca932a81734ee19781a4ae2842ba40196e0625265a",
+            "parent_block_hash": "0x77245eb74465102b15465096c22e2a4132a18762e7dc8813e260bf609ca0ba48",
+            "block_height": 4003613,
+            "block_time": 1759752104,
+            "block_time_iso": "2025-10-06T12:01:44.000Z",
+            "burn_block_height": 917901,
+            "burn_block_time": 1759751754,
+            "burn_block_time_iso": "2025-10-06T11:55:54.000Z",
+            "parent_burn_block_time": 1759751754,
+            "canonical": true,
+            "tx_index": 0,
+            "tx_status": "success",
+            "tx_result": {
+              "hex": "0x0703",
+              "repr": "(ok true)"
+            },
+            "microblock_hash": "0x",
+            "microblock_sequence": 2147483647,
+            "microblock_canonical": true,
+            "event_count": 1,
+            "events": [],
+            "execution_cost_read_count": 0,
+            "execution_cost_read_length": 0,
+            "execution_cost_runtime": 0,
+            "execution_cost_write_count": 0,
+            "execution_cost_write_length": 0,
+            "tx_type": "token_transfer"
+          },
+          {
+            "tx_id": "0x86607f4a3df9b772d011d8365b9708d0adf539178d92f6dedfe1c10e2f924315",
+            "nonce": 1395259,
+            "fee_rate": "180",
+            "sender_address": "SP3XXK8BG5X7CRH7W07RRJK3JZJXJ799WX3Y0SMCR",
+            "sponsored": false,
+            "sponsor_address": null,
+            "post_condition_mode": "deny",
+            "post_conditions": [],
+            "anchor_mode": "any",
+            "is_unanchored": false,
+            "block_hash": "0x77245eb74465102b15465096c22e2a4132a18762e7dc8813e260bf609ca0ba48",
+            "parent_block_hash": "0x910c57af588825204b9d389b24d7db26b6a0d326afa74c9e58729fb31edfd9b1",
+            "block_height": 4003612,
+            "block_time": 1759752102,
+            "block_time_iso": "2025-10-06T12:01:42.000Z",
+            "burn_block_height": 917901,
+            "burn_block_time": 1759751754,
+            "burn_block_time_iso": "2025-10-06T11:55:54.000Z",
+            "parent_burn_block_time": 1759751754,
+            "canonical": true,
+            "tx_index": 0,
+            "tx_status": "success",
+            "tx_result": {
+              "hex": "0x0703",
+              "repr": "(ok true)"
+            },
+            "microblock_hash": "0x",
+            "microblock_sequence": 2147483647,
+            "microblock_canonical": true,
+            "event_count": 1,
+            "events": [],
+            "execution_cost_read_count": 0,
+            "execution_cost_read_length": 0,
+            "execution_cost_runtime": 0,
+            "execution_cost_write_count": 0,
+            "execution_cost_write_length": 0,
+            "tx_type": "token_transfer"
+          },
+          {
+            "tx_id": "0xd8225e6048bb800bf0608a807ada45fde0c8348c2b5cd97882489594020846e1",
+            "nonce": 1395258,
+            "fee_rate": "180",
+            "sender_address": "SP3XXK8BG5X7CRH7W07RRJK3JZJXJ799WX3Y0SMCR",
+            "sponsored": false,
+            "sponsor_address": null,
+            "post_condition_mode": "deny",
+            "post_conditions": [],
+            "anchor_mode": "any",
+            "is_unanchored": false,
+            "block_hash": "0x910c57af588825204b9d389b24d7db26b6a0d326afa74c9e58729fb31edfd9b1",
+            "parent_block_hash": "0x3faae0bdf55cfb24f5a9008c4aa2178284b452aae32770ddcf058668e01dafff",
+            "block_height": 4003611,
+            "block_time": 1759752099,
+            "block_time_iso": "2025-10-06T12:01:39.000Z",
+            "burn_block_height": 917901,
+            "burn_block_time": 1759751754,
+            "burn_block_time_iso": "2025-10-06T11:55:54.000Z",
+            "parent_burn_block_time": 1759751754,
+            "canonical": true,
+            "tx_index": 2,
+            "tx_status": "success",
+            "tx_result": {
+              "hex": "0x0703",
+              "repr": "(ok true)"
+            },
+            "microblock_hash": "0x",
+            "microblock_sequence": 2147483647,
+            "microblock_canonical": true,
+            "event_count": 1,
+            "events": [],
+            "execution_cost_read_count": 0,
+            "execution_cost_read_length": 0,
+            "execution_cost_runtime": 0,
+            "execution_cost_write_count": 0,
+            "execution_cost_write_length": 0,
+            "tx_type": "token_transfer"
+          },
+          {
+            "tx_id": "0x6eb16f21952b1f35306b9bd3bf436d37d3e19f9a6cf0217787decd5473a37a28",
+            "nonce": 44228,
+            "fee_rate": "5390",
+            "sender_address": "SP2Z0V6KWDW82V6YDHHKH6E8M010PWEXAPX711XWR",
+            "sponsored": false,
+            "sponsor_address": null,
+            "post_condition_mode": "allow",
+            "post_conditions": [],
+            "anchor_mode": "any",
+            "is_unanchored": false,
+            "block_hash": "0x910c57af588825204b9d389b24d7db26b6a0d326afa74c9e58729fb31edfd9b1",
+            "parent_block_hash": "0x3faae0bdf55cfb24f5a9008c4aa2178284b452aae32770ddcf058668e01dafff",
+            "block_height": 4003611,
+            "block_time": 1759752099,
+            "block_time_iso": "2025-10-06T12:01:39.000Z",
+            "burn_block_height": 917901,
+            "burn_block_time": 1759751754,
+            "burn_block_time_iso": "2025-10-06T11:55:54.000Z",
+            "parent_burn_block_time": 1759751754,
+            "canonical": true,
+            "tx_index": 1,
+            "tx_status": "success",
+            "tx_result": {
+              "hex": "0x0703",
+              "repr": "(ok true)"
+            },
+            "microblock_hash": "0x",
+            "microblock_sequence": 2147483647,
+            "microblock_canonical": true,
+            "event_count": 3,
+            "events": [],
+            "execution_cost_read_count": 6,
+            "execution_cost_read_length": 299,
+            "execution_cost_runtime": 111574,
+            "execution_cost_write_count": 3,
+            "execution_cost_write_length": 3,
+            "tx_type": "contract_call"
+          },
+          {
+            "tx_id": "0x0e181613c680d198daf6738a20bf74bd5afde2fb01b3c2528fc13958a53b9f06",
+            "nonce": 18,
+            "fee_rate": "37104",
+            "sender_address": "SP0FM7XTW7R3Y74A2TYN1B2HF4MB5NREFA74YFSE",
+            "sponsored": false,
+            "sponsor_address": null,
+            "post_condition_mode": "deny",
+            "post_conditions": [
+              {
+                "type": "fungible",
+                "condition_code": "sent_equal_to",
+                "amount": "1647204894",
+                "principal": {
+                  "type_id": "principal_standard",
+                  "address": "SP0FM7XTW7R3Y74A2TYN1B2HF4MB5NREFA74YFSE"
+                },
+                "asset": {
+                  "asset_name": "alex",
+                  "contract_address": "SP3K8BC0PPEVCV7NZ6QSRWPQ2JE9E5B6N3PA0KBR9",
+                  "contract_name": "age000-governance-token"
+                }
+              }
+            ],
+            "anchor_mode": "any",
+            "is_unanchored": false,
+            "block_hash": "0x910c57af588825204b9d389b24d7db26b6a0d326afa74c9e58729fb31edfd9b1",
+            "parent_block_hash": "0x3faae0bdf55cfb24f5a9008c4aa2178284b452aae32770ddcf058668e01dafff",
+            "block_height": 4003611,
+            "block_time": 1759752099,
+            "block_time_iso": "2025-10-06T12:01:39.000Z",
+            "burn_block_height": 917901,
+            "burn_block_time": 1759751754,
+            "burn_block_time_iso": "2025-10-06T11:55:54.000Z",
+            "parent_burn_block_time": 1759751754,
+            "canonical": true,
+            "tx_index": 0,
+            "tx_status": "success",
+            "tx_result": {
+              "hex": "0x0703",
+              "repr": "(ok true)"
+            },
+            "microblock_hash": "0x",
+            "microblock_sequence": 2147483647,
+            "microblock_canonical": true,
+            "event_count": 2,
+            "events": [],
+            "execution_cost_read_count": 27,
+            "execution_cost_read_length": 32287,
+            "execution_cost_runtime": 67544,
+            "execution_cost_write_count": 3,
+            "execution_cost_write_length": 42,
+            "tx_type": "contract_call"
+          }
+        ]
+      }
+    },
+    "get_tx_list_details": {
+      "endpoint": "/extended/v1/tx/multiple",
+      "method": "GET",
+      "parameters": {
+        "tx_id": [
+          "0x8effbdcbfdd316d21785d24752e67d2e60b7d995d8890b3f957399b163e51df8",
+          "0x86607f4a3df9b772d011d8365b9708d0adf539178d92f6dedfe1c10e2f924315"
+        ]
+      },
+      "success": true,
+      "response": "root={'0x86607f4a3df9b772d011d8365b9708d0adf539178d92f6dedfe1c10e2f924315': TransactionSearchResult(found=True, result=Transaction(tx_id='0x86607f4a3df9b772d011d8365b9708d0adf539178d92f6dedfe1c10e2f924315', nonce=1395259, fee_rate='180', sender_address='SP3XXK8BG5X7CRH7W07RRJK3JZJXJ799WX3Y0SMCR', sponsored=False, sponsor_address=None, post_condition_mode='deny', post_conditions=[], anchor_mode='any', is_unanchored=False, block_hash='0x77245eb74465102b15465096c22e2a4132a18762e7dc8813e260bf609ca0ba48', parent_block_hash='0x910c57af588825204b9d389b24d7db26b6a0d326afa74c9e58729fb31edfd9b1', block_height=4003612, block_time=1759752102, block_time_iso='2025-10-06T12:01:42.000Z', burn_block_height=917901, burn_block_time=1759751754, burn_block_time_iso='2025-10-06T11:55:54.000Z', parent_burn_block_time=1759751754, canonical=True, tx_index=0, tx_status=<TransactionStatus.SUCCESS: 'success'>, tx_result={'hex': '0x0703', 'repr': '(ok true)'}, microblock_hash='0x', microblock_sequence=2147483647, microblock_canonical=True, event_count=1, events=[{'event_index': 0, 'event_type': 'stx_asset', 'tx_id': '0x86607f4a3df9b772d011d8365b9708d0adf539178d92f6dedfe1c10e2f924315', 'asset': {'asset_event_type': 'transfer', 'sender': 'SP3XXK8BG5X7CRH7W07RRJK3JZJXJ799WX3Y0SMCR', 'recipient': 'SP3SBQ9PZEMBNBAWTR7FRPE3XK0EFW9JWVX4G80S2', 'amount': '1', 'memo': '0x00000000000000000000000000000000000000000000000000000000000000000000'}}], execution_cost_read_count=0, execution_cost_read_length=0, execution_cost_runtime=0, execution_cost_write_count=0, execution_cost_write_length=0, tx_type=<TransactionType.TOKEN_TRANSFER: 'token_transfer'>)), '0x8effbdcbfdd316d21785d24752e67d2e60b7d995d8890b3f957399b163e51df8': TransactionSearchResult(found=True, result=Transaction(tx_id='0x8effbdcbfdd316d21785d24752e67d2e60b7d995d8890b3f957399b163e51df8', nonce=7365, fee_rate='300', sender_address='SP2TJMQFBCKNNFFN632BCP6YRH17D1RBRB42MKSDD', sponsored=False, sponsor_address=None, post_condition_mode='deny', post_conditions=[], anchor_mode='any', is_unanchored=False, block_hash='0x8716cd7f290d55e6890234ca932a81734ee19781a4ae2842ba40196e0625265a', parent_block_hash='0x77245eb74465102b15465096c22e2a4132a18762e7dc8813e260bf609ca0ba48', block_height=4003613, block_time=1759752104, block_time_iso='2025-10-06T12:01:44.000Z', burn_block_height=917901, burn_block_time=1759751754, burn_block_time_iso='2025-10-06T11:55:54.000Z', parent_burn_block_time=1759751754, canonical=True, tx_index=0, tx_status=<TransactionStatus.SUCCESS: 'success'>, tx_result={'hex': '0x0703', 'repr': '(ok true)'}, microblock_hash='0x', microblock_sequence=2147483647, microblock_canonical=True, event_count=1, events=[{'event_index': 0, 'event_type': 'stx_asset', 'tx_id': '0x8effbdcbfdd316d21785d24752e67d2e60b7d995d8890b3f957399b163e51df8', 'asset': {'asset_event_type': 'transfer', 'sender': 'SP2TJMQFBCKNNFFN632BCP6YRH17D1RBRB42MKSDD', 'recipient': 'SP34EBMKMRR6SXX65GRKJ1FHEXV7AGHJ2D8ASQ5M3', 'amount': '100', 'memo': '0x00000000000000000000000000000000000000000000000000000000000000000000'}}], execution_cost_read_count=0, execution_cost_read_length=0, execution_cost_runtime=0, execution_cost_write_count=0, execution_cost_write_length=0, tx_type=<TransactionType.TOKEN_TRANSFER: 'token_transfer'>))}"
+    },
+    "get_transaction_by_id": {
+      "endpoint": "/extended/v1/tx/0x8effbdcbfdd316d21785d24752e67d2e60b7d995d8890b3f957399b163e51df8",
+      "method": "GET",
+      "parameters": {
+        "tx_id": "0x8effbdcbfdd316d21785d24752e67d2e60b7d995d8890b3f957399b163e51df8"
+      },
+      "success": true,
+      "response": {
+        "tx_id": "0x8effbdcbfdd316d21785d24752e67d2e60b7d995d8890b3f957399b163e51df8",
+        "nonce": 7365,
+        "fee_rate": "300",
+        "sender_address": "SP2TJMQFBCKNNFFN632BCP6YRH17D1RBRB42MKSDD",
+        "sponsored": false,
+        "sponsor_address": null,
+        "post_condition_mode": "deny",
+        "post_conditions": [],
+        "anchor_mode": "any",
+        "is_unanchored": false,
+        "block_hash": "0x8716cd7f290d55e6890234ca932a81734ee19781a4ae2842ba40196e0625265a",
+        "parent_block_hash": "0x77245eb74465102b15465096c22e2a4132a18762e7dc8813e260bf609ca0ba48",
+        "block_height": 4003613,
+        "block_time": 1759752104,
+        "block_time_iso": "2025-10-06T12:01:44.000Z",
+        "burn_block_height": 917901,
+        "burn_block_time": 1759751754,
+        "burn_block_time_iso": "2025-10-06T11:55:54.000Z",
+        "parent_burn_block_time": 1759751754,
+        "canonical": true,
+        "tx_index": 0,
+        "tx_status": "success",
+        "tx_result": {
+          "hex": "0x0703",
+          "repr": "(ok true)"
+        },
+        "microblock_hash": "0x",
+        "microblock_sequence": 2147483647,
+        "microblock_canonical": true,
+        "event_count": 1,
+        "events": [
+          {
+            "event_index": 0,
+            "event_type": "stx_asset",
+            "tx_id": "0x8effbdcbfdd316d21785d24752e67d2e60b7d995d8890b3f957399b163e51df8",
+            "asset": {
+              "asset_event_type": "transfer",
+              "sender": "SP2TJMQFBCKNNFFN632BCP6YRH17D1RBRB42MKSDD",
+              "recipient": "SP34EBMKMRR6SXX65GRKJ1FHEXV7AGHJ2D8ASQ5M3",
+              "amount": "100",
+              "memo": "0x00000000000000000000000000000000000000000000000000000000000000000000"
+            }
+          }
+        ],
+        "execution_cost_read_count": 0,
+        "execution_cost_read_length": 0,
+        "execution_cost_runtime": 0,
+        "execution_cost_write_count": 0,
+        "execution_cost_write_length": 0,
+        "tx_type": "token_transfer"
+      }
+    },
+    "get_raw_transaction_by_id": {
+      "endpoint": "/extended/v1/tx/0x8effbdcbfdd316d21785d24752e67d2e60b7d995d8890b3f957399b163e51df8/raw",
+      "method": "GET",
+      "parameters": {
+        "tx_id": "0x8effbdcbfdd316d21785d24752e67d2e60b7d995d8890b3f957399b163e51df8"
+      },
+      "success": true,
+      "response": "{\"raw_tx\":\"0x00000000010400b52a5deb64eb57bea61896cb1bd8884ed0e178590000000000001cc5000000000000012c00014bc434ae582bcfb8528e8ff36e21cd0339280e1aff05655314359f5e45792fbb0cac366d912afa7f793d603008b4759d69623620c797f80df80bf24ac6213063030200000000000516c8e5d274c60d9ef4c5862720be2eeecea846426a000000000000006400000000000000000000000000000000000000000000000000000000000000000000\"}",
+      "response_length": 375
+    },
+    "get_contract_by_id": {
+      "endpoint": "/extended/v1/contract/SPV9K21TBFAK4KNRJXF5DFP8N7W46G4V9RCJDC22.btcr-pre-faktory",
+      "method": "GET",
+      "parameters": {
+        "contract_id": "SPV9K21TBFAK4KNRJXF5DFP8N7W46G4V9RCJDC22.btcr-pre-faktory"
+      },
+      "success": true,
+      "response": {
+        "tx_id": "0xec0d57ab7a2a8c7d12872d1138d7c883ad8477565236cfe1bb7aebf81bf5aaf9",
+        "canonical": true,
+        "contract_id": "SPV9K21TBFAK4KNRJXF5DFP8N7W46G4V9RCJDC22.btcr-pre-faktory",
+        "block_height": 1145918,
+        "source_code": "\n        ;; \n        ;; fak.fun PRE @version 1.0\n        ;; Pre-launch contract for token distribution\n        ;; Dynamic allocation: 1-7 seats per user in Period 1\n        ;; Each seat = 0.00006900 BTC, targeting 200 seats total with minimum 100 users\n        \n        ;; Pre-launch participants are activating the DEX contract \n        ;; and therefore can claim fees generated by DEX\n        ;; Fee airdrops are separate from token purchase and vesting.\n    \n        (use-trait faktory-token 'SP3XXMS38VTAWTVPE5682XSBFXPTH7XCPEBTX8AN2.faktory-trait-v1.sip-010-trait) \n        \n        (define-constant SEATS u200)\n        (define-constant MIN-USERS u100)\n        (define-constant MAX-SEATS-PER-USER u7)\n        (define-constant PRICE-PER-SEAT u6900) ;; 6.9K sats per seat\n        (define-constant TOKENS-PER-SEAT u100000000000000) ;; 1M \n        (define-constant DEX-AMOUNT u1000000)\n        (define-constant MULTI-SIG-AMOUNT u30000)\n        (define-constant FEE-AMOUNT u350000)\n    \n        (define-constant FT-INITIALIZED-BALANCE u20000000000000000) ;; 200M tokens for pre-launch if supply 1B\n        \n        ;; Vesting schedule (percentages add up to 100)\n        (define-constant VESTING-SCHEDULE\n          (list \n          ;; Initial release - 10% at once\n          {height: u100, percent: u10, id: u0}    ;; 10% at initial unlock\n          \n          ;; Second phase - 20% total across 6 drips\n          {height: u250, percent: u3, id: u1}     ;; 3%\n          {height: u400, percent: u3, id: u2}     ;; 3%\n          {height: u550, percent: u3, id: u3}     ;; 3%\n          {height: u700, percent: u3, id: u4}     ;; 3%\n          {height: u850, percent: u4, id: u5}     ;; 4%\n          {height: u1000, percent: u4, id: u6}    ;; 4% - hitting 30% total at original second milestone\n          \n          ;; Third phase - 30% total across 7 drips\n          {height: u1200, percent: u4, id: u7}    ;; 4%\n          {height: u1400, percent: u4, id: u8}    ;; 4%\n          {height: u1600, percent: u4, id: u9}    ;; 4%\n          {height: u1750, percent: u4, id: u10}   ;; 4%\n          {height: u1900, percent: u4, id: u11}   ;; 4%\n          {height: u2000, percent: u5, id: u12}   ;; 5%\n          {height: u2100, percent: u5, id: u13}   ;; 5% - hitting 60% total at original third milestone\n          \n          ;; Final phase - 40% total across 7 drips\n          {height: u2500, percent: u5, id: u14}   ;; 5%\n          {height: u2900, percent: u5, id: u15}   ;; 5%\n          {height: u3300, percent: u6, id: u16}   ;; 6%\n          {height: u3600, percent: u6, id: u17}   ;; 6%\n          {height: u3900, percent: u6, id: u18}   ;; 6%\n          {height: u4100, percent: u6, id: u19}   ;; 6%\n          {height: u4200, percent: u6, id: u20})) ;; 6% - hitting 100% total at original final milestone\n    \n        (define-constant FAKTORY1 'SMH8FRN30ERW1SX26NJTJCKTDR3H27NRJ6W75WQE)\n        (define-constant FAKTORY2 'SM362G0X1YNB2M3FWWFAASV9WB3XHQ8RWP512SSX3)\n        \n        ;; Data vars\n        (define-data-var ft-balance uint u0)\n        (define-data-var stx-balance uint u0)\n        (define-data-var total-seats-taken uint u0)\n        (define-data-var total-users uint u0)\n        (define-data-var distribution-height uint u0)\n        (define-data-var deployment-height uint burn-block-height)\n        (define-data-var accelerated-vesting bool false)\n        (define-data-var market-open bool false)\n        (define-data-var governance-active bool false)\n        (define-data-var acc-distributed uint u0)\n    \n        ;; Token, Dex and sBTC\n        (define-constant TOKEN-DAO 'SPV9K21TBFAK4KNRJXF5DFP8N7W46G4V9RCJDC22.btcr-faktory) ;; param\n        (define-constant DEX-DAO 'SPV9K21TBFAK4KNRJXF5DFP8N7W46G4V9RCJDC22.btcr-faktory-dex) ;; param\n      \n        ;; Define a data variable to track seat holders\n        (define-data-var seat-holders (list 200 {owner: principal, seats: uint}) (list))\n        \n        ;; Track seat ownership and claims\n        (define-map seats-owned principal uint)\n        (define-map claimed-amounts principal uint)\n        \n        ;; Error constants\n        (define-constant ERR-NO-SEATS-LEFT (err u301))\n        (define-constant ERR-NOT-SEAT-OWNER (err u302))\n        (define-constant ERR-NOTHING-TO-CLAIM (err u304))\n        (define-constant ERR-NOT-AUTHORIZED (err u305))\n        (define-constant ERR-WRONG-TOKEN (err u307))\n        (define-constant ERR-CONTRACT-INSUFFICIENT-FUNDS (err u311))\n        (define-constant ERR-INVALID-SEAT-COUNT (err u313))\n        (define-constant ERR-REMOVING-HOLDER (err u316))\n        (define-constant ERR-DISTRIBUTION-ALREADY-SET (err u320))\n        (define-constant ERR-DISTRIBUTION-NOT-INITIALIZED (err u321))\n        \n        ;; Helper function to update seat holders list\n        (define-private (update-seat-holder (owner principal) (seat-count uint))\n        (let ((current-holders (var-get seat-holders))\n                (updated-list (update-or-add-holder current-holders owner seat-count)))\n            (var-set seat-holders updated-list)))\n    \n        ;; Helper to update or add a holder to the list\n        (define-private (update-or-add-holder \n            (holders (list 200 {owner: principal, seats: uint}))\n            (owner principal) (seat-count uint))\n        (let ((position (find-holder-position holders)))\n            (if (is-some position)\n                ;; Update existing holder - unwrap the optional result\n                (unwrap-panic (replace-at? holders (unwrap-panic position) {owner: owner, seats: seat-count}))\n                ;; Add new holder\n                (unwrap-panic (as-max-len? (append holders {owner: owner, seats: seat-count}) u200)))))\n    \n        ;; Helper to find a holder's position in the list\n        (define-private (find-holder-position \n            (holders (list 200 {owner: principal, seats: uint})))\n        (let ((result (fold check-if-owner \n                            holders \n                            {found: false, index: u0})))\n            (if (get found result)\n                (some (get index result))\n                none)))\n    \n        (define-private (check-if-owner \n            (entry {owner: principal, seats: uint}) \n            (state {found: bool, index: uint}))\n        (if (get found state)\n            ;; Already found, just pass through\n            state\n            ;; Check if this is the owner we're looking for\n            (if (is-eq (get owner entry) tx-sender)\n                ;; Found it, update state\n                {found: true, index: (get index state)}\n                ;; Not found, increment counter\n                {found: false, index: (+ (get index state) u1)})))\n    \n        (define-private (remove-seat-holder)\n        (let ((filtered-list (filter not-matching-owner (var-get seat-holders))))\n            (var-set seat-holders filtered-list)\n            (ok true)))\n    \n        (define-private (not-matching-owner (entry {owner: principal, seats: uint}))\n        (not (is-eq (get owner entry) tx-sender)))\n    \n        ;; Main functions\n        ;; Buy seats in Period 1\n        (define-public (buy-up-to (seat-count uint))\n            (let (\n                (current-seats (var-get total-seats-taken))\n                (user-seats (default-to u0 (map-get? seats-owned tx-sender)))\n                (max-total-allowed (get-max-seats-allowed))\n                (max-additional-allowed (if (>= (var-get total-users) MIN-USERS)\n                                            max-total-allowed ;; if quota of users is attained, anyone can buy\n                                            (if (>= user-seats max-total-allowed)\n                                                u0\n                                                (- max-total-allowed user-seats))))\n                (actual-seats (if (> seat-count max-additional-allowed) \n                                max-additional-allowed\n                                seat-count)))\n                \n                (asserts! (is-eq (var-get distribution-height) u0) ERR-DISTRIBUTION-ALREADY-SET)\n                (asserts! (> actual-seats u0) ERR-INVALID-SEAT-COUNT)\n                (asserts! (<= (+ user-seats actual-seats) MAX-SEATS-PER-USER) ERR-INVALID-SEAT-COUNT)\n                (asserts! (< current-seats SEATS) ERR-NO-SEATS-LEFT)\n    \n                ;; Process payment\n                (match (contract-call? 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token \n                                transfer (* PRICE-PER-SEAT actual-seats) tx-sender (as-contract tx-sender) none)\n                    success \n                        (begin\n                            (if (is-eq user-seats u0) \n                                (var-set total-users (+ (var-get total-users) u1))\n                                true)\n                            (map-set seats-owned tx-sender (+ user-seats actual-seats))\n                            (var-set total-seats-taken (+ current-seats actual-seats))\n                            (var-set stx-balance (+ (var-get stx-balance) (* PRICE-PER-SEAT actual-seats)))\n                            (update-seat-holder tx-sender (+ user-seats actual-seats))\n                            \n                            (if (and (>= (var-get total-users) MIN-USERS)  ;; Check if we should set distribution height\n                                    (>= (var-get total-seats-taken) SEATS))\n                                (try! (initialize-token-distribution))\n                                true)\n                            (print {\n                                type: \"buy-seats\",\n                                buyer: tx-sender,\n                                seats-owned: (+ user-seats actual-seats),\n                                total-users: (var-get total-users),\n                                total-seats-taken: (+ current-seats actual-seats),\n                                stx-balance: (var-get stx-balance),\n                                seat-holders: (var-get seat-holders),\n                                distribution-height: (var-get distribution-height) \n                                })\n                            (ok true))\n                    error (err error))))\n    \n        ;; Refund logic only for Period 1 expired and Period 2 not started\n        (define-public (refund)\n            (let (\n                (user-seats (default-to u0 (map-get? seats-owned tx-sender)))\n                (seat-owner tx-sender))\n                (asserts! (is-eq (var-get distribution-height) u0) ERR-DISTRIBUTION-ALREADY-SET)\n                (asserts! (> user-seats u0) ERR-NOT-SEAT-OWNER)\n                \n                ;; Process refund\n                (match (as-contract (contract-call? 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token \n                                            transfer (* PRICE-PER-SEAT user-seats) tx-sender seat-owner none))\n                    success \n                        (let ((is-removed (unwrap! (remove-seat-holder) ERR-REMOVING-HOLDER)))\n                            (map-delete seats-owned tx-sender)\n                            (var-set total-seats-taken (- (var-get total-seats-taken) user-seats))\n                            (var-set total-users (- (var-get total-users) u1))\n                            (var-set stx-balance (- (var-get stx-balance) (* PRICE-PER-SEAT user-seats)))\n                            (print {\n                                type: \"refund\",\n                                user: tx-sender,\n                                seats-refunded: user-seats,\n                                seat-holders: (var-get seat-holders),\n                                total-seats-taken: (var-get total-seats-taken),\n                                total-users: (var-get total-users),\n                                stx-balance: (var-get stx-balance)\n                                })\n                            (ok true))\n                    error (err error))))\n      \n      (define-private (get-claimable-amount (owner principal))\n          (begin\n              (if (> (var-get distribution-height) u0)\n                  (let ((claimed (default-to u0 (map-get? claimed-amounts owner)))\n                        (seats-owner (default-to u0 (map-get? seats-owned owner)))\n                        (vested (fold check-claimable VESTING-SCHEDULE u0)))\n                      (- (* vested seats-owner) claimed)) ;; double claiming is impossible    \n                  u0))) ;; If distribution not initialized (equals u0), nothing is claimable\n      \n      (define-private (check-claimable (entry {height: uint, percent: uint, id: uint}) (current-total uint))\n          (let ((distribution-start (var-get distribution-height)))\n              (if (<= (+ distribution-start (get height entry)) burn-block-height)\n                  (+ current-total (/ (* TOKENS-PER-SEAT (get percent entry)) u100))\n                  (if (and \n                      (var-get accelerated-vesting)   ;; token graduated, accelerated vesting\n                      (<= (get id entry) u13))          ;; we're in first 13 entries (0,1,2)\n                      (+ current-total (/ (* TOKENS-PER-SEAT (get percent entry)) u100))\n                      current-total))))\n      \n      ;; Claim vested tokens\n      (define-public (claim (ft <faktory-token>))\n          (let ((claimable (get-claimable-amount tx-sender))\n                (seat-owner tx-sender))\n              (asserts! (> (var-get distribution-height) u0) ERR-DISTRIBUTION-NOT-INITIALIZED) \n              (asserts! (is-eq (contract-of ft) TOKEN-DAO) ERR-WRONG-TOKEN)\n              (asserts! (> (default-to u0 (map-get? seats-owned tx-sender)) u0) ERR-NOT-SEAT-OWNER)\n              (asserts! (> claimable u0) ERR-NOTHING-TO-CLAIM)\n              (asserts! (>= (var-get ft-balance) claimable) ERR-CONTRACT-INSUFFICIENT-FUNDS)\n              (match (as-contract (contract-call? ft transfer claimable tx-sender seat-owner none))\n                  success\n                      (begin\n                          (map-set claimed-amounts tx-sender \n                              (+ (default-to u0 (map-get? claimed-amounts tx-sender)) claimable))\n                          (var-set ft-balance (- (var-get ft-balance) claimable)) ;; reduce ft-balance by claimable\n                          (print {\n                              type: \"claim\",\n                              user: tx-sender,\n                              amount-claimed: claimable,\n                              total-claimed: (map-get? claimed-amounts tx-sender),\n                              ft-balance: (var-get ft-balance)\n                              })\n                          (ok claimable))\n                  error (err error))))\n    \n        ;; Claim vested tokens on behalf of a specific holder\n        (define-public (claim-on-behalf (ft <faktory-token>) (holder principal))\n            (let ((claimable (get-claimable-amount holder)))\n                (asserts! (> (var-get distribution-height) u0) ERR-DISTRIBUTION-NOT-INITIALIZED) \n                (asserts! (is-eq (contract-of ft) TOKEN-DAO) ERR-WRONG-TOKEN)\n                (asserts! (> (default-to u0 (map-get? seats-owned holder)) u0) ERR-NOT-SEAT-OWNER)\n                (asserts! (> claimable u0) ERR-NOTHING-TO-CLAIM)\n                (asserts! (>= (var-get ft-balance) claimable) ERR-CONTRACT-INSUFFICIENT-FUNDS) \n                (match (as-contract (contract-call? ft transfer claimable tx-sender holder none))\n                    success\n                        (begin\n                            (map-set claimed-amounts holder \n                                (+ (default-to u0 (map-get? claimed-amounts holder)) claimable))\n                            (var-set ft-balance (- (var-get ft-balance) claimable))\n                            (print {\n                                type: \"claim\",\n                                user: holder,\n                                amount-claimed: claimable,\n                                total-claimed: (map-get? claimed-amounts holder),\n                                ft-balance: (var-get ft-balance)\n                            })\n                            (ok claimable))\n                    error (err error))))\n    \n      ;; Read only functions\n     (define-read-only (get-max-seats-allowed)\n        (let (\n            (total-users-now (var-get total-users))\n            (seats-remaining (- SEATS (var-get total-seats-taken)))\n            ;; Check if we've already met the minimum users requirement\n            (users-remaining (if (>= total-users-now MIN-USERS)\n                               u0  ;; No more users needed\n                               (- MIN-USERS total-users-now)))\n            (max-possible (if (>= total-users-now MIN-USERS)\n                               seats-remaining  ;; No more users needed\n                               (+ (- seats-remaining users-remaining) u1))))\n            (if (>= max-possible MAX-SEATS-PER-USER)\n                MAX-SEATS-PER-USER\n                max-possible)))\n      \n        (define-read-only (get-contract-status)\n            (ok \n            {\n                is-distribution-period: (> (var-get distribution-height) u0),\n                total-users: (var-get total-users),\n                total-seats-taken: (var-get total-seats-taken),\n                deployment-height: (var-get deployment-height),\n                distribution-height: (var-get distribution-height),\n                accelerated-vesting: (var-get accelerated-vesting),\n                market-open: (var-get market-open),\n                governance-active: (var-get governance-active),\n                seat-holders: (var-get seat-holders)\n            }))\n      \n      (define-read-only (get-user-info (user principal))\n          (ok\n          {\n              seats-owned: (default-to u0 (map-get? seats-owned user)),\n              amount-claimed: (default-to u0 (map-get? claimed-amounts user)),\n              claimable-amount: (get-claimable-amount user)\n          }))\n      \n      (define-read-only (get-user-claimable (user principal))\n        (ok\n        {\n            claimable-amount: (get-claimable-amount user)\n        }))\n      \n      (define-read-only (get-remaining-seats)\n          (ok {remainin-seats: (- SEATS (var-get total-seats-taken))}))\n      \n      (define-read-only (get-seats-owned (address principal))\n          (ok {seats-owned: (default-to u0 (map-get? seats-owned address))}))\n      \n      (define-read-only (get-claimed-amount (address principal))\n          (ok {claimed-amount:\n          (default-to u0 (map-get? claimed-amounts address))}))\n      \n      (define-read-only (get-vesting-schedule)\n          (ok {vesting-schedule: VESTING-SCHEDULE}))\n      \n      (define-read-only (get-seat-holders)\n          (ok {seat-holders: (var-get seat-holders)}))\n    \n      (define-read-only (is-market-open) \n          (ok (var-get market-open))\n      )\n      \n      (define-read-only (is-governance-active)\n          (ok (var-get governance-active))\n      )\n      \n      ;; on pre-launch successful completion\n      (define-private (initialize-token-distribution)\n          (begin\n              (var-set market-open true)\n              (var-set governance-active true) ;; jason:  in core/action proposal, checks from create proposal, deadlocks anything happening\n              (try! (as-contract (contract-call? 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token \n                                        transfer DEX-AMOUNT tx-sender DEX-DAO none))) ;; BTC to DEX  \n              (try! (as-contract (contract-call? 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token \n                                        transfer MULTI-SIG-AMOUNT tx-sender FAKTORY1 none))) \n              (try! (as-contract (contract-call? 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token \n                                        transfer FEE-AMOUNT tx-sender FAKTORY2 none)))  \n              (var-set distribution-height burn-block-height)\n              (var-set last-airdrop-height (some burn-block-height))\n              (var-set ft-balance FT-INITIALIZED-BALANCE)\n              (var-set stx-balance u0)\n              (print {\n                  type: \"distribution-initialized\",\n                  token-contract: TOKEN-DAO,\n                  distribution-height: burn-block-height,\n                  ft-balance: FT-INITIALIZED-BALANCE\n              })\n              (ok true)))\n      \n    ;; on Bonding\n    (define-public (toggle-bonded)\n        (begin\n            (asserts! (is-eq contract-caller DEX-DAO) ERR-NOT-AUTHORIZED)\n            (var-set accelerated-vesting true) \n            (var-set final-airdrop-mode true) \n            (print {\n                type: \"bonded\",\n                token-contract: TOKEN-DAO,\n                bonded-height: burn-block-height,\n            }) \n            (ok true)))\n    \n    ;; Simplified Fee Distribution System\n    ;; Constants\n    (define-constant COOLDOWN-PERIOD u1050) ;; Longer cooldown between airdrops\n    \n    ;; Error constants\n    (define-constant ERR-NO-FEES-TO-DISTRIBUTE (err u323))\n    (define-constant ERR-COOLDOWN-ACTIVE (err u324))\n    (define-constant ERR-TOTAL-SEATS-ZERO (err u325))\n    \n    ;; Data vars for fee tracking\n    (define-data-var accumulated-fees uint u0)        ;; Total fees accumulated since last airdrop\n    (define-data-var last-airdrop-height (optional uint) (some u0)) ;; Block height of the last airdrop\n    (define-data-var final-airdrop-mode bool false)   ;; Toggle for final airdrop mode\n    \n    ;; Add this function to allow the DEX to send fees to the contract\n    (define-public (create-fees-receipt (amount uint))\n        (let ((current-fees (var-get accumulated-fees)))\n            ;; Only the DEX contract can call this function\n            (asserts! (is-eq contract-caller DEX-DAO) ERR-NOT-AUTHORIZED)\n            \n            ;; Update accumulated fees\n            (var-set accumulated-fees (+ current-fees amount))\n            \n            (print {\n                type: \"fees-received\",\n                amount: amount,\n                total-accumulated: (+ current-fees amount)\n            })\n            (ok true)))\n    \n    ;; Check if airdrop can be triggered\n    (define-read-only (can-trigger-airdrop)\n        (let ((cooldown-expired (>= burn-block-height (+ (unwrap-panic (var-get last-airdrop-height)) COOLDOWN-PERIOD)))\n              (has-fees (> (var-get accumulated-fees) u0))\n              (final-mode (var-get final-airdrop-mode)))\n            \n            (or (and cooldown-expired has-fees)    \n                (and final-mode has-fees))))      \n    \n    ;; Main airdrop function - anyone can call\n    (define-public (trigger-fee-airdrop)\n        (let ((total-fees (var-get accumulated-fees))\n              (total-seats (var-get total-seats-taken))\n              (can-airdrop (can-trigger-airdrop))\n              (acc-fees (var-get accumulated-fees)))\n            \n            ;; Check if airdrop can be triggered\n            (asserts! can-airdrop (if (> total-fees u0) \n                                     ERR-COOLDOWN-ACTIVE \n                                     ERR-NO-FEES-TO-DISTRIBUTE))\n            \n            ;; Must have fees to distribute and seats must exist\n            (asserts! (> total-fees u0) ERR-NO-FEES-TO-DISTRIBUTE)\n            (asserts! (> total-seats u0) ERR-TOTAL-SEATS-ZERO)\n            \n            ;; Distribute fees to all seat holders\n            (var-set acc-distributed u0)\n            (let ((distributions (map distribute-to-holder (var-get seat-holders))))\n                 \n                 (if (> (- acc-fees (var-get acc-distributed)) u0)\n                     (match (as-contract (contract-call? 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token \n                                         transfer (- acc-fees (var-get acc-distributed)) tx-sender FAKTORY1 none))\n                         success\n                             (begin\n                                 (print {\n                                     type: \"fee-residual\",\n                                     recipient: FAKTORY1,\n                                     amount: (- acc-fees (var-get acc-distributed))\n                                 })\n                                 true)\n                         error false)\n                     true)\n     \n                 ;; Reset accumulated fees and update last airdrop height\n                 (var-set accumulated-fees u0)\n                 (var-set last-airdrop-height (some burn-block-height))\n                 \n                 (print {\n                     type: \"fee-airdrop\",\n                     total-distributed: total-fees,\n                     timestamp: burn-block-height,\n                     distributions: distributions\n                 })\n                 (ok total-fees))))\n    \n    ;; Helper function to distribute fees to a single holder\n    (define-private (distribute-to-holder (entry {owner: principal, seats: uint}))\n        (let ((holder (get owner entry))\n              (user-seats (get seats entry))\n              (total-seats (var-get total-seats-taken))\n              (total-fees (var-get accumulated-fees))\n              (user-share (if (and (> user-seats u0) (> total-seats u0))\n                             (/ (* total-fees user-seats) total-seats)\n                             u0)))\n            \n            ;; Only distribute if the user's share is greater than zero\n            (if (> user-share u0)\n                (match (as-contract (contract-call? 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token \n                                        transfer user-share tx-sender holder none))\n                     success\n                         (begin \n                             (var-set acc-distributed (+ (var-get acc-distributed) user-share))\n                             {recipient: holder, amount: user-share})\n                     error {recipient: holder, amount: u0})  \n                 {recipient: holder, amount: u0})))\n    \n    ;; Helper to extract principal from seat-holder entry\n    (define-private (get-holder-principal (entry {owner: principal, seats: uint}))\n        (get owner entry))\n    \n    ;; Get all unique seat holders\n    (define-read-only (get-all-seat-holders)\n        (ok (var-get seat-holders)))\n    \n    ;; Get fee distribution info for UI\n    (define-read-only (get-fee-distribution-info)\n        (ok {\n            accumulated-fees: (var-get accumulated-fees),\n            last-airdrop-height: (var-get last-airdrop-height),\n            current-height: burn-block-height,\n            cooldown-period: COOLDOWN-PERIOD,\n            final-airdrop-mode: (var-get final-airdrop-mode),\n            can-trigger-now: (can-trigger-airdrop)\n        }))\n    \n    ;; Get user's expected share in the next airdrop\n    (define-read-only (get-user-expected-share (user principal))\n        (let ((user-seats (default-to u0 (map-get? seats-owned user)))\n              (total-seats (var-get total-seats-taken))\n              (total-fees (var-get accumulated-fees)))\n            \n            (ok {\n                user: user,\n                user-seats: user-seats,\n                total-seats: total-seats,\n                total-accumulated-fees: total-fees,\n                expected-share: (if (and (> user-seats u0) (> total-seats u0) (> total-fees u0))\n                                  (/ (* total-fees user-seats) total-seats)\n                                  u0)\n            })))",
+        "abi": "{\"maps\":[{\"key\":\"principal\",\"name\":\"claimed-amounts\",\"value\":\"uint128\"},{\"key\":\"principal\",\"name\":\"seats-owned\",\"value\":\"uint128\"}],\"epoch\":\"Epoch31\",\"functions\":[{\"args\":[{\"name\":\"entry\",\"type\":{\"tuple\":[{\"name\":\"height\",\"type\":\"uint128\"},{\"name\":\"id\",\"type\":\"uint128\"},{\"name\":\"percent\",\"type\":\"uint128\"}]}},{\"name\":\"current-total\",\"type\":\"uint128\"}],\"name\":\"check-claimable\",\"access\":\"private\",\"outputs\":{\"type\":\"uint128\"}},{\"args\":[{\"name\":\"entry\",\"type\":{\"tuple\":[{\"name\":\"owner\",\"type\":\"principal\"},{\"name\":\"seats\",\"type\":\"uint128\"}]}},{\"name\":\"state\",\"type\":{\"tuple\":[{\"name\":\"found\",\"type\":\"bool\"},{\"name\":\"index\",\"type\":\"uint128\"}]}}],\"name\":\"check-if-owner\",\"access\":\"private\",\"outputs\":{\"type\":{\"tuple\":[{\"name\":\"found\",\"type\":\"bool\"},{\"name\":\"index\",\"type\":\"uint128\"}]}}},{\"args\":[{\"name\":\"entry\",\"type\":{\"tuple\":[{\"name\":\"owner\",\"type\":\"principal\"},{\"name\":\"seats\",\"type\":\"uint128\"}]}}],\"name\":\"distribute-to-holder\",\"access\":\"private\",\"outputs\":{\"type\":{\"tuple\":[{\"name\":\"amount\",\"type\":\"uint128\"},{\"name\":\"recipient\",\"type\":\"principal\"}]}}},{\"args\":[{\"name\":\"holders\",\"type\":{\"list\":{\"type\":{\"tuple\":[{\"name\":\"owner\",\"type\":\"principal\"},{\"name\":\"seats\",\"type\":\"uint128\"}]},\"length\":200}}}],\"name\":\"find-holder-position\",\"access\":\"private\",\"outputs\":{\"type\":{\"optional\":\"uint128\"}}},{\"args\":[{\"name\":\"owner\",\"type\":\"principal\"}],\"name\":\"get-claimable-amount\",\"access\":\"private\",\"outputs\":{\"type\":\"uint128\"}},{\"args\":[{\"name\":\"entry\",\"type\":{\"tuple\":[{\"name\":\"owner\",\"type\":\"principal\"},{\"name\":\"seats\",\"type\":\"uint128\"}]}}],\"name\":\"get-holder-principal\",\"access\":\"private\",\"outputs\":{\"type\":\"principal\"}},{\"args\":[],\"name\":\"initialize-token-distribution\",\"access\":\"private\",\"outputs\":{\"type\":{\"response\":{\"ok\":\"bool\",\"error\":\"uint128\"}}}},{\"args\":[{\"name\":\"entry\",\"type\":{\"tuple\":[{\"name\":\"owner\",\"type\":\"principal\"},{\"name\":\"seats\",\"type\":\"uint128\"}]}}],\"name\":\"not-matching-owner\",\"access\":\"private\",\"outputs\":{\"type\":\"bool\"}},{\"args\":[],\"name\":\"remove-seat-holder\",\"access\":\"private\",\"outputs\":{\"type\":{\"response\":{\"ok\":\"bool\",\"error\":\"none\"}}}},{\"args\":[{\"name\":\"holders\",\"type\":{\"list\":{\"type\":{\"tuple\":[{\"name\":\"owner\",\"type\":\"principal\"},{\"name\":\"seats\",\"type\":\"uint128\"}]},\"length\":200}}},{\"name\":\"owner\",\"type\":\"principal\"},{\"name\":\"seat-count\",\"type\":\"uint128\"}],\"name\":\"update-or-add-holder\",\"access\":\"private\",\"outputs\":{\"type\":{\"list\":{\"type\":{\"tuple\":[{\"name\":\"owner\",\"type\":\"principal\"},{\"name\":\"seats\",\"type\":\"uint128\"}]},\"length\":200}}}},{\"args\":[{\"name\":\"owner\",\"type\":\"principal\"},{\"name\":\"seat-count\",\"type\":\"uint128\"}],\"name\":\"update-seat-holder\",\"access\":\"private\",\"outputs\":{\"type\":\"bool\"}},{\"args\":[{\"name\":\"seat-count\",\"type\":\"uint128\"}],\"name\":\"buy-up-to\",\"access\":\"public\",\"outputs\":{\"type\":{\"response\":{\"ok\":\"bool\",\"error\":\"uint128\"}}}},{\"args\":[{\"name\":\"ft\",\"type\":\"trait_reference\"}],\"name\":\"claim\",\"access\":\"public\",\"outputs\":{\"type\":{\"response\":{\"ok\":\"uint128\",\"error\":\"uint128\"}}}},{\"args\":[{\"name\":\"ft\",\"type\":\"trait_reference\"},{\"name\":\"holder\",\"type\":\"principal\"}],\"name\":\"claim-on-behalf\",\"access\":\"public\",\"outputs\":{\"type\":{\"response\":{\"ok\":\"uint128\",\"error\":\"uint128\"}}}},{\"args\":[{\"name\":\"amount\",\"type\":\"uint128\"}],\"name\":\"create-fees-receipt\",\"access\":\"public\",\"outputs\":{\"type\":{\"response\":{\"ok\":\"bool\",\"error\":\"uint128\"}}}},{\"args\":[],\"name\":\"refund\",\"access\":\"public\",\"outputs\":{\"type\":{\"response\":{\"ok\":\"bool\",\"error\":\"uint128\"}}}},{\"args\":[],\"name\":\"toggle-bonded\",\"access\":\"public\",\"outputs\":{\"type\":{\"response\":{\"ok\":\"bool\",\"error\":\"uint128\"}}}},{\"args\":[],\"name\":\"trigger-fee-airdrop\",\"access\":\"public\",\"outputs\":{\"type\":{\"response\":{\"ok\":\"uint128\",\"error\":\"uint128\"}}}},{\"args\":[],\"name\":\"can-trigger-airdrop\",\"access\":\"read_only\",\"outputs\":{\"type\":\"bool\"}},{\"args\":[],\"name\":\"get-all-seat-holders\",\"access\":\"read_only\",\"outputs\":{\"type\":{\"response\":{\"ok\":{\"list\":{\"type\":{\"tuple\":[{\"name\":\"owner\",\"type\":\"principal\"},{\"name\":\"seats\",\"type\":\"uint128\"}]},\"length\":200}},\"error\":\"none\"}}}},{\"args\":[{\"name\":\"address\",\"type\":\"principal\"}],\"name\":\"get-claimed-amount\",\"access\":\"read_only\",\"outputs\":{\"type\":{\"response\":{\"ok\":{\"tuple\":[{\"name\":\"claimed-amount\",\"type\":\"uint128\"}]},\"error\":\"none\"}}}},{\"args\":[],\"name\":\"get-contract-status\",\"access\":\"read_only\",\"outputs\":{\"type\":{\"response\":{\"ok\":{\"tuple\":[{\"name\":\"accelerated-vesting\",\"type\":\"bool\"},{\"name\":\"deployment-height\",\"type\":\"uint128\"},{\"name\":\"distribution-height\",\"type\":\"uint128\"},{\"name\":\"governance-active\",\"type\":\"bool\"},{\"name\":\"is-distribution-period\",\"type\":\"bool\"},{\"name\":\"market-open\",\"type\":\"bool\"},{\"name\":\"seat-holders\",\"type\":{\"list\":{\"type\":{\"tuple\":[{\"name\":\"owner\",\"type\":\"principal\"},{\"name\":\"seats\",\"type\":\"uint128\"}]},\"length\":200}}},{\"name\":\"total-seats-taken\",\"type\":\"uint128\"},{\"name\":\"total-users\",\"type\":\"uint128\"}]},\"error\":\"none\"}}}},{\"args\":[],\"name\":\"get-fee-distribution-info\",\"access\":\"read_only\",\"outputs\":{\"type\":{\"response\":{\"ok\":{\"tuple\":[{\"name\":\"accumulated-fees\",\"type\":\"uint128\"},{\"name\":\"can-trigger-now\",\"type\":\"bool\"},{\"name\":\"cooldown-period\",\"type\":\"uint128\"},{\"name\":\"current-height\",\"type\":\"uint128\"},{\"name\":\"final-airdrop-mode\",\"type\":\"bool\"},{\"name\":\"last-airdrop-height\",\"type\":{\"optional\":\"uint128\"}}]},\"error\":\"none\"}}}},{\"args\":[],\"name\":\"get-max-seats-allowed\",\"access\":\"read_only\",\"outputs\":{\"type\":\"uint128\"}},{\"args\":[],\"name\":\"get-remaining-seats\",\"access\":\"read_only\",\"outputs\":{\"type\":{\"response\":{\"ok\":{\"tuple\":[{\"name\":\"remainin-seats\",\"type\":\"uint128\"}]},\"error\":\"none\"}}}},{\"args\":[],\"name\":\"get-seat-holders\",\"access\":\"read_only\",\"outputs\":{\"type\":{\"response\":{\"ok\":{\"tuple\":[{\"name\":\"seat-holders\",\"type\":{\"list\":{\"type\":{\"tuple\":[{\"name\":\"owner\",\"type\":\"principal\"},{\"name\":\"seats\",\"type\":\"uint128\"}]},\"length\":200}}}]},\"error\":\"none\"}}}},{\"args\":[{\"name\":\"address\",\"type\":\"principal\"}],\"name\":\"get-seats-owned\",\"access\":\"read_only\",\"outputs\":{\"type\":{\"response\":{\"ok\":{\"tuple\":[{\"name\":\"seats-owned\",\"type\":\"uint128\"}]},\"error\":\"none\"}}}},{\"args\":[{\"name\":\"user\",\"type\":\"principal\"}],\"name\":\"get-user-claimable\",\"access\":\"read_only\",\"outputs\":{\"type\":{\"response\":{\"ok\":{\"tuple\":[{\"name\":\"claimable-amount\",\"type\":\"uint128\"}]},\"error\":\"none\"}}}},{\"args\":[{\"name\":\"user\",\"type\":\"principal\"}],\"name\":\"get-user-expected-share\",\"access\":\"read_only\",\"outputs\":{\"type\":{\"response\":{\"ok\":{\"tuple\":[{\"name\":\"expected-share\",\"type\":\"uint128\"},{\"name\":\"total-accumulated-fees\",\"type\":\"uint128\"},{\"name\":\"total-seats\",\"type\":\"uint128\"},{\"name\":\"user\",\"type\":\"principal\"},{\"name\":\"user-seats\",\"type\":\"uint128\"}]},\"error\":\"none\"}}}},{\"args\":[{\"name\":\"user\",\"type\":\"principal\"}],\"name\":\"get-user-info\",\"access\":\"read_only\",\"outputs\":{\"type\":{\"response\":{\"ok\":{\"tuple\":[{\"name\":\"amount-claimed\",\"type\":\"uint128\"},{\"name\":\"claimable-amount\",\"type\":\"uint128\"},{\"name\":\"seats-owned\",\"type\":\"uint128\"}]},\"error\":\"none\"}}}},{\"args\":[],\"name\":\"get-vesting-schedule\",\"access\":\"read_only\",\"outputs\":{\"type\":{\"response\":{\"ok\":{\"tuple\":[{\"name\":\"vesting-schedule\",\"type\":{\"list\":{\"type\":{\"tuple\":[{\"name\":\"height\",\"type\":\"uint128\"},{\"name\":\"id\",\"type\":\"uint128\"},{\"name\":\"percent\",\"type\":\"uint128\"}]},\"length\":21}}}]},\"error\":\"none\"}}}},{\"args\":[],\"name\":\"is-governance-active\",\"access\":\"read_only\",\"outputs\":{\"type\":{\"response\":{\"ok\":\"bool\",\"error\":\"none\"}}}},{\"args\":[],\"name\":\"is-market-open\",\"access\":\"read_only\",\"outputs\":{\"type\":{\"response\":{\"ok\":\"bool\",\"error\":\"none\"}}}}],\"variables\":[{\"name\":\"COOLDOWN-PERIOD\",\"type\":\"uint128\",\"access\":\"constant\"},{\"name\":\"DEX-AMOUNT\",\"type\":\"uint128\",\"access\":\"constant\"},{\"name\":\"DEX-DAO\",\"type\":\"principal\",\"access\":\"constant\"},{\"name\":\"ERR-CONTRACT-INSUFFICIENT-FUNDS\",\"type\":{\"response\":{\"ok\":\"none\",\"error\":\"uint128\"}},\"access\":\"constant\"},{\"name\":\"ERR-COOLDOWN-ACTIVE\",\"type\":{\"response\":{\"ok\":\"none\",\"error\":\"uint128\"}},\"access\":\"constant\"},{\"name\":\"ERR-DISTRIBUTION-ALREADY-SET\",\"type\":{\"response\":{\"ok\":\"none\",\"error\":\"uint128\"}},\"access\":\"constant\"},{\"name\":\"ERR-DISTRIBUTION-NOT-INITIALIZED\",\"type\":{\"response\":{\"ok\":\"none\",\"error\":\"uint128\"}},\"access\":\"constant\"},{\"name\":\"ERR-INVALID-SEAT-COUNT\",\"type\":{\"response\":{\"ok\":\"none\",\"error\":\"uint128\"}},\"access\":\"constant\"},{\"name\":\"ERR-NO-FEES-TO-DISTRIBUTE\",\"type\":{\"response\":{\"ok\":\"none\",\"error\":\"uint128\"}},\"access\":\"constant\"},{\"name\":\"ERR-NO-SEATS-LEFT\",\"type\":{\"response\":{\"ok\":\"none\",\"error\":\"uint128\"}},\"access\":\"constant\"},{\"name\":\"ERR-NOT-AUTHORIZED\",\"type\":{\"response\":{\"ok\":\"none\",\"error\":\"uint128\"}},\"access\":\"constant\"},{\"name\":\"ERR-NOT-SEAT-OWNER\",\"type\":{\"response\":{\"ok\":\"none\",\"error\":\"uint128\"}},\"access\":\"constant\"},{\"name\":\"ERR-NOTHING-TO-CLAIM\",\"type\":{\"response\":{\"ok\":\"none\",\"error\":\"uint128\"}},\"access\":\"constant\"},{\"name\":\"ERR-REMOVING-HOLDER\",\"type\":{\"response\":{\"ok\":\"none\",\"error\":\"uint128\"}},\"access\":\"constant\"},{\"name\":\"ERR-TOTAL-SEATS-ZERO\",\"type\":{\"response\":{\"ok\":\"none\",\"error\":\"uint128\"}},\"access\":\"constant\"},{\"name\":\"ERR-WRONG-TOKEN\",\"type\":{\"response\":{\"ok\":\"none\",\"error\":\"uint128\"}},\"access\":\"constant\"},{\"name\":\"FAKTORY1\",\"type\":\"principal\",\"access\":\"constant\"},{\"name\":\"FAKTORY2\",\"type\":\"principal\",\"access\":\"constant\"},{\"name\":\"FEE-AMOUNT\",\"type\":\"uint128\",\"access\":\"constant\"},{\"name\":\"FT-INITIALIZED-BALANCE\",\"type\":\"uint128\",\"access\":\"constant\"},{\"name\":\"MAX-SEATS-PER-USER\",\"type\":\"uint128\",\"access\":\"constant\"},{\"name\":\"MIN-USERS\",\"type\":\"uint128\",\"access\":\"constant\"},{\"name\":\"MULTI-SIG-AMOUNT\",\"type\":\"uint128\",\"access\":\"constant\"},{\"name\":\"PRICE-PER-SEAT\",\"type\":\"uint128\",\"access\":\"constant\"},{\"name\":\"SEATS\",\"type\":\"uint128\",\"access\":\"constant\"},{\"name\":\"TOKEN-DAO\",\"type\":\"principal\",\"access\":\"constant\"},{\"name\":\"TOKENS-PER-SEAT\",\"type\":\"uint128\",\"access\":\"constant\"},{\"name\":\"VESTING-SCHEDULE\",\"type\":{\"list\":{\"type\":{\"tuple\":[{\"name\":\"height\",\"type\":\"uint128\"},{\"name\":\"id\",\"type\":\"uint128\"},{\"name\":\"percent\",\"type\":\"uint128\"}]},\"length\":21}},\"access\":\"constant\"},{\"name\":\"acc-distributed\",\"type\":\"uint128\",\"access\":\"variable\"},{\"name\":\"accelerated-vesting\",\"type\":\"bool\",\"access\":\"variable\"},{\"name\":\"accumulated-fees\",\"type\":\"uint128\",\"access\":\"variable\"},{\"name\":\"deployment-height\",\"type\":\"uint128\",\"access\":\"variable\"},{\"name\":\"distribution-height\",\"type\":\"uint128\",\"access\":\"variable\"},{\"name\":\"final-airdrop-mode\",\"type\":\"bool\",\"access\":\"variable\"},{\"name\":\"ft-balance\",\"type\":\"uint128\",\"access\":\"variable\"},{\"name\":\"governance-active\",\"type\":\"bool\",\"access\":\"variable\"},{\"name\":\"last-airdrop-height\",\"type\":{\"optional\":\"uint128\"},\"access\":\"variable\"},{\"name\":\"market-open\",\"type\":\"bool\",\"access\":\"variable\"},{\"name\":\"seat-holders\",\"type\":{\"list\":{\"type\":{\"tuple\":[{\"name\":\"owner\",\"type\":\"principal\"},{\"name\":\"seats\",\"type\":\"uint128\"}]},\"length\":200}},\"access\":\"variable\"},{\"name\":\"stx-balance\",\"type\":\"uint128\",\"access\":\"variable\"},{\"name\":\"total-seats-taken\",\"type\":\"uint128\",\"access\":\"variable\"},{\"name\":\"total-users\",\"type\":\"uint128\",\"access\":\"variable\"}],\"clarity_version\":\"Clarity3\",\"fungible_tokens\":[],\"non_fungible_tokens\":[]}"
+      }
+    },
+    "get_contract_events_by_id": {
+      "endpoint": "/extended/v1/contract/SPV9K21TBFAK4KNRJXF5DFP8N7W46G4V9RCJDC22.btcr-pre-faktory/events",
+      "method": "GET",
+      "parameters": {
+        "contract_id": "SPV9K21TBFAK4KNRJXF5DFP8N7W46G4V9RCJDC22.btcr-pre-faktory"
+      },
+      "success": true,
+      "response": {
+        "limit": 20,
+        "offset": 0,
+        "total": null,
+        "results": [
+          {
+            "event_index": 1,
+            "event_type": "smart_contract_log",
+            "tx_id": "0x2245850f74d418012c575ddbe657eae4dfd49e0ed93b685795de455ac2032e09",
+            "contract_log": {
+              "contract_id": "SPV9K21TBFAK4KNRJXF5DFP8N7W46G4V9RCJDC22.btcr-pre-faktory",
+              "topic": "print",
+              "value": {
+                "hex": "0x0c000000070c736561742d686f6c646572730b000000080c00000002056f776e6572051697391bf81c05a68ea2b21c7b5b59e2b264b3758905736561747301000000000000000000000000000000070c00000002056f776e65720516ca72abe0074d1c33896cad23e949a89d5daf0bd605736561747301000000000000000000000000000000070c00000002056f776e65720516171ef4c414281b07d65c26a726ce816ec13c2ff505736561747301000000000000000000000000000000020c00000002056f776e65720516bd2841a8f7caf077eaebb1f035b5f66103e651d405736561747301000000000000000000000000000000010c00000002056f776e657205163aaaed35779491a292beb0d085544c711fd091be05736561747301000000000000000000000000000000060c00000002056f776e65720516b606c3fa162e337504860045dbbab51dc386245205736561747301000000000000000000000000000000010c00000002056f776e65720516c4513afc70ab80ba1c8407bc1df288364a12892f05736561747301000000000000000000000000000000070c00000002056f776e65720516fa72dd91083905b9985ff060d733eec1b87e76a005736561747301000000000000000000000000000000070e73656174732d726566756e64656401000000000000000000000000000000040b7374782d62616c616e6365010000000000000000000000000004003811746f74616c2d73656174732d74616b656e01000000000000000000000000000000260b746f74616c2d7573657273010000000000000000000000000000000804747970650d00000006726566756e64047573657205163c3df0a0f5d8ee35202e72bb6de52b42e2805fd8",
+                "repr": "(tuple (seat-holders (list (tuple (owner 'SP2BKJ6ZR3G2TD3N2P8E7PPTSWAS69CVNH4GGGETD) (seats u7)) (tuple (owner 'SP3575AZ00X6HRCW9DJPJ7TA9N2ENVBRBTV4GWJE6) (seats u7)) (tuple (owner 'SPBHXX642GM1P1YPBGKAE9PEG5QC2F1FYPPC3TX1) (seats u2)) (tuple (owner 'SP2YJGGD8YZ5F0XZAXERZ0DDNYSGG7SJHTGG9MWV8) (seats u1)) (tuple (owner 'SPXANV9NEYA938MJQTRD11AM9HRHZM4HQV16VA4H) (seats u6)) (tuple (owner 'SP2V0DGZT2RQ36X84GR04BPXTPMEW71H4A92E0MXT) (seats u1)) (tuple (owner 'SP3252EQWE2NR1EGWGG3VR7FJH0V4M4M95Z3KB4R1) (seats u7)) (tuple (owner 'SP3X75QCH10WGBECRBZR61NSKXV0VGZKPM29HH4NX) (seats u7)))) (seats-refunded u4) (stx-balance u262200) (total-seats-taken u38) (total-users u8) (type \"refund\") (user 'SPY3VW50YQCEWD905SSBPVF55D1E502ZV24TE2M6))"
+              }
+            },
+            "stx_lock_event": null,
+            "asset": null
+          },
+          {
+            "event_index": 1,
+            "event_type": "smart_contract_log",
+            "tx_id": "0x646998f82dc5d551dc0e04b6516323cfaaaa8dd801094a8560cdb2fa66c3f49c",
+            "contract_log": {
+              "contract_id": "SPV9K21TBFAK4KNRJXF5DFP8N7W46G4V9RCJDC22.btcr-pre-faktory",
+              "topic": "print",
+              "value": {
+                "hex": "0x0c000000070c736561742d686f6c646572730b000000090c00000002056f776e6572051697391bf81c05a68ea2b21c7b5b59e2b264b3758905736561747301000000000000000000000000000000070c00000002056f776e65720516ca72abe0074d1c33896cad23e949a89d5daf0bd605736561747301000000000000000000000000000000070c00000002056f776e65720516171ef4c414281b07d65c26a726ce816ec13c2ff505736561747301000000000000000000000000000000020c00000002056f776e65720516bd2841a8f7caf077eaebb1f035b5f66103e651d405736561747301000000000000000000000000000000010c00000002056f776e657205163aaaed35779491a292beb0d085544c711fd091be05736561747301000000000000000000000000000000060c00000002056f776e65720516b606c3fa162e337504860045dbbab51dc386245205736561747301000000000000000000000000000000010c00000002056f776e65720516c4513afc70ab80ba1c8407bc1df288364a12892f05736561747301000000000000000000000000000000070c00000002056f776e657205163c3df0a0f5d8ee35202e72bb6de52b42e2805fd805736561747301000000000000000000000000000000040c00000002056f776e65720516fa72dd91083905b9985ff060d733eec1b87e76a005736561747301000000000000000000000000000000070e73656174732d726566756e64656401000000000000000000000000000000050b7374782d62616c616e63650100000000000000000000000000046c0811746f74616c2d73656174732d74616b656e010000000000000000000000000000002a0b746f74616c2d7573657273010000000000000000000000000000000904747970650d00000006726566756e640475736572051670b0ecc5506ca577da45b6f7bd86d05f54b918bf",
+                "repr": "(tuple (seat-holders (list (tuple (owner 'SP2BKJ6ZR3G2TD3N2P8E7PPTSWAS69CVNH4GGGETD) (seats u7)) (tuple (owner 'SP3575AZ00X6HRCW9DJPJ7TA9N2ENVBRBTV4GWJE6) (seats u7)) (tuple (owner 'SPBHXX642GM1P1YPBGKAE9PEG5QC2F1FYPPC3TX1) (seats u2)) (tuple (owner 'SP2YJGGD8YZ5F0XZAXERZ0DDNYSGG7SJHTGG9MWV8) (seats u1)) (tuple (owner 'SPXANV9NEYA938MJQTRD11AM9HRHZM4HQV16VA4H) (seats u6)) (tuple (owner 'SP2V0DGZT2RQ36X84GR04BPXTPMEW71H4A92E0MXT) (seats u1)) (tuple (owner 'SP3252EQWE2NR1EGWGG3VR7FJH0V4M4M95Z3KB4R1) (seats u7)) (tuple (owner 'SPY3VW50YQCEWD905SSBPVF55D1E502ZV24TE2M6) (seats u4)) (tuple (owner 'SP3X75QCH10WGBECRBZR61NSKXV0VGZKPM29HH4NX) (seats u7)))) (seats-refunded u5) (stx-balance u289800) (total-seats-taken u42) (total-users u9) (type \"refund\") (user 'SP1RB1V65A1PAAXYT8PVFFFC6T1FN9E8RQX7HMDKC))"
+              }
+            },
+            "stx_lock_event": null,
+            "asset": null
+          },
+          {
+            "event_index": 1,
+            "event_type": "smart_contract_log",
+            "tx_id": "0xa65143e69c7f93e390ecb3c71a84feb52c8a8d6f5a131dffd0c46649ba13fbb3",
+            "contract_log": {
+              "contract_id": "SPV9K21TBFAK4KNRJXF5DFP8N7W46G4V9RCJDC22.btcr-pre-faktory",
+              "topic": "print",
+              "value": {
+                "hex": "0x0c000000070c736561742d686f6c646572730b0000000a0c00000002056f776e6572051697391bf81c05a68ea2b21c7b5b59e2b264b3758905736561747301000000000000000000000000000000070c00000002056f776e65720516ca72abe0074d1c33896cad23e949a89d5daf0bd605736561747301000000000000000000000000000000070c00000002056f776e65720516171ef4c414281b07d65c26a726ce816ec13c2ff505736561747301000000000000000000000000000000020c00000002056f776e65720516bd2841a8f7caf077eaebb1f035b5f66103e651d405736561747301000000000000000000000000000000010c00000002056f776e657205163aaaed35779491a292beb0d085544c711fd091be05736561747301000000000000000000000000000000060c00000002056f776e65720516b606c3fa162e337504860045dbbab51dc386245205736561747301000000000000000000000000000000010c00000002056f776e6572051670b0ecc5506ca577da45b6f7bd86d05f54b918bf05736561747301000000000000000000000000000000050c00000002056f776e65720516c4513afc70ab80ba1c8407bc1df288364a12892f05736561747301000000000000000000000000000000070c00000002056f776e657205163c3df0a0f5d8ee35202e72bb6de52b42e2805fd805736561747301000000000000000000000000000000040c00000002056f776e65720516fa72dd91083905b9985ff060d733eec1b87e76a005736561747301000000000000000000000000000000070e73656174732d726566756e64656401000000000000000000000000000000020b7374782d62616c616e6365010000000000000000000000000004f2cc11746f74616c2d73656174732d74616b656e010000000000000000000000000000002f0b746f74616c2d7573657273010000000000000000000000000000000a04747970650d00000006726566756e64047573657205160f9ea55a2c481f43d8da28a660357657e79b58a3",
+                "repr": "(tuple (seat-holders (list (tuple (owner 'SP2BKJ6ZR3G2TD3N2P8E7PPTSWAS69CVNH4GGGETD) (seats u7)) (tuple (owner 'SP3575AZ00X6HRCW9DJPJ7TA9N2ENVBRBTV4GWJE6) (seats u7)) (tuple (owner 'SPBHXX642GM1P1YPBGKAE9PEG5QC2F1FYPPC3TX1) (seats u2)) (tuple (owner 'SP2YJGGD8YZ5F0XZAXERZ0DDNYSGG7SJHTGG9MWV8) (seats u1)) (tuple (owner 'SPXANV9NEYA938MJQTRD11AM9HRHZM4HQV16VA4H) (seats u6)) (tuple (owner 'SP2V0DGZT2RQ36X84GR04BPXTPMEW71H4A92E0MXT) (seats u1)) (tuple (owner 'SP1RB1V65A1PAAXYT8PVFFFC6T1FN9E8RQX7HMDKC) (seats u5)) (tuple (owner 'SP3252EQWE2NR1EGWGG3VR7FJH0V4M4M95Z3KB4R1) (seats u7)) (tuple (owner 'SPY3VW50YQCEWD905SSBPVF55D1E502ZV24TE2M6) (seats u4)) (tuple (owner 'SP3X75QCH10WGBECRBZR61NSKXV0VGZKPM29HH4NX) (seats u7)))) (seats-refunded u2) (stx-balance u324300) (total-seats-taken u47) (total-users u10) (type \"refund\") (user 'SP7SX9AT5H41YGYRV8MACR1NESBYF6TRMC6P82DV))"
+              }
+            },
+            "stx_lock_event": null,
+            "asset": null
+          },
+          {
+            "event_index": 1,
+            "event_type": "smart_contract_log",
+            "tx_id": "0x89cc75aaf394762846a1b3a1922cfaf67ec0d2c2b92e85f045bc073a2d75ad60",
+            "contract_log": {
+              "contract_id": "SPV9K21TBFAK4KNRJXF5DFP8N7W46G4V9RCJDC22.btcr-pre-faktory",
+              "topic": "print",
+              "value": {
+                "hex": "0x0c000000070c736561742d686f6c646572730b0000000b0c00000002056f776e6572051697391bf81c05a68ea2b21c7b5b59e2b264b3758905736561747301000000000000000000000000000000070c00000002056f776e65720516ca72abe0074d1c33896cad23e949a89d5daf0bd605736561747301000000000000000000000000000000070c00000002056f776e657205160f9ea55a2c481f43d8da28a660357657e79b58a305736561747301000000000000000000000000000000020c00000002056f776e65720516171ef4c414281b07d65c26a726ce816ec13c2ff505736561747301000000000000000000000000000000020c00000002056f776e65720516bd2841a8f7caf077eaebb1f035b5f66103e651d405736561747301000000000000000000000000000000010c00000002056f776e657205163aaaed35779491a292beb0d085544c711fd091be05736561747301000000000000000000000000000000060c00000002056f776e65720516b606c3fa162e337504860045dbbab51dc386245205736561747301000000000000000000000000000000010c00000002056f776e6572051670b0ecc5506ca577da45b6f7bd86d05f54b918bf05736561747301000000000000000000000000000000050c00000002056f776e65720516c4513afc70ab80ba1c8407bc1df288364a12892f05736561747301000000000000000000000000000000070c00000002056f776e657205163c3df0a0f5d8ee35202e72bb6de52b42e2805fd805736561747301000000000000000000000000000000040c00000002056f776e65720516fa72dd91083905b9985ff060d733eec1b87e76a005736561747301000000000000000000000000000000070e73656174732d726566756e64656401000000000000000000000000000000070b7374782d62616c616e636501000000000000000000000000000528b411746f74616c2d73656174732d74616b656e01000000000000000000000000000000310b746f74616c2d7573657273010000000000000000000000000000000b04747970650d00000006726566756e64047573657205164d6b19dec3167ab350e29871b625e827de2aceba",
+                "repr": "(tuple (seat-holders (list (tuple (owner 'SP2BKJ6ZR3G2TD3N2P8E7PPTSWAS69CVNH4GGGETD) (seats u7)) (tuple (owner 'SP3575AZ00X6HRCW9DJPJ7TA9N2ENVBRBTV4GWJE6) (seats u7)) (tuple (owner 'SP7SX9AT5H41YGYRV8MACR1NESBYF6TRMC6P82DV) (seats u2)) (tuple (owner 'SPBHXX642GM1P1YPBGKAE9PEG5QC2F1FYPPC3TX1) (seats u2)) (tuple (owner 'SP2YJGGD8YZ5F0XZAXERZ0DDNYSGG7SJHTGG9MWV8) (seats u1)) (tuple (owner 'SPXANV9NEYA938MJQTRD11AM9HRHZM4HQV16VA4H) (seats u6)) (tuple (owner 'SP2V0DGZT2RQ36X84GR04BPXTPMEW71H4A92E0MXT) (seats u1)) (tuple (owner 'SP1RB1V65A1PAAXYT8PVFFFC6T1FN9E8RQX7HMDKC) (seats u5)) (tuple (owner 'SP3252EQWE2NR1EGWGG3VR7FJH0V4M4M95Z3KB4R1) (seats u7)) (tuple (owner 'SPY3VW50YQCEWD905SSBPVF55D1E502ZV24TE2M6) (seats u4)) (tuple (owner 'SP3X75QCH10WGBECRBZR61NSKXV0VGZKPM29HH4NX) (seats u7)))) (seats-refunded u7) (stx-balance u338100) (total-seats-taken u49) (total-users u11) (type \"refund\") (user 'SP16PP6EYRCB7NCTGWAC73DH5X0KXWAPEQ8RKWAKS))"
+              }
+            },
+            "stx_lock_event": null,
+            "asset": null
+          },
+          {
+            "event_index": 1,
+            "event_type": "smart_contract_log",
+            "tx_id": "0x8f9130f3b0150e1da1fbec22b978c311a039a9183f6504a665dad1a25a255862",
+            "contract_log": {
+              "contract_id": "SPV9K21TBFAK4KNRJXF5DFP8N7W46G4V9RCJDC22.btcr-pre-faktory",
+              "topic": "print",
+              "value": {
+                "hex": "0x0c000000070c736561742d686f6c646572730b0000000c0c00000002056f776e6572051697391bf81c05a68ea2b21c7b5b59e2b264b3758905736561747301000000000000000000000000000000070c00000002056f776e65720516ca72abe0074d1c33896cad23e949a89d5daf0bd605736561747301000000000000000000000000000000070c00000002056f776e657205160f9ea55a2c481f43d8da28a660357657e79b58a305736561747301000000000000000000000000000000020c00000002056f776e65720516171ef4c414281b07d65c26a726ce816ec13c2ff505736561747301000000000000000000000000000000020c00000002056f776e65720516bd2841a8f7caf077eaebb1f035b5f66103e651d405736561747301000000000000000000000000000000010c00000002056f776e657205163aaaed35779491a292beb0d085544c711fd091be05736561747301000000000000000000000000000000060c00000002056f776e65720516b606c3fa162e337504860045dbbab51dc386245205736561747301000000000000000000000000000000010c00000002056f776e6572051670b0ecc5506ca577da45b6f7bd86d05f54b918bf05736561747301000000000000000000000000000000050c00000002056f776e65720516c4513afc70ab80ba1c8407bc1df288364a12892f05736561747301000000000000000000000000000000070c00000002056f776e657205163c3df0a0f5d8ee35202e72bb6de52b42e2805fd805736561747301000000000000000000000000000000040c00000002056f776e657205164d6b19dec3167ab350e29871b625e827de2aceba05736561747301000000000000000000000000000000070c00000002056f776e65720516fa72dd91083905b9985ff060d733eec1b87e76a005736561747301000000000000000000000000000000070e73656174732d726566756e64656401000000000000000000000000000000040b7374782d62616c616e6365010000000000000000000000000005e56011746f74616c2d73656174732d74616b656e01000000000000000000000000000000380b746f74616c2d7573657273010000000000000000000000000000000c04747970650d00000006726566756e640475736572051670e86b585d19b194ba6708c2ec5f621db527db2a",
+                "repr": "(tuple (seat-holders (list (tuple (owner 'SP2BKJ6ZR3G2TD3N2P8E7PPTSWAS69CVNH4GGGETD) (seats u7)) (tuple (owner 'SP3575AZ00X6HRCW9DJPJ7TA9N2ENVBRBTV4GWJE6) (seats u7)) (tuple (owner 'SP7SX9AT5H41YGYRV8MACR1NESBYF6TRMC6P82DV) (seats u2)) (tuple (owner 'SPBHXX642GM1P1YPBGKAE9PEG5QC2F1FYPPC3TX1) (seats u2)) (tuple (owner 'SP2YJGGD8YZ5F0XZAXERZ0DDNYSGG7SJHTGG9MWV8) (seats u1)) (tuple (owner 'SPXANV9NEYA938MJQTRD11AM9HRHZM4HQV16VA4H) (seats u6)) (tuple (owner 'SP2V0DGZT2RQ36X84GR04BPXTPMEW71H4A92E0MXT) (seats u1)) (tuple (owner 'SP1RB1V65A1PAAXYT8PVFFFC6T1FN9E8RQX7HMDKC) (seats u5)) (tuple (owner 'SP3252EQWE2NR1EGWGG3VR7FJH0V4M4M95Z3KB4R1) (seats u7)) (tuple (owner 'SPY3VW50YQCEWD905SSBPVF55D1E502ZV24TE2M6) (seats u4)) (tuple (owner 'SP16PP6EYRCB7NCTGWAC73DH5X0KXWAPEQ8RKWAKS) (seats u7)) (tuple (owner 'SP3X75QCH10WGBECRBZR61NSKXV0VGZKPM29HH4NX) (seats u7)))) (seats-refunded u4) (stx-balance u386400) (total-seats-taken u56) (total-users u12) (type \"refund\") (user 'SP1REGTTRBMCV355TCW4C5V2ZC8EVA9YV58P9HY9K))"
+              }
+            },
+            "stx_lock_event": null,
+            "asset": null
+          },
+          {
+            "event_index": 1,
+            "event_type": "smart_contract_log",
+            "tx_id": "0xe8075bf00c942d7d6f78876b6c1f066ce95942b0656abb3e696b7b3cbdec13f7",
+            "contract_log": {
+              "contract_id": "SPV9K21TBFAK4KNRJXF5DFP8N7W46G4V9RCJDC22.btcr-pre-faktory",
+              "topic": "print",
+              "value": {
+                "hex": "0x0c0000000805627579657205164d6b19dec3167ab350e29871b625e827de2aceba13646973747269627574696f6e2d68656967687401000000000000000000000000000000000c736561742d686f6c646572730b0000000d0c00000002056f776e6572051697391bf81c05a68ea2b21c7b5b59e2b264b3758905736561747301000000000000000000000000000000070c00000002056f776e65720516ca72abe0074d1c33896cad23e949a89d5daf0bd605736561747301000000000000000000000000000000070c00000002056f776e657205160f9ea55a2c481f43d8da28a660357657e79b58a305736561747301000000000000000000000000000000020c00000002056f776e65720516171ef4c414281b07d65c26a726ce816ec13c2ff505736561747301000000000000000000000000000000020c00000002056f776e65720516bd2841a8f7caf077eaebb1f035b5f66103e651d405736561747301000000000000000000000000000000010c00000002056f776e6572051670e86b585d19b194ba6708c2ec5f621db527db2a05736561747301000000000000000000000000000000040c00000002056f776e657205163aaaed35779491a292beb0d085544c711fd091be05736561747301000000000000000000000000000000060c00000002056f776e65720516b606c3fa162e337504860045dbbab51dc386245205736561747301000000000000000000000000000000010c00000002056f776e6572051670b0ecc5506ca577da45b6f7bd86d05f54b918bf05736561747301000000000000000000000000000000050c00000002056f776e65720516c4513afc70ab80ba1c8407bc1df288364a12892f05736561747301000000000000000000000000000000070c00000002056f776e657205163c3df0a0f5d8ee35202e72bb6de52b42e2805fd805736561747301000000000000000000000000000000040c00000002056f776e657205164d6b19dec3167ab350e29871b625e827de2aceba05736561747301000000000000000000000000000000070c00000002056f776e65720516fa72dd91083905b9985ff060d733eec1b87e76a005736561747301000000000000000000000000000000070b73656174732d6f776e656401000000000000000000000000000000070b7374782d62616c616e6365010000000000000000000000000006513011746f74616c2d73656174732d74616b656e010000000000000000000000000000003c0b746f74616c2d7573657273010000000000000000000000000000000d04747970650d000000096275792d7365617473",
+                "repr": "(tuple (buyer 'SP16PP6EYRCB7NCTGWAC73DH5X0KXWAPEQ8RKWAKS) (distribution-height u0) (seat-holders (list (tuple (owner 'SP2BKJ6ZR3G2TD3N2P8E7PPTSWAS69CVNH4GGGETD) (seats u7)) (tuple (owner 'SP3575AZ00X6HRCW9DJPJ7TA9N2ENVBRBTV4GWJE6) (seats u7)) (tuple (owner 'SP7SX9AT5H41YGYRV8MACR1NESBYF6TRMC6P82DV) (seats u2)) (tuple (owner 'SPBHXX642GM1P1YPBGKAE9PEG5QC2F1FYPPC3TX1) (seats u2)) (tuple (owner 'SP2YJGGD8YZ5F0XZAXERZ0DDNYSGG7SJHTGG9MWV8) (seats u1)) (tuple (owner 'SP1REGTTRBMCV355TCW4C5V2ZC8EVA9YV58P9HY9K) (seats u4)) (tuple (owner 'SPXANV9NEYA938MJQTRD11AM9HRHZM4HQV16VA4H) (seats u6)) (tuple (owner 'SP2V0DGZT2RQ36X84GR04BPXTPMEW71H4A92E0MXT) (seats u1)) (tuple (owner 'SP1RB1V65A1PAAXYT8PVFFFC6T1FN9E8RQX7HMDKC) (seats u5)) (tuple (owner 'SP3252EQWE2NR1EGWGG3VR7FJH0V4M4M95Z3KB4R1) (seats u7)) (tuple (owner 'SPY3VW50YQCEWD905SSBPVF55D1E502ZV24TE2M6) (seats u4)) (tuple (owner 'SP16PP6EYRCB7NCTGWAC73DH5X0KXWAPEQ8RKWAKS) (seats u7)) (tuple (owner 'SP3X75QCH10WGBECRBZR61NSKXV0VGZKPM29HH4NX) (seats u7)))) (seats-owned u7) (stx-balance u414000) (total-seats-taken u60) (total-users u13) (type \"buy-seats\"))"
+              }
+            },
+            "stx_lock_event": null,
+            "asset": null
+          },
+          {
+            "event_index": 1,
+            "event_type": "smart_contract_log",
+            "tx_id": "0x762cc2efd8079614f3c3ce3acb71b66cb80f1b4cc136ac920e20e8caced193b1",
+            "contract_log": {
+              "contract_id": "SPV9K21TBFAK4KNRJXF5DFP8N7W46G4V9RCJDC22.btcr-pre-faktory",
+              "topic": "print",
+              "value": {
+                "hex": "0x0c0000000805627579657205164d6b19dec3167ab350e29871b625e827de2aceba13646973747269627574696f6e2d68656967687401000000000000000000000000000000000c736561742d686f6c646572730b0000000d0c00000002056f776e6572051697391bf81c05a68ea2b21c7b5b59e2b264b3758905736561747301000000000000000000000000000000070c00000002056f776e65720516ca72abe0074d1c33896cad23e949a89d5daf0bd605736561747301000000000000000000000000000000070c00000002056f776e657205160f9ea55a2c481f43d8da28a660357657e79b58a305736561747301000000000000000000000000000000020c00000002056f776e65720516171ef4c414281b07d65c26a726ce816ec13c2ff505736561747301000000000000000000000000000000020c00000002056f776e65720516bd2841a8f7caf077eaebb1f035b5f66103e651d405736561747301000000000000000000000000000000010c00000002056f776e6572051670e86b585d19b194ba6708c2ec5f621db527db2a05736561747301000000000000000000000000000000040c00000002056f776e657205163aaaed35779491a292beb0d085544c711fd091be05736561747301000000000000000000000000000000060c00000002056f776e65720516b606c3fa162e337504860045dbbab51dc386245205736561747301000000000000000000000000000000010c00000002056f776e6572051670b0ecc5506ca577da45b6f7bd86d05f54b918bf05736561747301000000000000000000000000000000050c00000002056f776e65720516c4513afc70ab80ba1c8407bc1df288364a12892f05736561747301000000000000000000000000000000070c00000002056f776e657205163c3df0a0f5d8ee35202e72bb6de52b42e2805fd805736561747301000000000000000000000000000000040c00000002056f776e657205164d6b19dec3167ab350e29871b625e827de2aceba05736561747301000000000000000000000000000000060c00000002056f776e65720516fa72dd91083905b9985ff060d733eec1b87e76a005736561747301000000000000000000000000000000070b73656174732d6f776e656401000000000000000000000000000000060b7374782d62616c616e6365010000000000000000000000000006363c11746f74616c2d73656174732d74616b656e010000000000000000000000000000003b0b746f74616c2d7573657273010000000000000000000000000000000d04747970650d000000096275792d7365617473",
+                "repr": "(tuple (buyer 'SP16PP6EYRCB7NCTGWAC73DH5X0KXWAPEQ8RKWAKS) (distribution-height u0) (seat-holders (list (tuple (owner 'SP2BKJ6ZR3G2TD3N2P8E7PPTSWAS69CVNH4GGGETD) (seats u7)) (tuple (owner 'SP3575AZ00X6HRCW9DJPJ7TA9N2ENVBRBTV4GWJE6) (seats u7)) (tuple (owner 'SP7SX9AT5H41YGYRV8MACR1NESBYF6TRMC6P82DV) (seats u2)) (tuple (owner 'SPBHXX642GM1P1YPBGKAE9PEG5QC2F1FYPPC3TX1) (seats u2)) (tuple (owner 'SP2YJGGD8YZ5F0XZAXERZ0DDNYSGG7SJHTGG9MWV8) (seats u1)) (tuple (owner 'SP1REGTTRBMCV355TCW4C5V2ZC8EVA9YV58P9HY9K) (seats u4)) (tuple (owner 'SPXANV9NEYA938MJQTRD11AM9HRHZM4HQV16VA4H) (seats u6)) (tuple (owner 'SP2V0DGZT2RQ36X84GR04BPXTPMEW71H4A92E0MXT) (seats u1)) (tuple (owner 'SP1RB1V65A1PAAXYT8PVFFFC6T1FN9E8RQX7HMDKC) (seats u5)) (tuple (owner 'SP3252EQWE2NR1EGWGG3VR7FJH0V4M4M95Z3KB4R1) (seats u7)) (tuple (owner 'SPY3VW50YQCEWD905SSBPVF55D1E502ZV24TE2M6) (seats u4)) (tuple (owner 'SP16PP6EYRCB7NCTGWAC73DH5X0KXWAPEQ8RKWAKS) (seats u6)) (tuple (owner 'SP3X75QCH10WGBECRBZR61NSKXV0VGZKPM29HH4NX) (seats u7)))) (seats-owned u6) (stx-balance u407100) (total-seats-taken u59) (total-users u13) (type \"buy-seats\"))"
+              }
+            },
+            "stx_lock_event": null,
+            "asset": null
+          },
+          {
+            "event_index": 1,
+            "event_type": "smart_contract_log",
+            "tx_id": "0xa5992639d7e153d492349f38d4d8caddcb320ab9f613e5a50d39926956f4c658",
+            "contract_log": {
+              "contract_id": "SPV9K21TBFAK4KNRJXF5DFP8N7W46G4V9RCJDC22.btcr-pre-faktory",
+              "topic": "print",
+              "value": {
+                "hex": "0x0c0000000805627579657205163aaaed35779491a292beb0d085544c711fd091be13646973747269627574696f6e2d68656967687401000000000000000000000000000000000c736561742d686f6c646572730b0000000d0c00000002056f776e6572051697391bf81c05a68ea2b21c7b5b59e2b264b3758905736561747301000000000000000000000000000000070c00000002056f776e65720516ca72abe0074d1c33896cad23e949a89d5daf0bd605736561747301000000000000000000000000000000070c00000002056f776e657205160f9ea55a2c481f43d8da28a660357657e79b58a305736561747301000000000000000000000000000000020c00000002056f776e65720516171ef4c414281b07d65c26a726ce816ec13c2ff505736561747301000000000000000000000000000000020c00000002056f776e65720516bd2841a8f7caf077eaebb1f035b5f66103e651d405736561747301000000000000000000000000000000010c00000002056f776e6572051670e86b585d19b194ba6708c2ec5f621db527db2a05736561747301000000000000000000000000000000040c00000002056f776e657205163aaaed35779491a292beb0d085544c711fd091be05736561747301000000000000000000000000000000060c00000002056f776e65720516b606c3fa162e337504860045dbbab51dc386245205736561747301000000000000000000000000000000010c00000002056f776e6572051670b0ecc5506ca577da45b6f7bd86d05f54b918bf05736561747301000000000000000000000000000000050c00000002056f776e65720516c4513afc70ab80ba1c8407bc1df288364a12892f05736561747301000000000000000000000000000000070c00000002056f776e657205163c3df0a0f5d8ee35202e72bb6de52b42e2805fd805736561747301000000000000000000000000000000040c00000002056f776e657205164d6b19dec3167ab350e29871b625e827de2aceba05736561747301000000000000000000000000000000050c00000002056f776e65720516fa72dd91083905b9985ff060d733eec1b87e76a005736561747301000000000000000000000000000000070b73656174732d6f776e656401000000000000000000000000000000060b7374782d62616c616e63650100000000000000000000000000061b4811746f74616c2d73656174732d74616b656e010000000000000000000000000000003a0b746f74616c2d7573657273010000000000000000000000000000000d04747970650d000000096275792d7365617473",
+                "repr": "(tuple (buyer 'SPXANV9NEYA938MJQTRD11AM9HRHZM4HQV16VA4H) (distribution-height u0) (seat-holders (list (tuple (owner 'SP2BKJ6ZR3G2TD3N2P8E7PPTSWAS69CVNH4GGGETD) (seats u7)) (tuple (owner 'SP3575AZ00X6HRCW9DJPJ7TA9N2ENVBRBTV4GWJE6) (seats u7)) (tuple (owner 'SP7SX9AT5H41YGYRV8MACR1NESBYF6TRMC6P82DV) (seats u2)) (tuple (owner 'SPBHXX642GM1P1YPBGKAE9PEG5QC2F1FYPPC3TX1) (seats u2)) (tuple (owner 'SP2YJGGD8YZ5F0XZAXERZ0DDNYSGG7SJHTGG9MWV8) (seats u1)) (tuple (owner 'SP1REGTTRBMCV355TCW4C5V2ZC8EVA9YV58P9HY9K) (seats u4)) (tuple (owner 'SPXANV9NEYA938MJQTRD11AM9HRHZM4HQV16VA4H) (seats u6)) (tuple (owner 'SP2V0DGZT2RQ36X84GR04BPXTPMEW71H4A92E0MXT) (seats u1)) (tuple (owner 'SP1RB1V65A1PAAXYT8PVFFFC6T1FN9E8RQX7HMDKC) (seats u5)) (tuple (owner 'SP3252EQWE2NR1EGWGG3VR7FJH0V4M4M95Z3KB4R1) (seats u7)) (tuple (owner 'SPY3VW50YQCEWD905SSBPVF55D1E502ZV24TE2M6) (seats u4)) (tuple (owner 'SP16PP6EYRCB7NCTGWAC73DH5X0KXWAPEQ8RKWAKS) (seats u5)) (tuple (owner 'SP3X75QCH10WGBECRBZR61NSKXV0VGZKPM29HH4NX) (seats u7)))) (seats-owned u6) (stx-balance u400200) (total-seats-taken u58) (total-users u13) (type \"buy-seats\"))"
+              }
+            },
+            "stx_lock_event": null,
+            "asset": null
+          },
+          {
+            "event_index": 1,
+            "event_type": "smart_contract_log",
+            "tx_id": "0x8fc643d2e1bc2ed7b9a13affc43efe39838d31fd7511f1946d9cd6f53208fea6",
+            "contract_log": {
+              "contract_id": "SPV9K21TBFAK4KNRJXF5DFP8N7W46G4V9RCJDC22.btcr-pre-faktory",
+              "topic": "print",
+              "value": {
+                "hex": "0x0c0000000805627579657205163c3df0a0f5d8ee35202e72bb6de52b42e2805fd813646973747269627574696f6e2d68656967687401000000000000000000000000000000000c736561742d686f6c646572730b0000000d0c00000002056f776e6572051697391bf81c05a68ea2b21c7b5b59e2b264b3758905736561747301000000000000000000000000000000070c00000002056f776e65720516ca72abe0074d1c33896cad23e949a89d5daf0bd605736561747301000000000000000000000000000000070c00000002056f776e657205160f9ea55a2c481f43d8da28a660357657e79b58a305736561747301000000000000000000000000000000020c00000002056f776e65720516171ef4c414281b07d65c26a726ce816ec13c2ff505736561747301000000000000000000000000000000020c00000002056f776e65720516bd2841a8f7caf077eaebb1f035b5f66103e651d405736561747301000000000000000000000000000000010c00000002056f776e6572051670e86b585d19b194ba6708c2ec5f621db527db2a05736561747301000000000000000000000000000000040c00000002056f776e657205163aaaed35779491a292beb0d085544c711fd091be05736561747301000000000000000000000000000000020c00000002056f776e65720516b606c3fa162e337504860045dbbab51dc386245205736561747301000000000000000000000000000000010c00000002056f776e6572051670b0ecc5506ca577da45b6f7bd86d05f54b918bf05736561747301000000000000000000000000000000050c00000002056f776e65720516c4513afc70ab80ba1c8407bc1df288364a12892f05736561747301000000000000000000000000000000070c00000002056f776e657205163c3df0a0f5d8ee35202e72bb6de52b42e2805fd805736561747301000000000000000000000000000000040c00000002056f776e657205164d6b19dec3167ab350e29871b625e827de2aceba05736561747301000000000000000000000000000000050c00000002056f776e65720516fa72dd91083905b9985ff060d733eec1b87e76a005736561747301000000000000000000000000000000070b73656174732d6f776e656401000000000000000000000000000000040b7374782d62616c616e6365010000000000000000000000000005af7811746f74616c2d73656174732d74616b656e01000000000000000000000000000000360b746f74616c2d7573657273010000000000000000000000000000000d04747970650d000000096275792d7365617473",
+                "repr": "(tuple (buyer 'SPY3VW50YQCEWD905SSBPVF55D1E502ZV24TE2M6) (distribution-height u0) (seat-holders (list (tuple (owner 'SP2BKJ6ZR3G2TD3N2P8E7PPTSWAS69CVNH4GGGETD) (seats u7)) (tuple (owner 'SP3575AZ00X6HRCW9DJPJ7TA9N2ENVBRBTV4GWJE6) (seats u7)) (tuple (owner 'SP7SX9AT5H41YGYRV8MACR1NESBYF6TRMC6P82DV) (seats u2)) (tuple (owner 'SPBHXX642GM1P1YPBGKAE9PEG5QC2F1FYPPC3TX1) (seats u2)) (tuple (owner 'SP2YJGGD8YZ5F0XZAXERZ0DDNYSGG7SJHTGG9MWV8) (seats u1)) (tuple (owner 'SP1REGTTRBMCV355TCW4C5V2ZC8EVA9YV58P9HY9K) (seats u4)) (tuple (owner 'SPXANV9NEYA938MJQTRD11AM9HRHZM4HQV16VA4H) (seats u2)) (tuple (owner 'SP2V0DGZT2RQ36X84GR04BPXTPMEW71H4A92E0MXT) (seats u1)) (tuple (owner 'SP1RB1V65A1PAAXYT8PVFFFC6T1FN9E8RQX7HMDKC) (seats u5)) (tuple (owner 'SP3252EQWE2NR1EGWGG3VR7FJH0V4M4M95Z3KB4R1) (seats u7)) (tuple (owner 'SPY3VW50YQCEWD905SSBPVF55D1E502ZV24TE2M6) (seats u4)) (tuple (owner 'SP16PP6EYRCB7NCTGWAC73DH5X0KXWAPEQ8RKWAKS) (seats u5)) (tuple (owner 'SP3X75QCH10WGBECRBZR61NSKXV0VGZKPM29HH4NX) (seats u7)))) (seats-owned u4) (stx-balance u372600) (total-seats-taken u54) (total-users u13) (type \"buy-seats\"))"
+              }
+            },
+            "stx_lock_event": null,
+            "asset": null
+          },
+          {
+            "event_index": 1,
+            "event_type": "smart_contract_log",
+            "tx_id": "0x69a8c4af8500e34f5b256578dfb44b3e359f16458804fd6c4a1c28d9a3746e19",
+            "contract_log": {
+              "contract_id": "SPV9K21TBFAK4KNRJXF5DFP8N7W46G4V9RCJDC22.btcr-pre-faktory",
+              "topic": "print",
+              "value": {
+                "hex": "0x0c000000080562757965720516fa72dd91083905b9985ff060d733eec1b87e76a013646973747269627574696f6e2d68656967687401000000000000000000000000000000000c736561742d686f6c646572730b0000000d0c00000002056f776e6572051697391bf81c05a68ea2b21c7b5b59e2b264b3758905736561747301000000000000000000000000000000070c00000002056f776e65720516ca72abe0074d1c33896cad23e949a89d5daf0bd605736561747301000000000000000000000000000000070c00000002056f776e657205160f9ea55a2c481f43d8da28a660357657e79b58a305736561747301000000000000000000000000000000020c00000002056f776e65720516171ef4c414281b07d65c26a726ce816ec13c2ff505736561747301000000000000000000000000000000020c00000002056f776e65720516bd2841a8f7caf077eaebb1f035b5f66103e651d405736561747301000000000000000000000000000000010c00000002056f776e6572051670e86b585d19b194ba6708c2ec5f621db527db2a05736561747301000000000000000000000000000000040c00000002056f776e657205163aaaed35779491a292beb0d085544c711fd091be05736561747301000000000000000000000000000000020c00000002056f776e65720516b606c3fa162e337504860045dbbab51dc386245205736561747301000000000000000000000000000000010c00000002056f776e6572051670b0ecc5506ca577da45b6f7bd86d05f54b918bf05736561747301000000000000000000000000000000050c00000002056f776e65720516c4513afc70ab80ba1c8407bc1df288364a12892f05736561747301000000000000000000000000000000070c00000002056f776e657205163c3df0a0f5d8ee35202e72bb6de52b42e2805fd805736561747301000000000000000000000000000000010c00000002056f776e657205164d6b19dec3167ab350e29871b625e827de2aceba05736561747301000000000000000000000000000000050c00000002056f776e65720516fa72dd91083905b9985ff060d733eec1b87e76a005736561747301000000000000000000000000000000070b73656174732d6f776e656401000000000000000000000000000000070b7374782d62616c616e63650100000000000000000000000000055e9c11746f74616c2d73656174732d74616b656e01000000000000000000000000000000330b746f74616c2d7573657273010000000000000000000000000000000d04747970650d000000096275792d7365617473",
+                "repr": "(tuple (buyer 'SP3X75QCH10WGBECRBZR61NSKXV0VGZKPM29HH4NX) (distribution-height u0) (seat-holders (list (tuple (owner 'SP2BKJ6ZR3G2TD3N2P8E7PPTSWAS69CVNH4GGGETD) (seats u7)) (tuple (owner 'SP3575AZ00X6HRCW9DJPJ7TA9N2ENVBRBTV4GWJE6) (seats u7)) (tuple (owner 'SP7SX9AT5H41YGYRV8MACR1NESBYF6TRMC6P82DV) (seats u2)) (tuple (owner 'SPBHXX642GM1P1YPBGKAE9PEG5QC2F1FYPPC3TX1) (seats u2)) (tuple (owner 'SP2YJGGD8YZ5F0XZAXERZ0DDNYSGG7SJHTGG9MWV8) (seats u1)) (tuple (owner 'SP1REGTTRBMCV355TCW4C5V2ZC8EVA9YV58P9HY9K) (seats u4)) (tuple (owner 'SPXANV9NEYA938MJQTRD11AM9HRHZM4HQV16VA4H) (seats u2)) (tuple (owner 'SP2V0DGZT2RQ36X84GR04BPXTPMEW71H4A92E0MXT) (seats u1)) (tuple (owner 'SP1RB1V65A1PAAXYT8PVFFFC6T1FN9E8RQX7HMDKC) (seats u5)) (tuple (owner 'SP3252EQWE2NR1EGWGG3VR7FJH0V4M4M95Z3KB4R1) (seats u7)) (tuple (owner 'SPY3VW50YQCEWD905SSBPVF55D1E502ZV24TE2M6) (seats u1)) (tuple (owner 'SP16PP6EYRCB7NCTGWAC73DH5X0KXWAPEQ8RKWAKS) (seats u5)) (tuple (owner 'SP3X75QCH10WGBECRBZR61NSKXV0VGZKPM29HH4NX) (seats u7)))) (seats-owned u7) (stx-balance u351900) (total-seats-taken u51) (total-users u13) (type \"buy-seats\"))"
+              }
+            },
+            "stx_lock_event": null,
+            "asset": null
+          },
+          {
+            "event_index": 1,
+            "event_type": "smart_contract_log",
+            "tx_id": "0x7a3010b35169811a76e2dbfcf73d2b3108f3fb706a4c5a26d9fa9d739ba828e0",
+            "contract_log": {
+              "contract_id": "SPV9K21TBFAK4KNRJXF5DFP8N7W46G4V9RCJDC22.btcr-pre-faktory",
+              "topic": "print",
+              "value": {
+                "hex": "0x0c0000000805627579657205164d6b19dec3167ab350e29871b625e827de2aceba13646973747269627574696f6e2d68656967687401000000000000000000000000000000000c736561742d686f6c646572730b0000000c0c00000002056f776e6572051697391bf81c05a68ea2b21c7b5b59e2b264b3758905736561747301000000000000000000000000000000070c00000002056f776e65720516ca72abe0074d1c33896cad23e949a89d5daf0bd605736561747301000000000000000000000000000000070c00000002056f776e657205160f9ea55a2c481f43d8da28a660357657e79b58a305736561747301000000000000000000000000000000020c00000002056f776e65720516171ef4c414281b07d65c26a726ce816ec13c2ff505736561747301000000000000000000000000000000020c00000002056f776e65720516bd2841a8f7caf077eaebb1f035b5f66103e651d405736561747301000000000000000000000000000000010c00000002056f776e6572051670e86b585d19b194ba6708c2ec5f621db527db2a05736561747301000000000000000000000000000000040c00000002056f776e657205163aaaed35779491a292beb0d085544c711fd091be05736561747301000000000000000000000000000000020c00000002056f776e65720516b606c3fa162e337504860045dbbab51dc386245205736561747301000000000000000000000000000000010c00000002056f776e6572051670b0ecc5506ca577da45b6f7bd86d05f54b918bf05736561747301000000000000000000000000000000050c00000002056f776e65720516c4513afc70ab80ba1c8407bc1df288364a12892f05736561747301000000000000000000000000000000070c00000002056f776e657205163c3df0a0f5d8ee35202e72bb6de52b42e2805fd805736561747301000000000000000000000000000000010c00000002056f776e657205164d6b19dec3167ab350e29871b625e827de2aceba05736561747301000000000000000000000000000000050b73656174732d6f776e656401000000000000000000000000000000050b7374782d62616c616e6365010000000000000000000000000004a1f011746f74616c2d73656174732d74616b656e010000000000000000000000000000002c0b746f74616c2d7573657273010000000000000000000000000000000c04747970650d000000096275792d7365617473",
+                "repr": "(tuple (buyer 'SP16PP6EYRCB7NCTGWAC73DH5X0KXWAPEQ8RKWAKS) (distribution-height u0) (seat-holders (list (tuple (owner 'SP2BKJ6ZR3G2TD3N2P8E7PPTSWAS69CVNH4GGGETD) (seats u7)) (tuple (owner 'SP3575AZ00X6HRCW9DJPJ7TA9N2ENVBRBTV4GWJE6) (seats u7)) (tuple (owner 'SP7SX9AT5H41YGYRV8MACR1NESBYF6TRMC6P82DV) (seats u2)) (tuple (owner 'SPBHXX642GM1P1YPBGKAE9PEG5QC2F1FYPPC3TX1) (seats u2)) (tuple (owner 'SP2YJGGD8YZ5F0XZAXERZ0DDNYSGG7SJHTGG9MWV8) (seats u1)) (tuple (owner 'SP1REGTTRBMCV355TCW4C5V2ZC8EVA9YV58P9HY9K) (seats u4)) (tuple (owner 'SPXANV9NEYA938MJQTRD11AM9HRHZM4HQV16VA4H) (seats u2)) (tuple (owner 'SP2V0DGZT2RQ36X84GR04BPXTPMEW71H4A92E0MXT) (seats u1)) (tuple (owner 'SP1RB1V65A1PAAXYT8PVFFFC6T1FN9E8RQX7HMDKC) (seats u5)) (tuple (owner 'SP3252EQWE2NR1EGWGG3VR7FJH0V4M4M95Z3KB4R1) (seats u7)) (tuple (owner 'SPY3VW50YQCEWD905SSBPVF55D1E502ZV24TE2M6) (seats u1)) (tuple (owner 'SP16PP6EYRCB7NCTGWAC73DH5X0KXWAPEQ8RKWAKS) (seats u5)))) (seats-owned u5) (stx-balance u303600) (total-seats-taken u44) (total-users u12) (type \"buy-seats\"))"
+              }
+            },
+            "stx_lock_event": null,
+            "asset": null
+          },
+          {
+            "event_index": 1,
+            "event_type": "smart_contract_log",
+            "tx_id": "0x8ec8ec0a97cda1b2b47369fde093657784cd818b9636aad1b2817fa8004686f5",
+            "contract_log": {
+              "contract_id": "SPV9K21TBFAK4KNRJXF5DFP8N7W46G4V9RCJDC22.btcr-pre-faktory",
+              "topic": "print",
+              "value": {
+                "hex": "0x0c0000000805627579657205163c3df0a0f5d8ee35202e72bb6de52b42e2805fd813646973747269627574696f6e2d68656967687401000000000000000000000000000000000c736561742d686f6c646572730b0000000b0c00000002056f776e6572051697391bf81c05a68ea2b21c7b5b59e2b264b3758905736561747301000000000000000000000000000000070c00000002056f776e65720516ca72abe0074d1c33896cad23e949a89d5daf0bd605736561747301000000000000000000000000000000070c00000002056f776e657205160f9ea55a2c481f43d8da28a660357657e79b58a305736561747301000000000000000000000000000000020c00000002056f776e65720516171ef4c414281b07d65c26a726ce816ec13c2ff505736561747301000000000000000000000000000000020c00000002056f776e65720516bd2841a8f7caf077eaebb1f035b5f66103e651d405736561747301000000000000000000000000000000010c00000002056f776e6572051670e86b585d19b194ba6708c2ec5f621db527db2a05736561747301000000000000000000000000000000040c00000002056f776e657205163aaaed35779491a292beb0d085544c711fd091be05736561747301000000000000000000000000000000020c00000002056f776e65720516b606c3fa162e337504860045dbbab51dc386245205736561747301000000000000000000000000000000010c00000002056f776e6572051670b0ecc5506ca577da45b6f7bd86d05f54b918bf05736561747301000000000000000000000000000000050c00000002056f776e65720516c4513afc70ab80ba1c8407bc1df288364a12892f05736561747301000000000000000000000000000000070c00000002056f776e657205163c3df0a0f5d8ee35202e72bb6de52b42e2805fd805736561747301000000000000000000000000000000010b73656174732d6f776e656401000000000000000000000000000000010b7374782d62616c616e63650100000000000000000000000000041b2c11746f74616c2d73656174732d74616b656e01000000000000000000000000000000270b746f74616c2d7573657273010000000000000000000000000000000b04747970650d000000096275792d7365617473",
+                "repr": "(tuple (buyer 'SPY3VW50YQCEWD905SSBPVF55D1E502ZV24TE2M6) (distribution-height u0) (seat-holders (list (tuple (owner 'SP2BKJ6ZR3G2TD3N2P8E7PPTSWAS69CVNH4GGGETD) (seats u7)) (tuple (owner 'SP3575AZ00X6HRCW9DJPJ7TA9N2ENVBRBTV4GWJE6) (seats u7)) (tuple (owner 'SP7SX9AT5H41YGYRV8MACR1NESBYF6TRMC6P82DV) (seats u2)) (tuple (owner 'SPBHXX642GM1P1YPBGKAE9PEG5QC2F1FYPPC3TX1) (seats u2)) (tuple (owner 'SP2YJGGD8YZ5F0XZAXERZ0DDNYSGG7SJHTGG9MWV8) (seats u1)) (tuple (owner 'SP1REGTTRBMCV355TCW4C5V2ZC8EVA9YV58P9HY9K) (seats u4)) (tuple (owner 'SPXANV9NEYA938MJQTRD11AM9HRHZM4HQV16VA4H) (seats u2)) (tuple (owner 'SP2V0DGZT2RQ36X84GR04BPXTPMEW71H4A92E0MXT) (seats u1)) (tuple (owner 'SP1RB1V65A1PAAXYT8PVFFFC6T1FN9E8RQX7HMDKC) (seats u5)) (tuple (owner 'SP3252EQWE2NR1EGWGG3VR7FJH0V4M4M95Z3KB4R1) (seats u7)) (tuple (owner 'SPY3VW50YQCEWD905SSBPVF55D1E502ZV24TE2M6) (seats u1)))) (seats-owned u1) (stx-balance u269100) (total-seats-taken u39) (total-users u11) (type \"buy-seats\"))"
+              }
+            },
+            "stx_lock_event": null,
+            "asset": null
+          },
+          {
+            "event_index": 1,
+            "event_type": "smart_contract_log",
+            "tx_id": "0x16e8bdcab4216a0179220a9609c3acb79e59a03cb0141f3fdfcfe553431a9e56",
+            "contract_log": {
+              "contract_id": "SPV9K21TBFAK4KNRJXF5DFP8N7W46G4V9RCJDC22.btcr-pre-faktory",
+              "topic": "print",
+              "value": {
+                "hex": "0x0c000000080562757965720516c4513afc70ab80ba1c8407bc1df288364a12892f13646973747269627574696f6e2d68656967687401000000000000000000000000000000000c736561742d686f6c646572730b0000000a0c00000002056f776e6572051697391bf81c05a68ea2b21c7b5b59e2b264b3758905736561747301000000000000000000000000000000070c00000002056f776e65720516ca72abe0074d1c33896cad23e949a89d5daf0bd605736561747301000000000000000000000000000000070c00000002056f776e657205160f9ea55a2c481f43d8da28a660357657e79b58a305736561747301000000000000000000000000000000020c00000002056f776e65720516171ef4c414281b07d65c26a726ce816ec13c2ff505736561747301000000000000000000000000000000020c00000002056f776e65720516bd2841a8f7caf077eaebb1f035b5f66103e651d405736561747301000000000000000000000000000000010c00000002056f776e6572051670e86b585d19b194ba6708c2ec5f621db527db2a05736561747301000000000000000000000000000000040c00000002056f776e657205163aaaed35779491a292beb0d085544c711fd091be05736561747301000000000000000000000000000000020c00000002056f776e65720516b606c3fa162e337504860045dbbab51dc386245205736561747301000000000000000000000000000000010c00000002056f776e6572051670b0ecc5506ca577da45b6f7bd86d05f54b918bf05736561747301000000000000000000000000000000050c00000002056f776e65720516c4513afc70ab80ba1c8407bc1df288364a12892f05736561747301000000000000000000000000000000070b73656174732d6f776e656401000000000000000000000000000000070b7374782d62616c616e6365010000000000000000000000000004003811746f74616c2d73656174732d74616b656e01000000000000000000000000000000260b746f74616c2d7573657273010000000000000000000000000000000a04747970650d000000096275792d7365617473",
+                "repr": "(tuple (buyer 'SP3252EQWE2NR1EGWGG3VR7FJH0V4M4M95Z3KB4R1) (distribution-height u0) (seat-holders (list (tuple (owner 'SP2BKJ6ZR3G2TD3N2P8E7PPTSWAS69CVNH4GGGETD) (seats u7)) (tuple (owner 'SP3575AZ00X6HRCW9DJPJ7TA9N2ENVBRBTV4GWJE6) (seats u7)) (tuple (owner 'SP7SX9AT5H41YGYRV8MACR1NESBYF6TRMC6P82DV) (seats u2)) (tuple (owner 'SPBHXX642GM1P1YPBGKAE9PEG5QC2F1FYPPC3TX1) (seats u2)) (tuple (owner 'SP2YJGGD8YZ5F0XZAXERZ0DDNYSGG7SJHTGG9MWV8) (seats u1)) (tuple (owner 'SP1REGTTRBMCV355TCW4C5V2ZC8EVA9YV58P9HY9K) (seats u4)) (tuple (owner 'SPXANV9NEYA938MJQTRD11AM9HRHZM4HQV16VA4H) (seats u2)) (tuple (owner 'SP2V0DGZT2RQ36X84GR04BPXTPMEW71H4A92E0MXT) (seats u1)) (tuple (owner 'SP1RB1V65A1PAAXYT8PVFFFC6T1FN9E8RQX7HMDKC) (seats u5)) (tuple (owner 'SP3252EQWE2NR1EGWGG3VR7FJH0V4M4M95Z3KB4R1) (seats u7)))) (seats-owned u7) (stx-balance u262200) (total-seats-taken u38) (total-users u10) (type \"buy-seats\"))"
+              }
+            },
+            "stx_lock_event": null,
+            "asset": null
+          },
+          {
+            "event_index": 1,
+            "event_type": "smart_contract_log",
+            "tx_id": "0x7e28911e396422f35effe4a3f8e405d0985f06b3c1f4159f103c68a8e726fbd3",
+            "contract_log": {
+              "contract_id": "SPV9K21TBFAK4KNRJXF5DFP8N7W46G4V9RCJDC22.btcr-pre-faktory",
+              "topic": "print",
+              "value": {
+                "hex": "0x0c00000008056275796572051670b0ecc5506ca577da45b6f7bd86d05f54b918bf13646973747269627574696f6e2d68656967687401000000000000000000000000000000000c736561742d686f6c646572730b000000090c00000002056f776e6572051697391bf81c05a68ea2b21c7b5b59e2b264b3758905736561747301000000000000000000000000000000070c00000002056f776e65720516ca72abe0074d1c33896cad23e949a89d5daf0bd605736561747301000000000000000000000000000000070c00000002056f776e657205160f9ea55a2c481f43d8da28a660357657e79b58a305736561747301000000000000000000000000000000020c00000002056f776e65720516171ef4c414281b07d65c26a726ce816ec13c2ff505736561747301000000000000000000000000000000020c00000002056f776e65720516bd2841a8f7caf077eaebb1f035b5f66103e651d405736561747301000000000000000000000000000000010c00000002056f776e6572051670e86b585d19b194ba6708c2ec5f621db527db2a05736561747301000000000000000000000000000000040c00000002056f776e657205163aaaed35779491a292beb0d085544c711fd091be05736561747301000000000000000000000000000000020c00000002056f776e65720516b606c3fa162e337504860045dbbab51dc386245205736561747301000000000000000000000000000000010c00000002056f776e6572051670b0ecc5506ca577da45b6f7bd86d05f54b918bf05736561747301000000000000000000000000000000050b73656174732d6f776e656401000000000000000000000000000000050b7374782d62616c616e6365010000000000000000000000000003438c11746f74616c2d73656174732d74616b656e010000000000000000000000000000001f0b746f74616c2d7573657273010000000000000000000000000000000904747970650d000000096275792d7365617473",
+                "repr": "(tuple (buyer 'SP1RB1V65A1PAAXYT8PVFFFC6T1FN9E8RQX7HMDKC) (distribution-height u0) (seat-holders (list (tuple (owner 'SP2BKJ6ZR3G2TD3N2P8E7PPTSWAS69CVNH4GGGETD) (seats u7)) (tuple (owner 'SP3575AZ00X6HRCW9DJPJ7TA9N2ENVBRBTV4GWJE6) (seats u7)) (tuple (owner 'SP7SX9AT5H41YGYRV8MACR1NESBYF6TRMC6P82DV) (seats u2)) (tuple (owner 'SPBHXX642GM1P1YPBGKAE9PEG5QC2F1FYPPC3TX1) (seats u2)) (tuple (owner 'SP2YJGGD8YZ5F0XZAXERZ0DDNYSGG7SJHTGG9MWV8) (seats u1)) (tuple (owner 'SP1REGTTRBMCV355TCW4C5V2ZC8EVA9YV58P9HY9K) (seats u4)) (tuple (owner 'SPXANV9NEYA938MJQTRD11AM9HRHZM4HQV16VA4H) (seats u2)) (tuple (owner 'SP2V0DGZT2RQ36X84GR04BPXTPMEW71H4A92E0MXT) (seats u1)) (tuple (owner 'SP1RB1V65A1PAAXYT8PVFFFC6T1FN9E8RQX7HMDKC) (seats u5)))) (seats-owned u5) (stx-balance u213900) (total-seats-taken u31) (total-users u9) (type \"buy-seats\"))"
+              }
+            },
+            "stx_lock_event": null,
+            "asset": null
+          },
+          {
+            "event_index": 1,
+            "event_type": "smart_contract_log",
+            "tx_id": "0xab8b3d6751e7f41b89cee8c67a382ef87554b4795c94b9eb7a18e8172d732f38",
+            "contract_log": {
+              "contract_id": "SPV9K21TBFAK4KNRJXF5DFP8N7W46G4V9RCJDC22.btcr-pre-faktory",
+              "topic": "print",
+              "value": {
+                "hex": "0x0c000000080562757965720516b606c3fa162e337504860045dbbab51dc386245213646973747269627574696f6e2d68656967687401000000000000000000000000000000000c736561742d686f6c646572730b000000080c00000002056f776e6572051697391bf81c05a68ea2b21c7b5b59e2b264b3758905736561747301000000000000000000000000000000070c00000002056f776e65720516ca72abe0074d1c33896cad23e949a89d5daf0bd605736561747301000000000000000000000000000000070c00000002056f776e657205160f9ea55a2c481f43d8da28a660357657e79b58a305736561747301000000000000000000000000000000020c00000002056f776e65720516171ef4c414281b07d65c26a726ce816ec13c2ff505736561747301000000000000000000000000000000020c00000002056f776e65720516bd2841a8f7caf077eaebb1f035b5f66103e651d405736561747301000000000000000000000000000000010c00000002056f776e6572051670e86b585d19b194ba6708c2ec5f621db527db2a05736561747301000000000000000000000000000000040c00000002056f776e657205163aaaed35779491a292beb0d085544c711fd091be05736561747301000000000000000000000000000000020c00000002056f776e65720516b606c3fa162e337504860045dbbab51dc386245205736561747301000000000000000000000000000000010b73656174732d6f776e656401000000000000000000000000000000010b7374782d62616c616e6365010000000000000000000000000002bcc811746f74616c2d73656174732d74616b656e010000000000000000000000000000001a0b746f74616c2d7573657273010000000000000000000000000000000804747970650d000000096275792d7365617473",
+                "repr": "(tuple (buyer 'SP2V0DGZT2RQ36X84GR04BPXTPMEW71H4A92E0MXT) (distribution-height u0) (seat-holders (list (tuple (owner 'SP2BKJ6ZR3G2TD3N2P8E7PPTSWAS69CVNH4GGGETD) (seats u7)) (tuple (owner 'SP3575AZ00X6HRCW9DJPJ7TA9N2ENVBRBTV4GWJE6) (seats u7)) (tuple (owner 'SP7SX9AT5H41YGYRV8MACR1NESBYF6TRMC6P82DV) (seats u2)) (tuple (owner 'SPBHXX642GM1P1YPBGKAE9PEG5QC2F1FYPPC3TX1) (seats u2)) (tuple (owner 'SP2YJGGD8YZ5F0XZAXERZ0DDNYSGG7SJHTGG9MWV8) (seats u1)) (tuple (owner 'SP1REGTTRBMCV355TCW4C5V2ZC8EVA9YV58P9HY9K) (seats u4)) (tuple (owner 'SPXANV9NEYA938MJQTRD11AM9HRHZM4HQV16VA4H) (seats u2)) (tuple (owner 'SP2V0DGZT2RQ36X84GR04BPXTPMEW71H4A92E0MXT) (seats u1)))) (seats-owned u1) (stx-balance u179400) (total-seats-taken u26) (total-users u8) (type \"buy-seats\"))"
+              }
+            },
+            "stx_lock_event": null,
+            "asset": null
+          },
+          {
+            "event_index": 1,
+            "event_type": "smart_contract_log",
+            "tx_id": "0x8086af83f0815ea18c0ce4ce53b62f6f043b218b62a87af0c481aa51540cbfec",
+            "contract_log": {
+              "contract_id": "SPV9K21TBFAK4KNRJXF5DFP8N7W46G4V9RCJDC22.btcr-pre-faktory",
+              "topic": "print",
+              "value": {
+                "hex": "0x0c0000000805627579657205163aaaed35779491a292beb0d085544c711fd091be13646973747269627574696f6e2d68656967687401000000000000000000000000000000000c736561742d686f6c646572730b000000070c00000002056f776e6572051697391bf81c05a68ea2b21c7b5b59e2b264b3758905736561747301000000000000000000000000000000070c00000002056f776e65720516ca72abe0074d1c33896cad23e949a89d5daf0bd605736561747301000000000000000000000000000000070c00000002056f776e657205160f9ea55a2c481f43d8da28a660357657e79b58a305736561747301000000000000000000000000000000020c00000002056f776e65720516171ef4c414281b07d65c26a726ce816ec13c2ff505736561747301000000000000000000000000000000020c00000002056f776e65720516bd2841a8f7caf077eaebb1f035b5f66103e651d405736561747301000000000000000000000000000000010c00000002056f776e6572051670e86b585d19b194ba6708c2ec5f621db527db2a05736561747301000000000000000000000000000000040c00000002056f776e657205163aaaed35779491a292beb0d085544c711fd091be05736561747301000000000000000000000000000000020b73656174732d6f776e656401000000000000000000000000000000020b7374782d62616c616e6365010000000000000000000000000002a1d411746f74616c2d73656174732d74616b656e01000000000000000000000000000000190b746f74616c2d7573657273010000000000000000000000000000000704747970650d000000096275792d7365617473",
+                "repr": "(tuple (buyer 'SPXANV9NEYA938MJQTRD11AM9HRHZM4HQV16VA4H) (distribution-height u0) (seat-holders (list (tuple (owner 'SP2BKJ6ZR3G2TD3N2P8E7PPTSWAS69CVNH4GGGETD) (seats u7)) (tuple (owner 'SP3575AZ00X6HRCW9DJPJ7TA9N2ENVBRBTV4GWJE6) (seats u7)) (tuple (owner 'SP7SX9AT5H41YGYRV8MACR1NESBYF6TRMC6P82DV) (seats u2)) (tuple (owner 'SPBHXX642GM1P1YPBGKAE9PEG5QC2F1FYPPC3TX1) (seats u2)) (tuple (owner 'SP2YJGGD8YZ5F0XZAXERZ0DDNYSGG7SJHTGG9MWV8) (seats u1)) (tuple (owner 'SP1REGTTRBMCV355TCW4C5V2ZC8EVA9YV58P9HY9K) (seats u4)) (tuple (owner 'SPXANV9NEYA938MJQTRD11AM9HRHZM4HQV16VA4H) (seats u2)))) (seats-owned u2) (stx-balance u172500) (total-seats-taken u25) (total-users u7) (type \"buy-seats\"))"
+              }
+            },
+            "stx_lock_event": null,
+            "asset": null
+          },
+          {
+            "event_index": 1,
+            "event_type": "smart_contract_log",
+            "tx_id": "0x365e10f3079254a2064b0879b26e1b0fe261a11facca2e33ee4da330edb694e4",
+            "contract_log": {
+              "contract_id": "SPV9K21TBFAK4KNRJXF5DFP8N7W46G4V9RCJDC22.btcr-pre-faktory",
+              "topic": "print",
+              "value": {
+                "hex": "0x0c00000008056275796572051670e86b585d19b194ba6708c2ec5f621db527db2a13646973747269627574696f6e2d68656967687401000000000000000000000000000000000c736561742d686f6c646572730b000000060c00000002056f776e6572051697391bf81c05a68ea2b21c7b5b59e2b264b3758905736561747301000000000000000000000000000000070c00000002056f776e65720516ca72abe0074d1c33896cad23e949a89d5daf0bd605736561747301000000000000000000000000000000070c00000002056f776e657205160f9ea55a2c481f43d8da28a660357657e79b58a305736561747301000000000000000000000000000000020c00000002056f776e65720516171ef4c414281b07d65c26a726ce816ec13c2ff505736561747301000000000000000000000000000000020c00000002056f776e65720516bd2841a8f7caf077eaebb1f035b5f66103e651d405736561747301000000000000000000000000000000010c00000002056f776e6572051670e86b585d19b194ba6708c2ec5f621db527db2a05736561747301000000000000000000000000000000040b73656174732d6f776e656401000000000000000000000000000000040b7374782d62616c616e63650100000000000000000000000000026bec11746f74616c2d73656174732d74616b656e01000000000000000000000000000000170b746f74616c2d7573657273010000000000000000000000000000000604747970650d000000096275792d7365617473",
+                "repr": "(tuple (buyer 'SP1REGTTRBMCV355TCW4C5V2ZC8EVA9YV58P9HY9K) (distribution-height u0) (seat-holders (list (tuple (owner 'SP2BKJ6ZR3G2TD3N2P8E7PPTSWAS69CVNH4GGGETD) (seats u7)) (tuple (owner 'SP3575AZ00X6HRCW9DJPJ7TA9N2ENVBRBTV4GWJE6) (seats u7)) (tuple (owner 'SP7SX9AT5H41YGYRV8MACR1NESBYF6TRMC6P82DV) (seats u2)) (tuple (owner 'SPBHXX642GM1P1YPBGKAE9PEG5QC2F1FYPPC3TX1) (seats u2)) (tuple (owner 'SP2YJGGD8YZ5F0XZAXERZ0DDNYSGG7SJHTGG9MWV8) (seats u1)) (tuple (owner 'SP1REGTTRBMCV355TCW4C5V2ZC8EVA9YV58P9HY9K) (seats u4)))) (seats-owned u4) (stx-balance u158700) (total-seats-taken u23) (total-users u6) (type \"buy-seats\"))"
+              }
+            },
+            "stx_lock_event": null,
+            "asset": null
+          },
+          {
+            "event_index": 1,
+            "event_type": "smart_contract_log",
+            "tx_id": "0x92383e6e0eafee77e2cad9463d6df3b210a66af86767a6bab620d2a7763cb7cb",
+            "contract_log": {
+              "contract_id": "SPV9K21TBFAK4KNRJXF5DFP8N7W46G4V9RCJDC22.btcr-pre-faktory",
+              "topic": "print",
+              "value": {
+                "hex": "0x0c00000008056275796572051670e86b585d19b194ba6708c2ec5f621db527db2a13646973747269627574696f6e2d68656967687401000000000000000000000000000000000c736561742d686f6c646572730b000000060c00000002056f776e6572051697391bf81c05a68ea2b21c7b5b59e2b264b3758905736561747301000000000000000000000000000000070c00000002056f776e65720516ca72abe0074d1c33896cad23e949a89d5daf0bd605736561747301000000000000000000000000000000070c00000002056f776e657205160f9ea55a2c481f43d8da28a660357657e79b58a305736561747301000000000000000000000000000000020c00000002056f776e65720516171ef4c414281b07d65c26a726ce816ec13c2ff505736561747301000000000000000000000000000000020c00000002056f776e65720516bd2841a8f7caf077eaebb1f035b5f66103e651d405736561747301000000000000000000000000000000010c00000002056f776e6572051670e86b585d19b194ba6708c2ec5f621db527db2a05736561747301000000000000000000000000000000020b73656174732d6f776e656401000000000000000000000000000000020b7374782d62616c616e6365010000000000000000000000000002360411746f74616c2d73656174732d74616b656e01000000000000000000000000000000150b746f74616c2d7573657273010000000000000000000000000000000604747970650d000000096275792d7365617473",
+                "repr": "(tuple (buyer 'SP1REGTTRBMCV355TCW4C5V2ZC8EVA9YV58P9HY9K) (distribution-height u0) (seat-holders (list (tuple (owner 'SP2BKJ6ZR3G2TD3N2P8E7PPTSWAS69CVNH4GGGETD) (seats u7)) (tuple (owner 'SP3575AZ00X6HRCW9DJPJ7TA9N2ENVBRBTV4GWJE6) (seats u7)) (tuple (owner 'SP7SX9AT5H41YGYRV8MACR1NESBYF6TRMC6P82DV) (seats u2)) (tuple (owner 'SPBHXX642GM1P1YPBGKAE9PEG5QC2F1FYPPC3TX1) (seats u2)) (tuple (owner 'SP2YJGGD8YZ5F0XZAXERZ0DDNYSGG7SJHTGG9MWV8) (seats u1)) (tuple (owner 'SP1REGTTRBMCV355TCW4C5V2ZC8EVA9YV58P9HY9K) (seats u2)))) (seats-owned u2) (stx-balance u144900) (total-seats-taken u21) (total-users u6) (type \"buy-seats\"))"
+              }
+            },
+            "stx_lock_event": null,
+            "asset": null
+          },
+          {
+            "event_index": 1,
+            "event_type": "smart_contract_log",
+            "tx_id": "0x01be456659ef21d3da907282b27f993922b430153dbce99c9c39a0f0bd0dabe1",
+            "contract_log": {
+              "contract_id": "SPV9K21TBFAK4KNRJXF5DFP8N7W46G4V9RCJDC22.btcr-pre-faktory",
+              "topic": "print",
+              "value": {
+                "hex": "0x0c000000080562757965720516bd2841a8f7caf077eaebb1f035b5f66103e651d413646973747269627574696f6e2d68656967687401000000000000000000000000000000000c736561742d686f6c646572730b000000050c00000002056f776e6572051697391bf81c05a68ea2b21c7b5b59e2b264b3758905736561747301000000000000000000000000000000070c00000002056f776e65720516ca72abe0074d1c33896cad23e949a89d5daf0bd605736561747301000000000000000000000000000000070c00000002056f776e657205160f9ea55a2c481f43d8da28a660357657e79b58a305736561747301000000000000000000000000000000020c00000002056f776e65720516171ef4c414281b07d65c26a726ce816ec13c2ff505736561747301000000000000000000000000000000020c00000002056f776e65720516bd2841a8f7caf077eaebb1f035b5f66103e651d405736561747301000000000000000000000000000000010b73656174732d6f776e656401000000000000000000000000000000010b7374782d62616c616e6365010000000000000000000000000002001c11746f74616c2d73656174732d74616b656e01000000000000000000000000000000130b746f74616c2d7573657273010000000000000000000000000000000504747970650d000000096275792d7365617473",
+                "repr": "(tuple (buyer 'SP2YJGGD8YZ5F0XZAXERZ0DDNYSGG7SJHTGG9MWV8) (distribution-height u0) (seat-holders (list (tuple (owner 'SP2BKJ6ZR3G2TD3N2P8E7PPTSWAS69CVNH4GGGETD) (seats u7)) (tuple (owner 'SP3575AZ00X6HRCW9DJPJ7TA9N2ENVBRBTV4GWJE6) (seats u7)) (tuple (owner 'SP7SX9AT5H41YGYRV8MACR1NESBYF6TRMC6P82DV) (seats u2)) (tuple (owner 'SPBHXX642GM1P1YPBGKAE9PEG5QC2F1FYPPC3TX1) (seats u2)) (tuple (owner 'SP2YJGGD8YZ5F0XZAXERZ0DDNYSGG7SJHTGG9MWV8) (seats u1)))) (seats-owned u1) (stx-balance u131100) (total-seats-taken u19) (total-users u5) (type \"buy-seats\"))"
+              }
+            },
+            "stx_lock_event": null,
+            "asset": null
+          },
+          {
+            "event_index": 1,
+            "event_type": "smart_contract_log",
+            "tx_id": "0x0c184d2bee7122be7eb8aad7a4278da71ecedd1a16bbea3a20aee6fbb2be36b3",
+            "contract_log": {
+              "contract_id": "SPV9K21TBFAK4KNRJXF5DFP8N7W46G4V9RCJDC22.btcr-pre-faktory",
+              "topic": "print",
+              "value": {
+                "hex": "0x0c000000080562757965720516171ef4c414281b07d65c26a726ce816ec13c2ff513646973747269627574696f6e2d68656967687401000000000000000000000000000000000c736561742d686f6c646572730b000000040c00000002056f776e6572051697391bf81c05a68ea2b21c7b5b59e2b264b3758905736561747301000000000000000000000000000000070c00000002056f776e65720516ca72abe0074d1c33896cad23e949a89d5daf0bd605736561747301000000000000000000000000000000070c00000002056f776e657205160f9ea55a2c481f43d8da28a660357657e79b58a305736561747301000000000000000000000000000000020c00000002056f776e65720516171ef4c414281b07d65c26a726ce816ec13c2ff505736561747301000000000000000000000000000000020b73656174732d6f776e656401000000000000000000000000000000020b7374782d62616c616e6365010000000000000000000000000001e52811746f74616c2d73656174732d74616b656e01000000000000000000000000000000120b746f74616c2d7573657273010000000000000000000000000000000404747970650d000000096275792d7365617473",
+                "repr": "(tuple (buyer 'SPBHXX642GM1P1YPBGKAE9PEG5QC2F1FYPPC3TX1) (distribution-height u0) (seat-holders (list (tuple (owner 'SP2BKJ6ZR3G2TD3N2P8E7PPTSWAS69CVNH4GGGETD) (seats u7)) (tuple (owner 'SP3575AZ00X6HRCW9DJPJ7TA9N2ENVBRBTV4GWJE6) (seats u7)) (tuple (owner 'SP7SX9AT5H41YGYRV8MACR1NESBYF6TRMC6P82DV) (seats u2)) (tuple (owner 'SPBHXX642GM1P1YPBGKAE9PEG5QC2F1FYPPC3TX1) (seats u2)))) (seats-owned u2) (stx-balance u124200) (total-seats-taken u18) (total-users u4) (type \"buy-seats\"))"
+              }
+            },
+            "stx_lock_event": null,
+            "asset": null
+          }
+        ]
+      }
+    },
+    "get_account_assets": {
+      "endpoint": "/extended/v1/address/SP7SX9AT5H41YGYRV8MACR1NESBYF6TRMC6P82DV/assets",
+      "method": "GET",
+      "parameters": {
+        "principal": "SP7SX9AT5H41YGYRV8MACR1NESBYF6TRMC6P82DV",
+        "limit": 3
+      },
+      "success": true,
+      "response": {
+        "limit": 3,
+        "offset": 0,
+        "total": 449,
+        "results": [
+          {
+            "event_index": 0,
+            "event_type": "fungible_token_asset",
+            "tx_id": "0xa65143e69c7f93e390ecb3c71a84feb52c8a8d6f5a131dffd0c46649ba13fbb3",
+            "asset": {
+              "asset_event_type": "transfer",
+              "asset_id": "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token::sbtc-token",
+              "sender": "SPV9K21TBFAK4KNRJXF5DFP8N7W46G4V9RCJDC22.btcr-pre-faktory",
+              "recipient": "SP7SX9AT5H41YGYRV8MACR1NESBYF6TRMC6P82DV",
+              "amount": "13800"
+            }
+          },
+          {
+            "event_index": 0,
+            "event_type": "stx_asset",
+            "tx_id": "0x20fd86d99896477e43d2ad676a0dd7b0054eb19dc6f5ed93da903392b456926f",
+            "asset": {
+              "asset_event_type": "transfer",
+              "sender": "SP29RCN66E6SW7BANXYMHD1A9FK3DN0RPM783QTKY",
+              "recipient": "SP7SX9AT5H41YGYRV8MACR1NESBYF6TRMC6P82DV",
+              "amount": "1",
+              "memo": "0x53545820636c61696d206c697665206f6e20737478676966742e636f6d0000000000"
+            }
+          },
+          {
+            "event_index": 0,
+            "event_type": "fungible_token_asset",
+            "tx_id": "0x1275344879a04037651337eeca058d651307eb7f6984a7c29961b3862cb0bff6",
+            "asset": {
+              "asset_event_type": "transfer",
+              "asset_id": "SP2VG7S0R4Z8PYNYCAQ04HCBX1MH75VT11VXCWQ6G.built-on-bitcoin-stxcity::BOB",
+              "sender": "SP7SX9AT5H41YGYRV8MACR1NESBYF6TRMC6P82DV",
+              "recipient": "SP000000000000000000002Q6VF78",
+              "amount": "1000000"
+            }
+          }
+        ]
+      }
+    },
+    "get_account_inbound": {
+      "endpoint": "/extended/v1/address/SP7SX9AT5H41YGYRV8MACR1NESBYF6TRMC6P82DV/stx_inbound",
+      "method": "GET",
+      "parameters": {
+        "principal": "SP7SX9AT5H41YGYRV8MACR1NESBYF6TRMC6P82DV",
+        "limit": 3
+      },
+      "success": true,
+      "response": {
+        "limit": 3,
+        "offset": 0,
+        "total": 8,
+        "results": [
+          {
+            "sender": "SP29RCN66E6SW7BANXYMHD1A9FK3DN0RPM783QTKY",
+            "amount": "1",
+            "memo": "0x53545820636c61696d206c697665206f6e20737478676966742e636f6d0000000000",
+            "block_height": 2834489,
+            "tx_id": "0x20fd86d99896477e43d2ad676a0dd7b0054eb19dc6f5ed93da903392b456926f",
+            "transfer_type": "stx-transfer-memo",
+            "tx_index": 1
+          },
+          {
+            "sender": "SP29RCN66E6SW7BANXYMHD1A9FK3DN0RPM783QTKY",
+            "amount": "1",
+            "memo": "0x53545820636c61696d206c697665206f6e20737478676966742e636f6d0000000000",
+            "block_height": 2834489,
+            "tx_id": "0x20fd86d99896477e43d2ad676a0dd7b0054eb19dc6f5ed93da903392b456926f",
+            "transfer_type": "stx-transfer",
+            "tx_index": 1
+          },
+          {
+            "sender": "SPV9K21TBFAK4KNRJXF5DFP8N7W46G4V9RCJDC22.bitcoin-swap-to-stx",
+            "amount": "1890000",
+            "memo": "0x707265746d69756d",
+            "block_height": 1038152,
+            "tx_id": "0x5fbe416905b69bffcb9a2a6aa0c10cf5f56ceff174aa3860258abc8c1f74b5b5",
+            "transfer_type": "stx-transfer-memo",
+            "tx_index": 1
+          }
+        ]
+      }
+    },
+    "get_address_mempool_transactions": {
+      "endpoint": "/extended/v1/address/SP7SX9AT5H41YGYRV8MACR1NESBYF6TRMC6P82DV/mempool",
+      "method": "GET",
+      "parameters": {
+        "principal": "SP7SX9AT5H41YGYRV8MACR1NESBYF6TRMC6P82DV",
+        "limit": 3
+      },
+      "success": true,
+      "response": {
+        "limit": 3,
+        "offset": 0,
+        "total": 0,
+        "results": []
+      }
+    },
+    "get_account_nonces": {
+      "endpoint": "/extended/v1/address/SP7SX9AT5H41YGYRV8MACR1NESBYF6TRMC6P82DV/nonces",
+      "method": "GET",
+      "parameters": {
+        "principal": "SP7SX9AT5H41YGYRV8MACR1NESBYF6TRMC6P82DV"
+      },
+      "success": true,
+      "response": {
+        "last_mempool_tx_nonce": null,
+        "last_executed_tx_nonce": 211,
+        "possible_next_nonce": 212,
+        "detected_missing_nonces": []
+      }
+    },
+    "search_by_id": {
+      "endpoint": "/extended/v1/search/SP7SX9AT5H41YGYRV8MACR1NESBYF6TRMC6P82DV",
+      "method": "GET",
+      "parameters": {
+        "id": "SP7SX9AT5H41YGYRV8MACR1NESBYF6TRMC6P82DV"
+      },
+      "success": true,
+      "response": {
+        "found": true,
+        "result": {
+          "entity_id": "SP7SX9AT5H41YGYRV8MACR1NESBYF6TRMC6P82DV",
+          "entity_type": "standard_address"
+        }
+      }
+    }
+  },
+  "summary": {
+    "total_endpoints_tested": 12,
+    "successful_tests": 12,
+    "failed_tests": 0,
+    "success_rate": "100.0%"
+  }
+}
