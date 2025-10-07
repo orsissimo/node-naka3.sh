@@ -6,10 +6,10 @@ import json
 from datetime import datetime
 
 # Add project root to path
-sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from utils.logger import logger
-from hiro.utils.hiro_api import HiroAPI
+from utils.hiro.hiro_api import HiroAPI
 
 
 def test_and_capture_responses():

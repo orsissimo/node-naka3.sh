@@ -9,43 +9,14 @@ responses.
 
 import json
 import re
-from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
-
-@dataclass
-class ContractMetadata:
-    """Contract metadata extracted from API response."""
-    contract_id: str
-    contract_name: str
-    contract_address: str
-    source_code: str
-    abi: dict
-
-
-@dataclass
-class ParsedContractId:
-    """Parsed contract ID components."""
-    address: str
-    contract_name: str
-
-
-@dataclass
-class AbiFunctions:
-    """Parsed ABI functions grouped by access type."""
-    public: List[dict]
-    read_only: List[dict]
-    public_names: List[str]
-    read_only_names: List[str]
-
-
-@dataclass
-class ContractCallEvent:
-    """Extracted contract call event information."""
-    event_repr: str
-    event_name: Optional[str]
-    tx_id: str
-    event_index: int
+from utils.types.hiro.infrastructure import (
+    ContractMetadata,
+    ParsedContractId,
+    AbiFunctions,
+    ContractCallEvent,
+)
 
 
 class ResponseCollection:

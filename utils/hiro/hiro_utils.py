@@ -4,37 +4,21 @@ Utility functions for working with Hiro API and mainnet data.
 """
 
 from typing import List, Optional
-from dataclasses import dataclass
 
 from utils.logger import logger
-from hiro.utils.hiro_api import HiroAPI
-from hiro.utils.formatter import (
+from utils.hiro.hiro_api import HiroAPI
+from utils.hiro.hiro_manager import (
     ResponseCollection,
+    find_function_by_event,
+)
+from utils.types.hiro.infrastructure import (
     ContractCallEvent,
     ContractMetadata,
     AbiFunctions,
-    find_function_by_event,
+    ReplicationResult,
+    ReadOnlyResult,
 )
 from utils.types.tokens import StacksToken
-
-
-@dataclass
-class ReplicationResult:
-    """Result of replicating a contract call event."""
-    event_name: str
-    function_name: str | None
-    confirmed: bool
-    txid: str | None
-    error: str | None = None
-
-
-@dataclass
-class ReadOnlyResult:
-    """Result of calling a read-only function."""
-    function_name: str
-    success: bool
-    result: Optional[str] = None
-    error: Optional[str] = None
 
 
 def fetch_contract_data(tx_id: str) -> str | None:

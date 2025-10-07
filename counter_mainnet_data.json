@@ -69,6 +69,81 @@
           {
             "event_index": 0,
             "event_type": "smart_contract_log",
+            "tx_id": "0xf80a1f935d60369770bf27162f1b84d8f86fb68e5cfffa75b067193d879b5305",
+            "contract_log": {
+              "contract_id": "SPGFXHEJ7ADB0FJEMJDF6YBKX5KGYJG0YYB5VCZB.counter",
+              "topic": "print",
+              "value": {
+                "hex": "0x0c000000030663616c6c65720516687f8217a8aec87f7cad379499d98ca9f89c7567056576656e740d0000000b696e6372656d656e746564096e65772d76616c75650100000000000000000000000000000001",
+                "repr": "(tuple (caller 'SP1M7Z0GQN2QCGZVWNMVS96ESHJMZH73NCXMYBZPR) (event \"incremented\") (new-value u1))"
+              }
+            },
+            "stx_lock_event": null,
+            "asset": null
+          },
+          {
+            "event_index": 0,
+            "event_type": "smart_contract_log",
+            "tx_id": "0xa17971d878cc40b077d8de19e1156bd51a02a2aa955be1a081cba629959da1e6",
+            "contract_log": {
+              "contract_id": "SPGFXHEJ7ADB0FJEMJDF6YBKX5KGYJG0YYB5VCZB.counter",
+              "topic": "print",
+              "value": {
+                "hex": "0x0c000000020663616c6c65720516687f8217a8aec87f7cad379499d98ca9f89c7567056576656e740d000000057265736574",
+                "repr": "(tuple (caller 'SP1M7Z0GQN2QCGZVWNMVS96ESHJMZH73NCXMYBZPR) (event \"reset\"))"
+              }
+            },
+            "stx_lock_event": null,
+            "asset": null
+          },
+          {
+            "event_index": 0,
+            "event_type": "smart_contract_log",
+            "tx_id": "0x45dbd73e1daa58b466a326fa61a0988f312587806f1620a0cf3297d27cc6b694",
+            "contract_log": {
+              "contract_id": "SPGFXHEJ7ADB0FJEMJDF6YBKX5KGYJG0YYB5VCZB.counter",
+              "topic": "print",
+              "value": {
+                "hex": "0x0c000000030663616c6c65720516687f8217a8aec87f7cad379499d98ca9f89c7567056576656e740d0000000b696e6372656d656e746564096e65772d76616c75650100000000000000000000000000000002",
+                "repr": "(tuple (caller 'SP1M7Z0GQN2QCGZVWNMVS96ESHJMZH73NCXMYBZPR) (event \"incremented\") (new-value u2))"
+              }
+            },
+            "stx_lock_event": null,
+            "asset": null
+          },
+          {
+            "event_index": 0,
+            "event_type": "smart_contract_log",
+            "tx_id": "0x358d8218e71d6d14676ac44f8414dce75132ccfb54eeb7cc060746ff064b9680",
+            "contract_log": {
+              "contract_id": "SPGFXHEJ7ADB0FJEMJDF6YBKX5KGYJG0YYB5VCZB.counter",
+              "topic": "print",
+              "value": {
+                "hex": "0x0c000000030663616c6c65720516687f8217a8aec87f7cad379499d98ca9f89c7567056576656e740d0000000b696e6372656d656e746564096e65772d76616c75650100000000000000000000000000000001",
+                "repr": "(tuple (caller 'SP1M7Z0GQN2QCGZVWNMVS96ESHJMZH73NCXMYBZPR) (event \"incremented\") (new-value u1))"
+              }
+            },
+            "stx_lock_event": null,
+            "asset": null
+          },
+          {
+            "event_index": 0,
+            "event_type": "smart_contract_log",
+            "tx_id": "0xd1c0b15f40533391467a18c7f3b051d99d2bb04c75c5205bde0d3fc660bebe3f",
+            "contract_log": {
+              "contract_id": "SPGFXHEJ7ADB0FJEMJDF6YBKX5KGYJG0YYB5VCZB.counter",
+              "topic": "print",
+              "value": {
+                "hex": "0x0c000000020663616c6c65720516687f8217a8aec87f7cad379499d98ca9f89c7567056576656e740d000000057265736574",
+                "repr": "(tuple (caller 'SP1M7Z0GQN2QCGZVWNMVS96ESHJMZH73NCXMYBZPR) (event \"reset\"))"
+              }
+            },
+            "stx_lock_event": null,
+            "asset": null
+          },
+          {
+            "event_index": 0,
+            "event_type": "smart_contract_log",
             "tx_id": "0x166b8d6d07f7f4d43bd5b31eb978e116a46b5c96ad6a7422cbdfd160e81cba66",
             "contract_log": {
               "contract_id": "SPGFXHEJ7ADB0FJEMJDF6YBKX5KGYJG0YYB5VCZB.counter",

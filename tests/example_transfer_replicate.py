@@ -12,7 +12,7 @@ import os
 import sys
 
 # Add project root to path
-sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from utils.config import account_manager
 from utils.types.infrastructure import Miner
@@ -20,7 +20,7 @@ from utils.logger import logger
 from utils.stacks_chain import StacksChain
 from utils.types.tokens import StacksToken
 from utils.templates.recipe import RecipeTemplate
-from hiro.utils.hiro_api import HiroAPI
+from utils.hiro.hiro_api import HiroAPI
 
 
 class ReplicateTransactionRecipe(RecipeTemplate):
