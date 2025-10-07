@@ -12,7 +12,7 @@ from utils.types.hiro.exceptions import *
 T = TypeVar("T")
 
 
-class StacksMainnetAPI:
+class HiroAPI:
     def __init__(
         self,
         base_url: str = "https://api.mainnet.hiro.so",
@@ -69,13 +69,13 @@ class StacksMainnetAPI:
             return response
         except requests.exceptions.Timeout as e:
             logger.error(f"Request timeout occurred: {str(e)}")
-            raise MainnetTimeoutException(f"Request timeout for {method} {url}") from e
+            raise HiroTimeoutException(f"Request timeout for {method} {url}") from e
         except requests.exceptions.ConnectionError as e:
             logger.error(f"Connection error occurred: {str(e)}")
-            raise MainnetNetworkException(f"Connection error for {method} {url}") from e
+            raise HiroNetworkException(f"Connection error for {method} {url}") from e
         except requests.exceptions.RequestException as e:
             logger.error(f"An HTTP request error occurred: {str(e)}")
-            raise MainnetNetworkException(
+            raise HiroNetworkException(
                 f"Request failed for {method} {url}: {str(e)}"
             ) from e
 
@@ -89,7 +89,7 @@ class StacksMainnetAPI:
         """
         Centralized handler for all API responses.
         On success (200), intelligently parses and returns the body content.
-        On failure, raises appropriate MainnetAPIException with details.
+        On failure, raises appropriate HiroAPIException with details.
         """
         if response.status_code != 200:
             error_details = {}
@@ -107,7 +107,7 @@ class StacksMainnetAPI:
             else:
                 logger.error(f"API call failed: {error_message}")
 
-            raise MainnetHTTPException(
+            raise HiroHTTPException(
                 error_message,
                 status_code=response.status_code,
                 error_details=error_details,
@@ -285,15 +285,8 @@ class StacksMainnetAPI:
         unanchored: Optional[bool] = None,
     ) -> EventsList:
         """GET /extended/v1/contract/{contract_id}/events - Get contract events."""
-        params = {}
-        if limit is not None:
-            params["limit"] = limit
-        if offset is not None:
-            params["offset"] = offset
-        if unanchored is not None:
-            params["unanchored"] = unanchored
 
-        return self.do_get(f"/extended/v1/contract/{contract_id}/events", EventsList, params=params)
+        return self.do_get(f"/extended/v1/contract/{contract_id}/events", EventsList)
 
     # --- Address/Principal Endpoints ---
 

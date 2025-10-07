@@ -9,12 +9,12 @@ from datetime import datetime
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
 
 from utils.logger import logger
-from hiro.hiro_api import StacksMainnetAPI
+from hiro.utils.hiro_api import HiroAPI
 
 
 def test_and_capture_responses():
-    """Test all mainnet API endpoints and capture full responses."""
-    api = StacksMainnetAPI()
+    """Test all Hiro API endpoints and capture full responses."""
+    api = HiroAPI()
     
     # Prepare output data
     output_data = {
@@ -24,7 +24,7 @@ def test_and_capture_responses():
         "summary": {}
     }
     
-    logger.header("TESTING ALL MAINNET API ENDPOINTS WITH RESPONSE CAPTURE")
+    logger.header("TESTING ALL HIRO API ENDPOINTS WITH RESPONSE CAPTURE")
     
     # Test 1: Status
     logger.info("1. Testing get_status()...")

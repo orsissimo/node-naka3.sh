@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """
-Exception types for Stacks Mainnet API wrapper.
+Exception types for Hiro API wrapper.
 """
 
 from typing import Dict, Any, Optional
 
 
-class MainnetAPIException(Exception):
-    """Base exception for all mainnet API related errors."""
+class HiroAPIException(Exception):
+    """Base exception for all Hiro API related errors."""
     pass
 
 
-class MainnetHTTPException(MainnetAPIException):
+class HiroHTTPException(HiroAPIException):
     """HTTP-related exceptions from API calls."""
     
     def __init__(
@@ -25,16 +25,16 @@ class MainnetHTTPException(MainnetAPIException):
         self.error_details = error_details or {}
 
 
-class MainnetNetworkException(MainnetAPIException):
+class HiroNetworkException(HiroAPIException):
     """Network-related exceptions (connection errors, timeouts)."""
     pass
 
 
-class MainnetTimeoutException(MainnetNetworkException):
+class HiroTimeoutException(HiroNetworkException):
     """Request timeout exceptions."""
     pass
 
 
-class MainnetValidationException(MainnetAPIException):
+class HiroValidationException(HiroAPIException):
     """Data validation exceptions."""
     pass

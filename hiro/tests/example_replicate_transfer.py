@@ -20,7 +20,7 @@ from utils.logger import logger
 from utils.stacks_chain import StacksChain
 from utils.types.tokens import StacksToken
 from utils.templates.recipe import RecipeTemplate
-from hiro.hiro_api import StacksMainnetAPI
+from hiro.utils.hiro_api import HiroAPI
 
 
 class ReplicateTransactionRecipe(RecipeTemplate):
@@ -32,7 +32,7 @@ class ReplicateTransactionRecipe(RecipeTemplate):
 
         # Step 1: Fetch original transaction from Hiro mainnet
         logger.header("Step 1: Fetch transaction from mainnet")
-        hiro_api = StacksMainnetAPI()
+        hiro_api = HiroAPI()
         tx = hiro_api.get_transaction_by_id(ORIGINAL_TX_ID)
 
         logger.info(f"Original TX ID: {ORIGINAL_TX_ID}")

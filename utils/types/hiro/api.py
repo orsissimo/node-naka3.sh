@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-API type definitions for Stacks Mainnet API responses.
+API type definitions for Hiro API responses.
 Based on the OpenAPI schema definitions.
 """
 
@@ -401,7 +401,7 @@ class TransactionMultipleResponse(RootModel[Dict[str, TransactionSearchResult]])
     def __getitem__(self, key: str) -> TransactionSearchResult:
         return self.root[key]
 
-    def __iter__(self):
+    def __iter__(self): # type: ignore # FIXME: Can we avoid this ignore?
         return iter(self.root)
 
     def __len__(self) -> int:
