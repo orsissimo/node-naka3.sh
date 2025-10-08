@@ -40,10 +40,7 @@ class ContractDeploymentRecipe(RecipeTemplate):
 
         logger.header("Step 1: Prepare contract for deployment")
         contract_path = os.path.join(
-            os.path.dirname(__file__),
-            "..",
-            "contracts",
-            "contract-counter.clar"
+            os.path.dirname(__file__), "..", "contracts", "contract-counter.clar"
         )
 
         contract_name = "my-counter"
@@ -53,7 +50,9 @@ class ContractDeploymentRecipe(RecipeTemplate):
 
         logger.header("Step 2: Deploy contract")
         initial_balance = chain.get_stx_balance(deployer_account.address)
-        logger.info(f"Deployer balance before deployment: {initial_balance.format_stx()}")
+        logger.info(
+            f"Deployer balance before deployment: {initial_balance.format_stx()}"
+        )
 
         deployment_fee = StacksToken.from_microstx(50_000)
         logger.info(f"Deployment fee: {deployment_fee.format_stx()}")
@@ -76,7 +75,9 @@ class ContractDeploymentRecipe(RecipeTemplate):
 
         final_balance = chain.get_stx_balance(deployer_account.address)
         logger.info(f"Deployer balance after deployment: {final_balance.format_stx()}")
-        logger.info(f"Deployment cost: {(initial_balance - final_balance).format_stx()}")
+        logger.info(
+            f"Deployment cost: {(initial_balance - final_balance).format_stx()}"
+        )
 
         logger.header("Step 3: Read initial counter value (read-only)")
 

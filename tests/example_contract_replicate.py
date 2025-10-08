@@ -23,7 +23,11 @@ from utils.stacks.config import account_manager
 from utils.types.stacks.infrastructure import Miner
 from utils.stacks.stacks_chain import StacksChain
 from utils.types.tokens import StacksToken
-from utils.hiro.hiro_utils import fetch_contract_data, replicate_contract_call_events, call_read_only_functions
+from utils.hiro.hiro_utils import (
+    fetch_contract_data,
+    replicate_contract_call_events,
+    call_read_only_functions,
+)
 from utils.hiro.hiro_manager import (
     extract_contract_metadata,
     extract_contract_call_events,
@@ -53,7 +57,7 @@ class ContractReplicationRecipe(RecipeTemplate):
 
             # Load the data
             logger.header("Step 1: Load mainnet data")
-            with open(data_file, 'r') as f:
+            with open(data_file, "r") as f:
                 data = json.load(f)
 
             # Extract contract metadata using utility function
@@ -81,7 +85,9 @@ class ContractReplicationRecipe(RecipeTemplate):
             logger.header("Step 3: Deploy contract")
 
             # Write contract source to temporary file
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.clar', delete=False) as f:
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".clar", delete=False
+            ) as f:
                 f.write(contract_metadata.source_code)
                 contract_file = f.name
 
@@ -100,7 +106,9 @@ class ContractReplicationRecipe(RecipeTemplate):
                     return False
 
                 logger.success(f"Contract deployed: {result.txid}")
-                local_contract_id = f"{deployer_account.address}.{contract_metadata.contract_name}"
+                local_contract_id = (
+                    f"{deployer_account.address}.{contract_metadata.contract_name}"
+                )
                 logger.success(f"Local contract ID: {local_contract_id}")
             finally:
                 os.unlink(contract_file)
@@ -140,11 +148,15 @@ class ContractReplicationRecipe(RecipeTemplate):
 
             # Count successful replications
             successful_replications = sum(1 for r in replication_results if r.confirmed)
-            logger.success(f"Events replicated: {successful_replications}/{len(replication_results)}")
+            logger.success(
+                f"Events replicated: {successful_replications}/{len(replication_results)}"
+            )
 
             # Count successful read-only calls
             successful_reads = sum(1 for r in read_only_results if r.success)
-            logger.success(f"Read-only functions called: {successful_reads}/{len(read_only_results)}")
+            logger.success(
+                f"Read-only functions called: {successful_reads}/{len(read_only_results)}"
+            )
         return False
 
 

@@ -29,16 +29,10 @@ class ResponseCollection:
         Args:
             target_identifier: The target being queried (tx_id, contract_id, address, etc.)
         """
-        self.data = {
-            "target_tx_id": target_identifier,
-            "endpoints": {}
-        }
+        self.data = {"target_tx_id": target_identifier, "endpoints": {}}
 
     def add(
-        self,
-        method_name: str,
-        response: Any = None,
-        error: Optional[str] = None
+        self, method_name: str, response: Any = None, error: Optional[str] = None
     ) -> None:
         result = {}
 
@@ -46,9 +40,9 @@ class ResponseCollection:
             result["error"] = error
         else:
             # Convert Pydantic models to dict
-            if hasattr(response, 'model_dump'):
+            if hasattr(response, "model_dump"):
                 result["response"] = response.model_dump()
-            elif hasattr(response, '__dict__'):
+            elif hasattr(response, "__dict__"):
                 result["response"] = response.__dict__
             else:
                 result["response"] = response
@@ -56,7 +50,7 @@ class ResponseCollection:
         self.data["endpoints"][method_name] = result
 
     def save(self, file_path: str) -> None:
-        with open(file_path, 'w') as f:
+        with open(file_path, "w") as f:
             json.dump(self.data, f, indent=2, default=str)
 
     def get_data(self) -> Dict[str, Any]:
@@ -68,6 +62,7 @@ class ResponseCollection:
 
 
 # Data extraction utilities
+
 
 def extract_contract_metadata(data: dict) -> ContractMetadata:
     """
@@ -143,12 +138,14 @@ def extract_contract_call_events(data: dict) -> List[ContractCallEvent]:
                 value_repr = contract_log["value"]["repr"]
                 event_name = parse_event_name(value_repr)
 
-                contract_call_events.append(ContractCallEvent(
-                    event_repr=value_repr,
-                    event_name=event_name,
-                    tx_id=event["tx_id"],
-                    event_index=event["event_index"],
-                ))
+                contract_call_events.append(
+                    ContractCallEvent(
+                        event_repr=value_repr,
+                        event_name=event_name,
+                        tx_id=event["tx_id"],
+                        event_index=event["event_index"],
+                    )
+                )
 
     return contract_call_events
 
@@ -164,16 +161,18 @@ def parse_abi_functions(abi_str_or_dict) -> AbiFunctions:
         AbiFunctions with public and read_only function lists plus name lists
     """
     # Parse if string, otherwise use as-is
-    abi_dict = json.loads(abi_str_or_dict) if isinstance(abi_str_or_dict, str) else abi_str_or_dict
+    abi_dict = (
+        json.loads(abi_str_or_dict)
+        if isinstance(abi_str_or_dict, str)
+        else abi_str_or_dict
+    )
 
     public_functions = [
-        func for func in abi_dict["functions"]
-        if func["access"] == "public"
+        func for func in abi_dict["functions"] if func["access"] == "public"
     ]
 
     read_only_functions = [
-        func for func in abi_dict["functions"]
-        if func["access"] == "read_only"
+        func for func in abi_dict["functions"] if func["access"] == "read_only"
     ]
 
     return AbiFunctions(
@@ -211,7 +210,7 @@ def find_function_by_event(event_name: str, source_code: str) -> str | None:
 
     # Find all public function definitions
     # Pattern: (define-public (function-name)
-    func_pattern = r'\(define-public\s+\(([a-zA-Z0-9\-_]+)'
+    func_pattern = r"\(define-public\s+\(([a-zA-Z0-9\-_]+)"
 
     # Find all functions and their positions
     functions = []

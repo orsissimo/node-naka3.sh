@@ -171,29 +171,37 @@ def replicate_contract_call_events(
 
         if not event.event_name:
             logger.warning(f"Could not parse event name from: {event.event_repr}")
-            results.append(ReplicationResult(
-                event_name="<unknown>",
-                function_name=None,
-                confirmed=False,
-                txid=None,
-                error="Could not parse event name"
-            ))
+            results.append(
+                ReplicationResult(
+                    event_name="<unknown>",
+                    function_name=None,
+                    confirmed=False,
+                    txid=None,
+                    error="Could not parse event name",
+                )
+            )
             continue
 
         logger.info(f"Detected event: {event.event_name}")
 
         # Find which function contains this event
-        function_name = find_function_by_event(event.event_name, contract_metadata.source_code)
+        function_name = find_function_by_event(
+            event.event_name, contract_metadata.source_code
+        )
 
         if not function_name or function_name not in abi_functions.public_names:
-            logger.warning(f"Could not find function for event '{event.event_name}' in source code")
-            results.append(ReplicationResult(
-                event_name=event.event_name,
-                function_name=function_name,
-                confirmed=False,
-                txid=None,
-                error="Function not found in source code"
-            ))
+            logger.warning(
+                f"Could not find function for event '{event.event_name}' in source code"
+            )
+            results.append(
+                ReplicationResult(
+                    event_name=event.event_name,
+                    function_name=function_name,
+                    confirmed=False,
+                    txid=None,
+                    error="Function not found in source code",
+                )
+            )
             continue
 
         logger.info(f"Found function in source: {function_name}")
@@ -211,21 +219,25 @@ def replicate_contract_call_events(
 
         if call_result.confirmed:
             logger.success(f"{function_name} confirmed: {call_result.txid}")
-            results.append(ReplicationResult(
-                event_name=event.event_name,
-                function_name=function_name,
-                confirmed=True,
-                txid=call_result.txid,
-            ))
+            results.append(
+                ReplicationResult(
+                    event_name=event.event_name,
+                    function_name=function_name,
+                    confirmed=True,
+                    txid=call_result.txid,
+                )
+            )
         else:
             logger.error(f"{function_name} failed")
-            results.append(ReplicationResult(
-                event_name=event.event_name,
-                function_name=function_name,
-                confirmed=False,
-                txid=call_result.txid if hasattr(call_result, 'txid') else None,
-                error="Transaction failed"
-            ))
+            results.append(
+                ReplicationResult(
+                    event_name=event.event_name,
+                    function_name=function_name,
+                    confirmed=False,
+                    txid=call_result.txid if hasattr(call_result, "txid") else None,
+                    error="Transaction failed",
+                )
+            )
 
     return results
 
@@ -273,17 +285,21 @@ def call_read_only_functions(
 
         if read_result.okay:
             logger.success(f"{function_name}: {read_result.result}")
-            results.append(ReadOnlyResult(
-                function_name=function_name,
-                success=True,
-                result=read_result.result,
-            ))
+            results.append(
+                ReadOnlyResult(
+                    function_name=function_name,
+                    success=True,
+                    result=read_result.result,
+                )
+            )
         else:
             logger.error(f"{function_name} failed: {read_result.cause}")
-            results.append(ReadOnlyResult(
-                function_name=function_name,
-                success=False,
-                error=read_result.cause,
-            ))
+            results.append(
+                ReadOnlyResult(
+                    function_name=function_name,
+                    success=False,
+                    error=read_result.cause,
+                )
+            )
 
     return results

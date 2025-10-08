@@ -13,6 +13,7 @@ from typing import List, Optional
 @dataclass
 class ContractMetadata:
     """Contract metadata extracted from API response."""
+
     contract_id: str
     contract_name: str
     contract_address: str
@@ -23,6 +24,7 @@ class ContractMetadata:
 @dataclass
 class ParsedContractId:
     """Parsed contract ID components."""
+
     address: str
     contract_name: str
 
@@ -30,6 +32,7 @@ class ParsedContractId:
 @dataclass
 class AbiFunctions:
     """Parsed ABI functions grouped by access type."""
+
     public: List[dict]
     read_only: List[dict]
     public_names: List[str]
@@ -39,6 +42,7 @@ class AbiFunctions:
 @dataclass
 class ContractCallEvent:
     """Extracted contract call event information."""
+
     event_repr: str
     event_name: Optional[str]
     tx_id: str
@@ -48,6 +52,7 @@ class ContractCallEvent:
 @dataclass
 class ReplicationResult:
     """Result of replicating a contract call event."""
+
     event_name: str
     function_name: str | None
     confirmed: bool
@@ -58,6 +63,7 @@ class ReplicationResult:
 @dataclass
 class ReadOnlyResult:
     """Result of calling a read-only function."""
+
     function_name: str
     success: bool
     result: Optional[str] = None

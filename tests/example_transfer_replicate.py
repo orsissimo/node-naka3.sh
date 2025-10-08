@@ -26,7 +26,9 @@ from utils.hiro.hiro_api import HiroAPI
 class ReplicateTransactionRecipe(RecipeTemplate):
     def _run_recipe(self) -> bool:
         # Configuration
-        ORIGINAL_TX_ID = "0x65e35f27826de006f73f9813b821a1f27a2b93d8d68e13726e69323dfa2b4330"
+        ORIGINAL_TX_ID = (
+            "0x65e35f27826de006f73f9813b821a1f27a2b93d8d68e13726e69323dfa2b4330"
+        )
 
         logger.header("REPLICATE MAINNET TRANSACTION")
 
@@ -71,7 +73,9 @@ class ReplicateTransactionRecipe(RecipeTemplate):
             return False
 
         logger.info(f"Local sender: {sender_account.address}")
-        logger.warning("Note: Mainnet addresses (SP) have different checksums than testnet (ST)")
+        logger.warning(
+            "Note: Mainnet addresses (SP) have different checksums than testnet (ST)"
+        )
         logger.info(f"Mainnet recipient: {recipient}")
         logger.info(f"Local recipient: {recipient_account.address}")
 
@@ -124,7 +128,10 @@ class ReplicateTransactionRecipe(RecipeTemplate):
 
         # Verify amounts match
         expected_sender_change = -(transfer_amount + transaction_fee)
-        if sender_change == expected_sender_change and recipient_change == transfer_amount:
+        if (
+            sender_change == expected_sender_change
+            and recipient_change == transfer_amount
+        ):
             logger.success("Balances verified correctly!")
         else:
             logger.warning("Balance changes don't match expected values")

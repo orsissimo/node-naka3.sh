@@ -95,7 +95,9 @@ class HiroAPI:
             error_details = {}
             try:
                 error_details = response.json()
-                reason = error_details.get("error", error_details.get("message", "Unknown API error"))
+                reason = error_details.get(
+                    "error", error_details.get("message", "Unknown API error")
+                )
                 error_message = f"API Error ({response.status_code}): {reason}"
             except json.JSONDecodeError:
                 error_message = f"API Error ({response.status_code}): {response.text}"
@@ -132,7 +134,7 @@ class HiroAPI:
                         data[key] = value(data)
                     else:
                         data[key] = value
-                return parse_api_response(data, response_type) # type: ignore # FIXME: Can we avoid this ignore?
+                return parse_api_response(data, response_type)  # type: ignore # FIXME: Can we avoid this ignore?
             return data
         else:
             return response.text
@@ -196,8 +198,8 @@ class HiroAPI:
 
     # --- Transaction Endpoints ---
     def get_transaction_list(
-        self, 
-        *, 
+        self,
+        *,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         type_filter: Optional[List[str]] = None,
@@ -213,7 +215,7 @@ class HiroAPI:
             params["type"] = type_filter
         if unanchored is not None:
             params["unanchored"] = str(unanchored).lower()
-        
+
         return self.do_get("/extended/v1/tx/", TransactionList, params=params)
 
     def get_tx_list_details(
@@ -233,11 +235,12 @@ class HiroAPI:
         if unanchored is not None:
             params["unanchored"] = str(unanchored).lower()
 
-        return self.do_get("/extended/v1/tx/multiple", TransactionMultipleResponse, params=params)
-
+        return self.do_get(
+            "/extended/v1/tx/multiple", TransactionMultipleResponse, params=params
+        )
 
     def get_transaction_by_id(
-        self, 
+        self,
         tx_id: str,
         *,
         event_offset: Optional[int] = None,
@@ -252,19 +255,16 @@ class HiroAPI:
             params["event_limit"] = event_limit
         if unanchored is not None:
             params["unanchored"] = unanchored
-        
+
         return self.do_get(f"/extended/v1/tx/{tx_id}", Transaction, params=params)
 
-    def get_raw_transaction_by_id(
-        self,
-        tx_id: str
-    ) -> String:
+    def get_raw_transaction_by_id(self, tx_id: str) -> String:
         """GET /extended/v1/tx/{tx_id}/raw - Get raw transaction by ID."""
         return self.do_get(f"/extended/v1/tx/{tx_id}/raw", String)
 
     # --- Contract Endpoints ---
     def get_contract_by_id(
-        self, 
+        self,
         contract_id: str,
         *,
         unanchored: Optional[bool] = None,
@@ -273,8 +273,10 @@ class HiroAPI:
         params = {}
         if unanchored is not None:
             params["unanchored"] = unanchored
-        
-        return self.do_get(f"/extended/v1/contract/{contract_id}", ContractInfo, params=params)
+
+        return self.do_get(
+            f"/extended/v1/contract/{contract_id}", ContractInfo, params=params
+        )
 
     def get_contract_events_by_id(
         self,
@@ -291,7 +293,7 @@ class HiroAPI:
     # --- Address/Principal Endpoints ---
 
     def get_account_assets(
-        self, 
+        self,
         principal: str,
         *,
         limit: Optional[int] = None,
@@ -309,11 +311,13 @@ class HiroAPI:
             params["unanchored"] = unanchored
         if until_block is not None:
             params["until_block"] = until_block
-        
-        return self.do_get(f"/extended/v1/address/{principal}/assets", AddressAssets, params=params)
+
+        return self.do_get(
+            f"/extended/v1/address/{principal}/assets", AddressAssets, params=params
+        )
 
     def get_account_inbound(
-        self, 
+        self,
         principal: str,
         *,
         limit: Optional[int] = None,
@@ -334,11 +338,15 @@ class HiroAPI:
             params["unanchored"] = unanchored
         if until_block is not None:
             params["until_block"] = until_block
-        
-        return self.do_get(f"/extended/v1/address/{principal}/stx_inbound", AddressStxInboundList, params=params)
+
+        return self.do_get(
+            f"/extended/v1/address/{principal}/stx_inbound",
+            AddressStxInboundList,
+            params=params,
+        )
 
     def get_address_mempool_transactions(
-        self, 
+        self,
         principal: str,
         *,
         limit: Optional[int] = None,
@@ -353,11 +361,13 @@ class HiroAPI:
             params["offset"] = offset
         if unanchored is not None:
             params["unanchored"] = unanchored
-        
-        return self.do_get(f"/extended/v1/address/{principal}/mempool", TransactionList, params=params)
+
+        return self.do_get(
+            f"/extended/v1/address/{principal}/mempool", TransactionList, params=params
+        )
 
     def get_account_nonces(
-        self, 
+        self,
         principal: str,
         *,
         unanchored: Optional[bool] = None,
@@ -369,12 +379,14 @@ class HiroAPI:
             params["unanchored"] = unanchored
         if until_block is not None:
             params["until_block"] = until_block
-        
-        return self.do_get(f"/extended/v1/address/{principal}/nonces", AddressNonces, params=params)
+
+        return self.do_get(
+            f"/extended/v1/address/{principal}/nonces", AddressNonces, params=params
+        )
 
     # --- Search Endpoint ---
     def search_by_id(
-        self, 
+        self,
         id: str,
         *,
         include_metadata: Optional[bool] = None,
@@ -383,5 +395,5 @@ class HiroAPI:
         params = {}
         if include_metadata is not None:
             params["include_metadata"] = include_metadata
-        
+
         return self.do_get(f"/extended/v1/search/{id}", SearchResult, params=params)
