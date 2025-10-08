@@ -10,7 +10,16 @@ from .stacks_core_api import StacksCoreAPI
 from .config import account_manager
 from ..types.stacks.infrastructure import Miner, MiningMode
 
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+def _find_project_root():
+    """Find project root by looking for the naka3 directory."""
+    current = os.path.dirname(os.path.abspath(__file__))
+    while current != os.path.dirname(current):  # Stop at filesystem root
+        if os.path.exists(os.path.join(current, "naka3")):
+            return current
+        current = os.path.dirname(current)
+    raise RuntimeError("Could not find project root (naka3 directory not found)")
+
+PROJECT_ROOT = _find_project_root()
 PLAYBOOK_DIR = os.path.join(PROJECT_ROOT, "naka3", "playbooks", "three-miners")
 
 
