@@ -10,7 +10,7 @@ from typing import Any, Dict, Type, TypeVar
 from pydantic import BaseModel, ValidationError
 
 from .logger import logger
-from .types.exceptions import (
+from .types.stacks.exceptions import (
     StacksValidationException,
     StacksAPIException,
     StacksCLIException,

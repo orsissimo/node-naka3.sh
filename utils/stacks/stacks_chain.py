@@ -2,13 +2,13 @@
 
 import time
 from typing import Optional
-from .types.exceptions import *
+from ..types.stacks.exceptions import *
 from .stacks_core_api import StacksCoreAPI
 from .blockstack_cli import BlockstackCLI
-from .types.tokens import StacksToken
-from .logger import logger
-from .types.infrastructure import Account, TransactionResult
-from .types.api import ReadOnlyFunctionResult, AccountInfo
+from ..types.tokens import StacksToken
+from ..logger import logger
+from ..types.stacks.infrastructure import Account, TransactionResult
+from ..types.stacks.api import ReadOnlyFunctionResult, AccountInfo
 
 
 class StacksChain:

@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .tokens import StacksToken
+    from ..tokens import StacksToken
 
 
 class AccountInfo(BaseModel):
@@ -23,7 +23,7 @@ class AccountInfo(BaseModel):
 
     @property
     def balance_amount(self) -> "StacksToken":
-        from .tokens import StacksToken
+        from ..tokens import StacksToken
 
         return StacksToken.from_microstx(self.balance)
 

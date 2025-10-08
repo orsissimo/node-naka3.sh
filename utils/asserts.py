@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from typing import Any
-from .types.exceptions import RecipeFailedException
+from .types.stacks.exceptions import RecipeFailedException
 from .logger import logger
 
 

@@ -19,9 +19,9 @@ import tempfile
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from utils.logger import logger
-from utils.config import account_manager
-from utils.types.infrastructure import Miner
-from utils.stacks_chain import StacksChain
+from utils.stacks.config import account_manager
+from utils.types.stacks.infrastructure import Miner
+from utils.stacks.stacks_chain import StacksChain
 from utils.types.tokens import StacksToken
 from utils.hiro.hiro_utils import fetch_contract_data, replicate_contract_call_events, call_read_only_functions
 from utils.hiro.hiro_manager import (

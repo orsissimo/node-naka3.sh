@@ -1,5 +1,5 @@
 from typing import Dict, List
-from .types.infrastructure import Account, Miner
+from ..types.stacks.infrastructure import Account, Miner
 
 
 # Constants

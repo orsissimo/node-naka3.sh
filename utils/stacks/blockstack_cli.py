@@ -1,11 +1,11 @@
 import subprocess
 import shlex
 from typing import List, Optional, TypeVar, Type, cast
-from .logger import logger
-from .parsers import parse_cli_response
-from .types.api import AddressInfo, SecretKeyInfo
-from .types.wrappers import String
-from .types.exceptions import *
+from ..logger import logger
+from ..parsers import parse_cli_response
+from ..types.stacks.api import AddressInfo, SecretKeyInfo
+from ..types.wrappers import String
+from ..types.stacks.exceptions import *
 
 T = TypeVar("T")
 

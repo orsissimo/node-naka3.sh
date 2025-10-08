@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from abc import ABC, abstractmethod
-from utils.miners import MinerManager
+from utils.stacks.miners import MinerManager
 from utils.logger import logger
 
 

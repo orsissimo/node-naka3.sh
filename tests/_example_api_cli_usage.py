@@ -8,13 +8,13 @@ from typing import Optional
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from utils.config import account_manager
-from utils.types.infrastructure import Miner, TransactionResult
-from utils.types.exceptions import *
+from utils.stacks.config import account_manager
+from utils.types.stacks.infrastructure import Miner, TransactionResult
+from utils.types.stacks.exceptions import *
 from utils.logger import logger
-from utils.stacks_chain import StacksChain
-from utils.stacks_core_api import StacksCoreAPI
-from utils.blockstack_cli import BlockstackCLI
+from utils.stacks.stacks_chain import StacksChain
+from utils.stacks.stacks_core_api import StacksCoreAPI
+from utils.stacks.blockstack_cli import BlockstackCLI
 from utils.types.tokens import StacksToken
 from utils.templates.recipe import RecipeTemplate
 

@@ -3,11 +3,11 @@
 import requests
 import json
 from typing import List, Optional, Dict, Any, TypeVar, Type, Union
-from .logger import logger, Colors
-from .parsers import parse_api_response
-from .types.api import *
-from .types.exceptions import *
-from .types.wrappers import Integer, Bytes, String, SortitionList
+from ..logger import logger, Colors
+from ..parsers import parse_api_response
+from ..types.stacks.api import *
+from ..types.stacks.exceptions import *
+from ..types.wrappers import Integer, Bytes, String, SortitionList
 
 T = TypeVar("T")
 

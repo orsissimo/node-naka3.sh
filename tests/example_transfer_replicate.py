@@ -14,10 +14,10 @@ import sys
 # Add project root to path
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from utils.config import account_manager
-from utils.types.infrastructure import Miner
+from utils.stacks.config import account_manager
+from utils.types.stacks.infrastructure import Miner
 from utils.logger import logger
-from utils.stacks_chain import StacksChain
+from utils.stacks.stacks_chain import StacksChain
 from utils.types.tokens import StacksToken
 from utils.templates.recipe import RecipeTemplate
 from utils.hiro.hiro_api import HiroAPI
