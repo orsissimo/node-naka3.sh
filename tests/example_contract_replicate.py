@@ -61,7 +61,9 @@ class ContractReplicationRecipe(RecipeTemplate):
 
             logger.info(f"Contract name: {contract_metadata.contract_name}")
             logger.info(f"Source code: {len(contract_metadata.source_code)} chars")
-            logger.info(f"Events to replicate: {len(contract_metadata.contract_events)}")
+            logger.info(
+                f"Events to replicate: {len(contract_metadata.contract_events)}"
+            )
             logger.success("Data loaded")
 
             # Setup local environment
@@ -105,7 +107,9 @@ class ContractReplicationRecipe(RecipeTemplate):
             finally:
                 os.unlink(contract_file)
 
-            logger.info(f"Available public functions: {contract_metadata.abi_functions.public_names}")
+            logger.info(
+                f"Available public functions: {contract_metadata.abi_functions.public_names}"
+            )
 
             # Replicate events (contract calls)
             logger.header("Step 4: Replicate contract calls from events")

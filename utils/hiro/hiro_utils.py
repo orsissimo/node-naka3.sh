@@ -190,7 +190,10 @@ def replicate_contract_call_events(
             event.event_name, contract_metadata.source_code
         )
 
-        if not function_name or function_name not in contract_metadata.abi_functions.public_names:
+        if (
+            not function_name
+            or function_name not in contract_metadata.abi_functions.public_names
+        ):
             logger.warning(
                 f"Could not find function for event '{event.event_name}' in source code"
             )
@@ -268,7 +271,9 @@ def call_read_only_functions(
     """
     results = []
 
-    logger.info(f"Found {len(contract_metadata.abi_functions.read_only)} read-only functions")
+    logger.info(
+        f"Found {len(contract_metadata.abi_functions.read_only)} read-only functions"
+    )
 
     for func in contract_metadata.abi_functions.read_only:
         function_name = func["name"]
