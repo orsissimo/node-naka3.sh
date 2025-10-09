@@ -19,6 +19,8 @@ class ContractMetadata:
     contract_address: str
     source_code: str
     abi: dict
+    abi_functions: "AbiFunctions"
+    tx_id: str
 
 
 @dataclass

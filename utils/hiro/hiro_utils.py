@@ -14,7 +14,6 @@ from utils.hiro.hiro_manager import (
 from utils.types.hiro.infrastructure import (
     ContractCallEvent,
     ContractMetadata,
-    AbiFunctions,
     ReplicationResult,
     ReadOnlyResult,
 )
@@ -132,7 +131,6 @@ def fetch_contract_data(tx_id: str) -> str | None:
 def replicate_contract_call_events(
     contract_call_events: List[ContractCallEvent],
     contract_metadata: ContractMetadata,
-    abi_functions: AbiFunctions,
     chain,
     caller_account,
     deployer_address: str,
@@ -150,8 +148,7 @@ def replicate_contract_call_events(
 
     Args:
         contract_call_events: List of parsed contract call events
-        contract_metadata: Contract metadata (contains source code and contract name)
-        abi_functions: Parsed ABI functions (contains public function names)
+        contract_metadata: Contract metadata (contains source code, ABI functions, and contract name)
         chain: StacksChain instance for making blockchain calls
         caller_account: Account to use for calling functions
         deployer_address: Address where contract is deployed
@@ -189,7 +186,7 @@ def replicate_contract_call_events(
             event.event_name, contract_metadata.source_code
         )
 
-        if not function_name or function_name not in abi_functions.public_names:
+        if not function_name or function_name not in contract_metadata.abi_functions.public_names:
             logger.warning(
                 f"Could not find function for event '{event.event_name}' in source code"
             )
@@ -243,7 +240,6 @@ def replicate_contract_call_events(
 
 
 def call_read_only_functions(
-    abi_functions: AbiFunctions,
     contract_metadata: ContractMetadata,
     chain,
     caller_address: str,
@@ -258,8 +254,7 @@ def call_read_only_functions(
     3. Returns results for each function call
 
     Args:
-        abi_functions: Parsed ABI functions
-        contract_metadata: Contract metadata (contains contract name)
+        contract_metadata: Contract metadata (contains contract name and ABI functions)
         chain: StacksChain instance for making blockchain calls
         caller_address: Address to use as sender for read-only calls
         deployer_address: Address where contract is deployed
@@ -269,9 +264,9 @@ def call_read_only_functions(
     """
     results = []
 
-    logger.info(f"Found {len(abi_functions.read_only)} read-only functions")
+    logger.info(f"Found {len(contract_metadata.abi_functions.read_only)} read-only functions")
 
-    for func in abi_functions.read_only:
+    for func in contract_metadata.abi_functions.read_only:
         function_name = func["name"]
         logger.info(f"Calling read-only: {function_name}")
 

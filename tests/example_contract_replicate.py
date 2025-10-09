@@ -30,8 +30,7 @@ from utils.hiro.hiro_utils import (
 )
 from utils.hiro.hiro_manager import (
     extract_contract_metadata,
-    extract_contract_call_events,
-    parse_abi_functions,
+    extract_contract_events,
 )
 from utils.templates.recipe import RecipeTemplate
 
@@ -68,7 +67,7 @@ class ContractReplicationRecipe(RecipeTemplate):
             logger.success("Data loaded")
 
             # Extract contract call events using utility function (filters and parses automatically)
-            contract_call_events = extract_contract_call_events(data)
+            contract_call_events = extract_contract_events(data)
 
             logger.info(f"Events to replicate: {len(contract_call_events)}")
 
@@ -113,10 +112,7 @@ class ContractReplicationRecipe(RecipeTemplate):
             finally:
                 os.unlink(contract_file)
 
-            # Parse ABI functions using utility function
-            abi_functions = parse_abi_functions(contract_metadata.abi)
-
-            logger.info(f"Available public functions: {abi_functions.public_names}")
+            logger.info(f"Available public functions: {contract_metadata.abi_functions.public_names}")
 
             # Replicate events (contract calls)
             logger.header("Step 4: Replicate contract calls from events")
@@ -124,7 +120,6 @@ class ContractReplicationRecipe(RecipeTemplate):
             replication_results = replicate_contract_call_events(
                 contract_call_events=contract_call_events,
                 contract_metadata=contract_metadata,
-                abi_functions=abi_functions,
                 chain=chain,
                 caller_account=caller_account,
                 deployer_address=deployer_account.address,
@@ -136,7 +131,6 @@ class ContractReplicationRecipe(RecipeTemplate):
             logger.header("Step 5: Call all read-only functions")
 
             read_only_results = call_read_only_functions(
-                abi_functions=abi_functions,
                 contract_metadata=contract_metadata,
                 chain=chain,
                 caller_address=caller_account.address,
