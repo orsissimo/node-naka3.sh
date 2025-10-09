@@ -76,14 +76,14 @@ def extract_contract_metadata(data: dict) -> ContractMetadata:
     """
     contract_response = data["endpoints"]["get_contract_by_id"]["response"]
     contract_id = contract_response["contract_id"]
-    parsed_id = parse_contract_id(contract_id)
+    parsed_id = _parse_contract_id(contract_id)
 
     # Parse ABI string to dict if needed
     abi_data = contract_response["abi"]
     abi_dict = json.loads(abi_data) if isinstance(abi_data, str) else abi_data
 
     # Parse ABI functions
-    abi_functions = parse_abi_functions(abi_dict)
+    abi_functions = _parse_abi_functions(abi_dict)
 
     return ContractMetadata(
         contract_id=contract_id,
@@ -140,7 +140,7 @@ def extract_contract_events(data: dict) -> List[ContractCallEvent]:
             contract_log = event.get("contract_log")
             if contract_log:
                 value_repr = contract_log["value"]["repr"]
-                event_name = parse_event_name(value_repr)
+                event_name = _parse_event_name(value_repr)
 
                 contract_call_events.append(
                     ContractCallEvent(
@@ -154,7 +154,7 @@ def extract_contract_events(data: dict) -> List[ContractCallEvent]:
     return contract_call_events
 
 
-def parse_abi_functions(abi_str_or_dict) -> AbiFunctions:
+def _parse_abi_functions(abi_str_or_dict) -> AbiFunctions:
     """
     Parse ABI and group functions by access type.
 
@@ -235,7 +235,7 @@ def find_function_by_event(event_name: str, source_code: str) -> str | None:
     return containing_function
 
 
-def parse_event_name(event_repr: str) -> str | None:
+def _parse_event_name(event_repr: str) -> str | None:
     """
     Extract event name from Clarity event log representation.
 
@@ -251,7 +251,7 @@ def parse_event_name(event_repr: str) -> str | None:
     return event_match.group(1) if event_match else None
 
 
-def parse_contract_id(contract_id: str) -> ParsedContractId:
+def _parse_contract_id(contract_id: str) -> ParsedContractId:
     """
     Split contract_id into address and contract name components.
 
