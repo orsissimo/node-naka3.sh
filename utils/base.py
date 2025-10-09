@@ -1,5 +1,31 @@
+#!/usr/bin/env python3
+"""
+Central configuration for the project.
+
+This module contains:
+- Project paths (PROJECT_ROOT, PLAYBOOK_DIR)
+- Constants (token conversions, timeouts, API settings)
+- Account configuration and management
+"""
+
+import os
 from typing import Dict, List
-from ..types.stacks.infrastructure import Account, Miner
+from .types.stacks.infrastructure import Account, Miner
+
+
+# Project paths
+def _find_project_root():
+    """Find project root by looking for the naka3 directory."""
+    current = os.path.dirname(os.path.abspath(__file__))
+    while current != os.path.dirname(current):  # Stop at filesystem root
+        if os.path.exists(os.path.join(current, "naka3")):
+            return current
+        current = os.path.dirname(current)
+    raise RuntimeError("Could not find project root (naka3 directory not found)")
+
+
+PROJECT_ROOT = _find_project_root()
+PLAYBOOK_DIR = os.path.join(PROJECT_ROOT, "naka3", "playbooks", "three-miners")
 
 
 # Constants
@@ -11,6 +37,7 @@ DEFAULT_POLL_INTERVAL = 2
 DEFAULT_WAIT_TIMEOUT = 60
 
 
+# Account configuration
 _ACCOUNTS = {
     1: Account(
         name="miner1",

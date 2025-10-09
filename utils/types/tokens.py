@@ -4,7 +4,7 @@ from typing import Union, Optional, TypeVar
 
 T = TypeVar("T", bound="TokenAmount")
 from pydantic import BaseModel, Field, validator
-from ..stacks.config import MICROSTX_PER_STX, SATOSHI_PER_BTC
+from ..base import MICROSTX_PER_STX, SATOSHI_PER_BTC
 
 
 class TokenType(BaseModel):

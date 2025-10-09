@@ -3,6 +3,7 @@
 Utility functions for working with Hiro API and mainnet data.
 """
 
+import os
 from typing import List, Optional
 
 from utils.logger import logger
@@ -17,6 +18,7 @@ from utils.types.hiro.infrastructure import (
     ReadOnlyResult,
 )
 from utils.types.tokens import StacksToken
+from utils.base import PROJECT_ROOT
 
 
 def fetch_contract_data(tx_id: str) -> str | None:
@@ -110,15 +112,20 @@ def fetch_contract_data(tx_id: str) -> str | None:
             logger.error(f"Failed to fetch contract events: {e}")
             collection.add("get_contract_events_by_id", error=str(e))
 
+    # Determine output filename
     if contract_id:
         # Use contract name from contract_id
         contract_name = contract_id.split(".")[-1]
-        output_file = f"{contract_name}_mainnet_data.json"
+        filename = f"{contract_name}_mainnet_data.json"
     else:
         # Fallback to tx_id based name
-        output_file = f"contract_{tx_id[:8]}_mainnet_data.json"
+        filename = f"contract_{tx_id[:8]}_mainnet_data.json"
 
-    # Save to output file
+    # Save to /tmp directory in project root
+    tmp_dir = os.path.join(PROJECT_ROOT, "tmp")
+    os.makedirs(tmp_dir, exist_ok=True)
+
+    output_file = os.path.join(tmp_dir, filename)
     collection.save(output_file)
 
     logger.success(f"All data saved to: {output_file}")

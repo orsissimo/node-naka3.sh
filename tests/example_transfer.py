@@ -14,7 +14,7 @@ import sys
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from utils.stacks.config import account_manager
+from utils.base import account_manager
 from utils.types.stacks.infrastructure import Miner
 from utils.types.stacks.exceptions import *
 from utils.logger import logger

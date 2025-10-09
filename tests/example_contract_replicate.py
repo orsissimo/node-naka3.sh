@@ -19,7 +19,7 @@ import tempfile
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from utils.logger import logger
-from utils.stacks.config import account_manager
+from utils.base import account_manager
 from utils.types.stacks.infrastructure import Miner
 from utils.stacks.stacks_chain import StacksChain
 from utils.types.tokens import StacksToken
