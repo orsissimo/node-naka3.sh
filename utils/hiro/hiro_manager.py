@@ -72,7 +72,7 @@ def extract_contract_metadata(data: dict) -> ContractMetadata:
         data: The response collection data (loaded from JSON)
 
     Returns:
-        ContractMetadata with all contract information including parsed ABI functions
+        ContractMetadata with all contract information including parsed ABI functions and events
     """
     contract_response = data["endpoints"]["get_contract_by_id"]["response"]
     contract_id = contract_response["contract_id"]
@@ -85,6 +85,9 @@ def extract_contract_metadata(data: dict) -> ContractMetadata:
     # Parse ABI functions
     abi_functions = _parse_abi_functions(abi_dict)
 
+    # Extract contract events
+    contract_events = _extract_contract_call_events(data)
+
     return ContractMetadata(
         contract_id=contract_id,
         contract_name=parsed_id.contract_name,
@@ -93,6 +96,7 @@ def extract_contract_metadata(data: dict) -> ContractMetadata:
         abi=abi_dict,
         abi_functions=abi_functions,
         tx_id=contract_response["tx_id"],
+        contract_events=contract_events,
     )
 
 
@@ -116,7 +120,7 @@ def _extract_events_chronological(data: dict) -> list:
     return list(reversed(events))
 
 
-def extract_contract_events(data: dict) -> List[ContractCallEvent]:
+def _extract_contract_call_events(data: dict) -> List[ContractCallEvent]:
     """
     Extract and parse contract call events from response collection data.
 

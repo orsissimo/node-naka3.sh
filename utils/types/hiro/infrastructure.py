@@ -21,6 +21,7 @@ class ContractMetadata:
     abi: dict
     abi_functions: "AbiFunctions"
     tx_id: str
+    contract_events: List["ContractCallEvent"]
 
 
 @dataclass

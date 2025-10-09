@@ -28,10 +28,7 @@ from utils.hiro.hiro_utils import (
     replicate_contract_call_events,
     call_read_only_functions,
 )
-from utils.hiro.hiro_manager import (
-    extract_contract_metadata,
-    extract_contract_events,
-)
+from utils.hiro.hiro_manager import extract_contract_metadata
 from utils.templates.recipe import RecipeTemplate
 
 
@@ -64,12 +61,8 @@ class ContractReplicationRecipe(RecipeTemplate):
 
             logger.info(f"Contract name: {contract_metadata.contract_name}")
             logger.info(f"Source code: {len(contract_metadata.source_code)} chars")
+            logger.info(f"Events to replicate: {len(contract_metadata.contract_events)}")
             logger.success("Data loaded")
-
-            # Extract contract call events using utility function (filters and parses automatically)
-            contract_call_events = extract_contract_events(data)
-
-            logger.info(f"Events to replicate: {len(contract_call_events)}")
 
             # Setup local environment
             logger.header("Step 2: Setup local environment")
@@ -118,11 +111,10 @@ class ContractReplicationRecipe(RecipeTemplate):
             logger.header("Step 4: Replicate contract calls from events")
 
             replication_results = replicate_contract_call_events(
-                contract_call_events=contract_call_events,
                 contract_metadata=contract_metadata,
                 chain=chain,
                 caller_account=caller_account,
-                deployer_address=deployer_account.address,
+                local_deployer_address=deployer_account.address,
                 fee=StacksToken.from_microstx(10_000),
                 timeout=120,
             )
@@ -134,7 +126,7 @@ class ContractReplicationRecipe(RecipeTemplate):
                 contract_metadata=contract_metadata,
                 chain=chain,
                 caller_address=caller_account.address,
-                deployer_address=deployer_account.address,
+                local_deployer_address=deployer_account.address,
             )
 
             logger.header("REPLICATION COMPLETE")

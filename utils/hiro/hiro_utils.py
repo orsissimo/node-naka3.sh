@@ -12,7 +12,6 @@ from utils.hiro.hiro_manager import (
     find_function_by_event,
 )
 from utils.types.hiro.infrastructure import (
-    ContractCallEvent,
     ContractMetadata,
     ReplicationResult,
     ReadOnlyResult,
@@ -129,11 +128,10 @@ def fetch_contract_data(tx_id: str) -> str | None:
 
 
 def replicate_contract_call_events(
-    contract_call_events: List[ContractCallEvent],
     contract_metadata: ContractMetadata,
     chain,
     caller_account,
-    deployer_address: str,
+    local_deployer_address: str,
     fee: Optional[StacksToken] = None,
     timeout: int = 120,
 ) -> List[ReplicationResult]:
@@ -147,11 +145,10 @@ def replicate_contract_call_events(
     4. Returns results for each event
 
     Args:
-        contract_call_events: List of parsed contract call events
-        contract_metadata: Contract metadata (contains source code, ABI functions, and contract name)
+        contract_metadata: Contract metadata (contains events, source code, ABI functions, and contract name)
         chain: StacksChain instance for making blockchain calls
         caller_account: Account to use for calling functions
-        deployer_address: Address where contract is deployed
+        local_deployer_address: Address where contract is deployed locally (not mainnet address)
         fee: Transaction fee (defaults to 10,000 microstx)
         timeout: Timeout for transaction confirmation in seconds
 
@@ -163,7 +160,7 @@ def replicate_contract_call_events(
 
     results = []
 
-    for i, event in enumerate(contract_call_events):
+    for i, event in enumerate(contract_metadata.contract_events):
         logger.info(f"Event {i+1}: {event.event_repr}")
 
         if not event.event_name:
@@ -206,7 +203,7 @@ def replicate_contract_call_events(
         # Call the function
         call_result = chain.call_contract_write_function_and_confirm(
             caller_account=caller_account,
-            contract_address=deployer_address,
+            contract_address=local_deployer_address,
             contract_name=contract_metadata.contract_name,
             function_name=function_name,
             function_args=[],
@@ -243,7 +240,7 @@ def call_read_only_functions(
     contract_metadata: ContractMetadata,
     chain,
     caller_address: str,
-    deployer_address: str,
+    local_deployer_address: str,
 ) -> List[ReadOnlyResult]:
     """
     Call all read-only functions from a contract's ABI.
@@ -257,7 +254,7 @@ def call_read_only_functions(
         contract_metadata: Contract metadata (contains contract name and ABI functions)
         chain: StacksChain instance for making blockchain calls
         caller_address: Address to use as sender for read-only calls
-        deployer_address: Address where contract is deployed
+        local_deployer_address: Address where contract is deployed locally (not mainnet address)
 
     Returns:
         List of ReadOnlyResult objects with status of each function call
@@ -271,7 +268,7 @@ def call_read_only_functions(
         logger.info(f"Calling read-only: {function_name}")
 
         read_result = chain.call_contract_read_function(
-            contract_address=deployer_address,
+            contract_address=local_deployer_address,
             contract_name=contract_metadata.contract_name,
             function_name=function_name,
             sender=caller_address,
