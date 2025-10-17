@@ -44,30 +44,27 @@ def fetch_contract_data(tx_id: str) -> str | None:
     api = HiroAPI()
     collection = ResponseCollection(tx_id)
 
-    logger.header("FETCHING CONTRACT DATA FROM MAINNET")
-
     # Step 1: Get transaction details
-    logger.header("Step 1: Fetch transaction details")
-    logger.info(f"Transaction ID: {tx_id}")
+    logger.debug(f"Transaction ID: {tx_id}")
 
     contract_id = None
 
     try:
         tx = api.get_transaction_by_id(tx_id)
         collection.add("get_transaction_by_id", tx)
-        logger.success(f"Transaction fetched: {tx.tx_type}")
-        logger.info(f"Status: {tx.tx_status}")
+        logger.debug(f"Transaction fetched: {tx.tx_type}")
+        logger.debug(f"Status: {tx.tx_status}")
 
         # Extract contract ID for subsequent calls
         if tx.contract_call:
             contract_id = tx.contract_call.contract_id
-            logger.info(f"Contract call detected")
-            logger.info(f"Contract ID: {contract_id}")
-            logger.info(f"Function: {tx.contract_call.function_name}")
+            logger.debug(f"Contract call detected")
+            logger.debug(f"Contract ID: {contract_id}")
+            logger.debug(f"Function: {tx.contract_call.function_name}")
         elif tx.smart_contract:
             contract_id = tx.smart_contract.contract_id
-            logger.info(f"Contract deployment detected")
-            logger.info(f"Contract ID: {contract_id}")
+            logger.debug(f"Contract deployment detected")
+            logger.debug(f"Contract ID: {contract_id}")
         else:
             logger.warning(f"No contract information found in transaction")
             contract_id = None
@@ -78,36 +75,30 @@ def fetch_contract_data(tx_id: str) -> str | None:
         return None
 
     # Step 2: Get raw transaction
-    logger.header("Step 2: Fetch raw transaction")
-
     try:
         raw_tx = api.get_raw_transaction_by_id(tx_id)
         collection.add("get_raw_transaction_by_id", raw_tx)
-        logger.success(f"Raw transaction fetched: {len(raw_tx)} chars")
+        logger.debug(f"Raw transaction fetched: {len(raw_tx)} chars")
     except Exception as e:
         logger.error(f"Failed to fetch raw transaction: {e}")
         collection.add("get_raw_transaction_by_id", error=str(e))
 
     # Step 3: Get contract details
     if contract_id:
-        logger.header("Step 3: Fetch contract details")
-
         try:
             contract = api.get_contract_by_id(contract_id)
             collection.add("get_contract_by_id", contract)
-            logger.success(f"Contract fetched: {contract.contract_id}")
-            logger.info(f"Source code length: {len(contract.source_code)} chars")
+            logger.debug(f"Contract fetched: {contract.contract_id}")
+            logger.debug(f"Source code length: {len(contract.source_code)} chars")
         except Exception as e:
             logger.error(f"Failed to fetch contract: {e}")
             collection.add("get_contract_by_id", error=str(e))
 
         # Step 4: Get contract events
-        logger.header("Step 4: Fetch contract events")
-
         try:
             events = api.get_contract_events_by_id(contract_id)
             collection.add("get_contract_events_by_id", events)
-            logger.success(f"Contract events fetched: {len(events.results)} events")
+            logger.debug(f"Contract events fetched: {len(events.results)} events")
         except Exception as e:
             logger.error(f"Failed to fetch contract events: {e}")
             collection.add("get_contract_events_by_id", error=str(e))
@@ -128,8 +119,8 @@ def fetch_contract_data(tx_id: str) -> str | None:
     output_file = os.path.join(tmp_dir, filename)
     collection.save(output_file)
 
-    logger.success(f"All data saved to: {output_file}")
-    logger.info(f"Endpoints called: {len(collection)}")
+    logger.debug(f"All data saved to: {output_file}")
+    logger.debug(f"Endpoints called: {len(collection)}")
 
     return output_file
 

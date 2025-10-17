@@ -13,7 +13,6 @@ This script demonstrates:
 import os
 import sys
 import json
-import tempfile
 
 # Add project root to path
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
@@ -45,13 +44,13 @@ class ContractReplicationRecipe(RecipeTemplate):
             logger.error("Failed to start miners")
             return False
 
-        # First fetch the data
+        # Fetch data
         data_file = fetch_contract_data(TARGET_TX_ID)
 
         if data_file:
             logger.header("REPLICATING CONTRACT FROM MAINNET DATA")
 
-            # Load the data
+            # Load data
             logger.header("Step 1: Load mainnet data")
             with open(data_file, "r") as f:
                 data = json.load(f)
@@ -72,43 +71,32 @@ class ContractReplicationRecipe(RecipeTemplate):
             caller_account = account_manager.get(Miner.MINER2)
             chain = StacksChain(deployer_account.api_url)
 
-            logger.info(f"Deployer: {deployer_account.address}")
-            logger.info(f"Caller: {caller_account.address}")
+            logger.info(f"Mainnet deployer: {deployer_account.address}")
+            logger.info(f"Local deployer: {caller_account.address}")
 
             # Deploy contract
             logger.header("Step 3: Deploy contract")
 
-            # Write contract source to temporary file
-            with tempfile.NamedTemporaryFile(
-                mode="w", suffix=".clar", delete=False
-            ) as f:
-                f.write(contract_metadata.source_code)
-                contract_file = f.name
+            deployment_fee = StacksToken.from_microstx(50_000)
+            result = chain.deploy_and_confirm(
+                deployer_account=deployer_account,
+                contract_name=contract_metadata.contract_name,
+                contract_source=contract_metadata.source_code,
+                fee=deployment_fee,
+                timeout=120,
+            )
 
-            try:
-                deployment_fee = StacksToken.from_microstx(50_000)
-                result = chain.deploy_and_confirm(
-                    deployer_account=deployer_account,
-                    contract_name=contract_metadata.contract_name,
-                    contract_file=contract_file,
-                    fee=deployment_fee,
-                    timeout=120,
-                )
+            if not result.confirmed:
+                logger.error(f"Contract deployment failed: {result.txid}")
+                return False
 
-                if not result.confirmed:
-                    logger.error(f"Contract deployment failed: {result.txid}")
-                    return False
-
-                logger.success(f"Contract deployed: {result.txid}")
-                local_contract_id = (
-                    f"{deployer_account.address}.{contract_metadata.contract_name}"
-                )
-                logger.success(f"Local contract ID: {local_contract_id}")
-            finally:
-                os.unlink(contract_file)
+            logger.success(f"Contract deployed: {result.txid}")
 
             logger.info(
                 f"Available public functions: {contract_metadata.abi_functions.public_names}"
+            )
+            logger.info(
+                f"Available read-only functions: {contract_metadata.abi_functions.read_only_names}"
             )
 
             # Replicate events (contract calls)
@@ -134,7 +122,7 @@ class ContractReplicationRecipe(RecipeTemplate):
             )
 
             logger.header("REPLICATION COMPLETE")
-            logger.success(f"Contract deployed: {local_contract_id}")
+            logger.success(f"Contract deployed: {result.txid}")
 
             # Count successful replications
             successful_replications = sum(1 for r in replication_results if r.confirmed)

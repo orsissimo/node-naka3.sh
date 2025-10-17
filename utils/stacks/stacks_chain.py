@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import time
 from typing import Optional
 from ..types.stacks.exceptions import *
@@ -7,6 +8,7 @@ from .stacks_core_api import StacksCoreAPI
 from .blockstack_cli import BlockstackCLI
 from ..types.tokens import StacksToken
 from ..logger import logger
+from ..base import PROJECT_ROOT
 from ..types.stacks.infrastructure import Account, TransactionResult
 from ..types.stacks.api import ReadOnlyFunctionResult, AccountInfo
 
@@ -156,19 +158,42 @@ class StacksChain:
 
         return TransactionResult(txid=txid, confirmed=confirmed)
 
+    def _write_contract_source_to_file(self, source_code: str) -> str:
+        """Write contract source code to tmp/contract.clar and return the path."""
+        contract_path = os.path.join(PROJECT_ROOT, "tmp", "contract.clar")
+
+        with open(contract_path, "w") as f:
+            f.write(source_code)
+
+        return contract_path
+
     def deploy_contract(
         self,
         deployer_account: Account,
         contract_name: str,
-        contract_file: str,
+        contract_file: Optional[str] = None,
+        contract_source: Optional[str] = None,
         fee: Optional[StacksToken] = None,
         nonce: Optional[int] = None,
     ) -> str:
+        # Validate inputs
+        if contract_file is None and contract_source is None:
+            raise ValueError("Either contract_file or contract_source must be provided")
+        if contract_file is not None and contract_source is not None:
+            raise ValueError("Cannot provide both contract_file and contract_source")
+
+        # Handle source code
+        if contract_source is not None:
+            file_to_deploy = self._write_contract_source_to_file(contract_source)
+        else:
+            file_to_deploy = contract_file
+            assert file_to_deploy is not None  # Already validated above
+
         if nonce is None:
             nonce = self.get_current_nonce(deployer_account.address)
 
         if fee is None:
-            fee = StacksToken.from_microstx(50_000)  # Higher default fee for contracts
+            fee = StacksToken.from_microstx(50_000)
 
         fee_microstx = fee.to_base_units()
 
@@ -178,7 +203,7 @@ class StacksChain:
                 fee_rate=fee_microstx,
                 nonce=nonce,
                 contract_name=contract_name,
-                file_name=contract_file,
+                file_name=file_to_deploy,
                 testnet=True,
             )
         except Exception as e:
@@ -193,7 +218,8 @@ class StacksChain:
         self,
         deployer_account: Account,
         contract_name: str,
-        contract_file: str,
+        contract_file: Optional[str] = None,
+        contract_source: Optional[str] = None,
         fee: Optional[StacksToken] = None,
         nonce: Optional[int] = None,
         timeout: int = 120,
@@ -202,6 +228,7 @@ class StacksChain:
             deployer_account=deployer_account,
             contract_name=contract_name,
             contract_file=contract_file,
+            contract_source=contract_source,
             fee=fee,
             nonce=nonce,
         )
