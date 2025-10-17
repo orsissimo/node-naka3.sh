@@ -72,7 +72,7 @@ class BlockstackCLI:
                     T, String(stdout.strip())
                 )  # FIXME: I don't like 'cast' that much
             else:
-                return parse_cli_response(stdout, response_type)  # type: ignore # FIXME: Can we avoid this ignore?
+                return parse_cli_response(stdout, response_type)  # type: ignore
 
         except FileNotFoundError as e:
             logger.error(

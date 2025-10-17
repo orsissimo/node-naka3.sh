@@ -9,6 +9,7 @@ from utils.types.hiro.exceptions import *
 
 T = TypeVar("T")
 
+# FIXME: Factory method class: HiroAPI.mainnet(), HiroAPI.testnet()
 
 class HiroAPI:
     def __init__(

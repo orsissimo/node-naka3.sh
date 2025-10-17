@@ -410,7 +410,7 @@ class TransactionMultipleResponse(RootModel[Dict[str, TransactionSearchResult]])
     def __getitem__(self, key: str) -> TransactionSearchResult:
         return self.root[key]
 
-    def __iter__(self):  # type: ignore # FIXME: Can we avoid this ignore?
+    def __iter__(self):  # type: ignore
         return iter(self.root)
 
     def __len__(self) -> int:
