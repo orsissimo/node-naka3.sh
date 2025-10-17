@@ -27,7 +27,7 @@ from utils.hiro.hiro_utils import (
     replicate_contract_call_events,
     call_read_only_functions,
 )
-from utils.hiro.hiro_manager import extract_contract_metadata
+from utils.hiro.json_handler import extract_contract_metadata
 from utils.templates.recipe import RecipeTemplate
 
 

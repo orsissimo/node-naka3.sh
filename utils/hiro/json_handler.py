@@ -18,7 +18,6 @@ from utils.types.hiro.infrastructure import (
     ContractCallEvent,
 )
 
-# FIXME: Rinominiamolo in json_
 # FIXME: Non va bene avere funzioni sparse, creo un oggetto che le contiene e le gestisce obj.fx
 # FIXME: Partire da una funzione padre che prende txid, e poi se è tx, contract, ecc lo gestisce lui TokenTransfer(PrincipalData, u64, TokenTransferMemo), ContractCall(TransactionContractCall), SmartContract(TransactionSmartContract, Option<ClarityVersion>),
 # FIXME: Move to testnet

@@ -8,7 +8,7 @@ from typing import List, Optional
 
 from utils.logger import logger
 from utils.hiro.hiro_api import HiroAPI
-from utils.hiro.hiro_manager import (
+from utils.hiro.json_handler import (
     ResponseCollection,
     find_function_by_event,
 )
