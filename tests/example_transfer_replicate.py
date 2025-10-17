@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
-Replicate a mainnet transaction on local node.
+Token Transfer Replication Example
 
-This script:
-1. Fetches a transaction from Hiro mainnet API
-2. Extracts the transfer parameters
-3. Replicates it on your local Stacks node
+This script demonstrates:
+1. Fetching a token transfer transaction from mainnet
+2. Extracting transfer parameters
+3. Replicating the transfer on local Stacks node
+4. Verifying balances
 """
 
 import os
@@ -14,69 +15,65 @@ import sys
 # Add project root to path
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from utils.base import account_manager
-from utils.types.stacks.infrastructure import Miner
 from utils.logger import logger
+from utils.base import account_manager, PROJECT_ROOT
+from utils.types.stacks.infrastructure import Miner
 from utils.stacks.stacks_chain import StacksChain
 from utils.types.tokens import StacksToken
+from utils.hiro.json_handler import TransactionHandler
 from utils.templates.recipe import RecipeTemplate
-from utils.hiro.hiro_api import HiroAPI
 
 
-class ReplicateTransactionRecipe(RecipeTemplate):
+class ReplicateTransferRecipe(RecipeTemplate):
+    """Recipe for replicating a token transfer from mainnet."""
+
     def _run_recipe(self) -> bool:
-        # Configuration
-        ORIGINAL_TX_ID = (
-            "0x65e35f27826de006f73f9813b821a1f27a2b93d8d68e13726e69323dfa2b4330"
-        )
-
-        logger.header("REPLICATE MAINNET TRANSACTION")
-
-        # Step 1: Fetch original transaction from Hiro mainnet
-        logger.header("Step 1: Fetch transaction from mainnet")
-        hiro_api = HiroAPI()
-        tx = hiro_api.get_transaction_by_id(ORIGINAL_TX_ID)
-
-        logger.info(f"Original TX ID: {ORIGINAL_TX_ID}")
-        logger.info(f"Transaction type: {tx.tx_type}")
-        logger.info(f"Original sender: {tx.sender_address}")
-        logger.info(f"Fee: {tx.fee_rate} µSTX")
-
-        # Extract transfer details from events
-        recipient = None
-        amount_microstx = None
-        memo = None
-
-        for event in tx.events:
-            if event.get("event_type") == "stx_asset":
-                asset = event.get("asset", {})
-                recipient = asset.get("recipient")
-                amount_microstx = int(asset.get("amount", 0))
-                memo = asset.get("memo", "0x00")
-
-        if not recipient or amount_microstx is None:
-            logger.error("Could not extract transfer details from transaction")
-            return False
-
-        logger.success(f"Extracted recipient: {recipient}")
-        logger.success(f"Extracted amount: {amount_microstx} µSTX")
-        logger.success(f"Extracted memo: {memo}")
-
-        # Step 2: Setup local environment
-        logger.header("Step 2: Setup local node")
-        sender_account = account_manager.get(Miner.MINER1)
-        recipient_account = account_manager.get(Miner.MINER2)
-        chain = StacksChain(sender_account.api_url)
-
+        # Start miners
         if not self.miners.snapshot_restore_auto():
             logger.error("Failed to start miners")
             return False
 
-        logger.info(f"Local sender: {sender_account.address}")
+        logger.header("REPLICATING TOKEN TRANSFER FROM MAINNET")
+
+        # Step 1: Fetch and extract transaction data
+        logger.header("Step 1: Fetch mainnet data")
+        TARGET_TX_ID = "0x65e35f27826de006f73f9813b821a1f27a2b93d8d68e13726e69323dfa2b4330"
+
+        handler = TransactionHandler(TARGET_TX_ID)
+        tmp_dir = os.path.join(PROJECT_ROOT, "tmp")
+        metadata, data_file = handler.fetch_extract_and_save(tmp_dir)
+
+        if metadata is None:
+            logger.error("Failed to fetch transaction metadata")
+            return False
+
+        # Ensure this is a token transfer
+        from utils.types.hiro.infrastructure import TransferMetadata
+        if not isinstance(metadata, TransferMetadata):
+            logger.error(f"Expected token transfer, got {type(metadata).__name__}")
+            return False
+
+        transfer_metadata = metadata
+
+        logger.info(f"Sender: {transfer_metadata.sender_address}")
+        logger.info(f"Recipient: {transfer_metadata.recipient_address}")
+        logger.info(f"Amount: {transfer_metadata.amount} µSTX")
+        logger.info(f"Memo: {transfer_metadata.memo}")
+        logger.info(f"Fee: {transfer_metadata.fee} µSTX")
+        logger.success(f"Data loaded and saved to: {data_file}")
+
+        # Setup local environment
+        logger.header("Step 2: Setup local environment")
+        sender_account = account_manager.get(Miner.MINER1)
+        recipient_account = account_manager.get(Miner.MINER2)
+        chain = StacksChain(sender_account.api_url)
+
+        logger.info(f"Mainnet sender: {transfer_metadata.sender_address}")
+        logger.info(f"Mainnet recipient: {transfer_metadata.recipient_address}")
         logger.warning(
             "Note: Mainnet addresses (SP) have different checksums than testnet (ST)"
         )
-        logger.info(f"Mainnet recipient: {recipient}")
+        logger.info(f"Local sender: {sender_account.address}")
         logger.info(f"Local recipient: {recipient_account.address}")
 
         # Step 3: Check initial balances
@@ -89,21 +86,20 @@ class ReplicateTransactionRecipe(RecipeTemplate):
 
         # Step 4: Execute the replicated transfer
         logger.header("Step 4: Execute replicated transfer")
-        transfer_amount = StacksToken.from_microstx(amount_microstx)
-        transaction_fee = StacksToken.from_microstx(int(tx.fee_rate))
+        transfer_amount = StacksToken.from_microstx(int(transfer_metadata.amount))
+        transaction_fee = StacksToken.from_microstx(int(transfer_metadata.fee))
 
-        logger.info(f"Replicating transaction with parameters from mainnet:")
-        logger.info(f"Amount (exact): {transfer_amount.format_stx()}")
-        logger.info(f"Fee (exact): {transaction_fee.format_stx()}")
-        logger.info(f"Memo (exact): {memo}")
-        logger.info(f"Recipient: {recipient_account.address} (local testnet address)")
+        logger.info(f"Replicating transfer with exact mainnet parameters:")
+        logger.info(f"Amount: {transfer_amount.format_stx()}")
+        logger.info(f"Fee: {transaction_fee.format_stx()}")
+        logger.info(f"Memo: {transfer_metadata.memo}")
 
         result = chain.transfer_and_confirm(
             sender_account=sender_account,
-            recipient=recipient_account.address,  # Local recipient (address checksums differ)
-            amount=transfer_amount,  # Exact amount from mainnet
-            memo=memo if memo else "",  # Exact memo from mainnet
-            fee=transaction_fee,  # Exact fee from mainnet
+            recipient=recipient_account.address,
+            amount=transfer_amount,
+            memo=transfer_metadata.memo if transfer_metadata.memo else "",
+            fee=transaction_fee,
             timeout=120,
         )
 
@@ -128,22 +124,24 @@ class ReplicateTransactionRecipe(RecipeTemplate):
 
         # Verify amounts match
         expected_sender_change = -(transfer_amount + transaction_fee)
-        if (
+        balances_verified = (
             sender_change == expected_sender_change
             and recipient_change == transfer_amount
-        ):
+        )
+
+        if balances_verified:
             logger.success("Balances verified correctly!")
         else:
             logger.warning("Balance changes don't match expected values")
 
-        logger.header("SUCCESS")
-        logger.success(f"Replicated mainnet transaction {ORIGINAL_TX_ID}")
+        logger.header("REPLICATION COMPLETE")
+        logger.success(f"Replicated mainnet transaction {TARGET_TX_ID}")
         logger.success(f"New local transaction: {result.txid}")
 
-        return True
+        return balances_verified
 
 
 if __name__ == "__main__":
-    recipe = ReplicateTransactionRecipe()
+    recipe = ReplicateTransferRecipe()
     success = recipe.execute()
     sys.exit(0 if success else 1)

@@ -126,6 +126,17 @@ class ContractCallData(BaseModel):
         populate_by_name = True
 
 
+class TokenTransferData(BaseModel):
+    """Token transfer data."""
+
+    recipient_address: str
+    amount: str
+    memo: Optional[str] = None
+
+    class Config:
+        populate_by_name = True
+
+
 class Transaction(BaseModel):
     """Transaction response from the API."""
 
@@ -167,6 +178,7 @@ class Transaction(BaseModel):
     # Transaction type-specific fields
     smart_contract: Optional[SmartContractData] = None
     contract_call: Optional[ContractCallData] = None
+    token_transfer: Optional[TokenTransferData] = None
 
     class Config:
         populate_by_name = True

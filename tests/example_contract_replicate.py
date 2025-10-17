@@ -12,22 +12,17 @@ This script demonstrates:
 
 import os
 import sys
-import json
 
 # Add project root to path
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from utils.logger import logger
-from utils.base import account_manager
+from utils.base import account_manager, PROJECT_ROOT
 from utils.types.stacks.infrastructure import Miner
 from utils.stacks.stacks_chain import StacksChain
 from utils.types.tokens import StacksToken
-from utils.hiro.hiro_utils import (
-    fetch_contract_data,
-    replicate_contract_call_events,
-    call_read_only_functions,
-)
-from utils.hiro.json_handler import extract_contract_metadata
+from utils.hiro.replicators import ContractReplicator
+from utils.hiro.json_handler import TransactionHandler
 from utils.templates.recipe import RecipeTemplate
 
 
@@ -44,97 +39,103 @@ class ContractReplicationRecipe(RecipeTemplate):
             logger.error("Failed to start miners")
             return False
 
-        # Fetch data
-        data_file = fetch_contract_data(TARGET_TX_ID)
+        logger.header("REPLICATING CONTRACT FROM MAINNET DATA")
 
-        if data_file:
-            logger.header("REPLICATING CONTRACT FROM MAINNET DATA")
+        # Step 1: Fetch and extract transaction data
+        logger.header("Step 1: Fetch mainnet data")
+        handler = TransactionHandler(TARGET_TX_ID)
+        tmp_dir = os.path.join(PROJECT_ROOT, "tmp")
+        metadata, data_file = handler.fetch_extract_and_save(tmp_dir)
 
-            # Load data
-            logger.header("Step 1: Load mainnet data")
-            with open(data_file, "r") as f:
-                data = json.load(f)
+        if metadata is None:
+            logger.error("Failed to fetch transaction metadata")
+            return False
 
-            # Extract contract metadata using utility function
-            contract_metadata = extract_contract_metadata(data)
+        # Ensure this is a contract deployment
+        from utils.types.hiro.infrastructure import ContractMetadata
+        if not isinstance(metadata, ContractMetadata):
+            logger.error(f"Expected contract deployment, got {type(metadata).__name__}")
+            return False
 
-            logger.info(f"Contract name: {contract_metadata.contract_name}")
-            logger.info(f"Source code: {len(contract_metadata.source_code)} chars")
-            logger.info(
-                f"Events to replicate: {len(contract_metadata.contract_events)}"
-            )
-            logger.success("Data loaded")
+        contract_metadata = metadata
 
-            # Setup local environment
-            logger.header("Step 2: Setup local environment")
-            deployer_account = account_manager.get(Miner.MINER1)
-            caller_account = account_manager.get(Miner.MINER2)
-            chain = StacksChain(deployer_account.api_url)
+        logger.info(f"Contract name: {contract_metadata.contract_name}")
+        logger.info(f"Source code: {len(contract_metadata.source_code)} chars")
+        logger.info(
+            f"Events to replicate: {len(contract_metadata.contract_events)}"
+        )
+        logger.success(f"Data loaded and saved to: {data_file}")
 
-            logger.info(f"Mainnet deployer: {deployer_account.address}")
-            logger.info(f"Local deployer: {caller_account.address}")
+        # Setup local environment
+        logger.header("Step 2: Setup local environment")
+        deployer_account = account_manager.get(Miner.MINER1)
+        caller_account = account_manager.get(Miner.MINER2)
+        chain = StacksChain(deployer_account.api_url)
 
-            # Deploy contract
-            logger.header("Step 3: Deploy contract")
+        logger.info(f"Mainnet deployer: {deployer_account.address}")
+        logger.info(f"Local deployer: {caller_account.address}")
 
-            deployment_fee = StacksToken.from_microstx(50_000)
-            result = chain.deploy_and_confirm(
-                deployer_account=deployer_account,
-                contract_name=contract_metadata.contract_name,
-                contract_source=contract_metadata.source_code,
-                fee=deployment_fee,
-                timeout=120,
-            )
+        # Deploy contract
+        logger.header("Step 3: Deploy contract")
 
-            if not result.confirmed:
-                logger.error(f"Contract deployment failed: {result.txid}")
-                return False
+        deployment_fee = StacksToken.from_microstx(50_000)
+        result = chain.deploy_and_confirm(
+            deployer_account=deployer_account,
+            contract_name=contract_metadata.contract_name,
+            contract_source=contract_metadata.source_code,
+            fee=deployment_fee,
+            timeout=120,
+        )
 
-            logger.success(f"Contract deployed: {result.txid}")
+        if not result.confirmed:
+            logger.error(f"Contract deployment failed: {result.txid}")
+            return False
 
-            logger.info(
-                f"Available public functions: {contract_metadata.abi_functions.public_names}"
-            )
-            logger.info(
-                f"Available read-only functions: {contract_metadata.abi_functions.read_only_names}"
-            )
+        logger.success(f"Contract deployed: {result.txid}")
 
-            # Replicate events (contract calls)
-            logger.header("Step 4: Replicate contract calls from events")
+        logger.info(
+            f"Available public functions: {contract_metadata.abi_functions.public_names}"
+        )
+        logger.info(
+            f"Available read-only functions: {contract_metadata.abi_functions.read_only_names}"
+        )
 
-            replication_results = replicate_contract_call_events(
-                contract_metadata=contract_metadata,
-                chain=chain,
-                caller_account=caller_account,
-                local_deployer_address=deployer_account.address,
-                fee=StacksToken.from_microstx(10_000),
-                timeout=120,
-            )
+        # Create replicator
+        replicator = ContractReplicator(chain, contract_metadata)
 
-            # Call all read-only functions
-            logger.header("Step 5: Call all read-only functions")
+        # Replicate events (contract calls)
+        logger.header("Step 4: Replicate contract calls from events")
 
-            read_only_results = call_read_only_functions(
-                contract_metadata=contract_metadata,
-                chain=chain,
-                caller_address=caller_account.address,
-                local_deployer_address=deployer_account.address,
-            )
+        replication_results = replicator.replicate_events(
+            caller_account=caller_account,
+            local_deployer_address=deployer_account.address,
+            fee=StacksToken.from_microstx(10_000),
+            timeout=120,
+        )
 
-            logger.header("REPLICATION COMPLETE")
-            logger.success(f"Contract deployed: {result.txid}")
+        # Call all read-only functions
+        logger.header("Step 5: Call all read-only functions")
 
-            # Count successful replications
-            successful_replications = sum(1 for r in replication_results if r.confirmed)
-            logger.success(
-                f"Events replicated: {successful_replications}/{len(replication_results)}"
-            )
+        read_only_results = replicator.call_read_only_functions(
+            caller_address=caller_account.address,
+            local_deployer_address=deployer_account.address,
+        )
 
-            # Count successful read-only calls
-            successful_reads = sum(1 for r in read_only_results if r.success)
-            logger.success(
-                f"Read-only functions called: {successful_reads}/{len(read_only_results)}"
-            )
+        logger.header("REPLICATION COMPLETE")
+        logger.success(f"Contract deployed: {result.txid}")
+
+        # Count successful replications
+        successful_replications = sum(1 for r in replication_results if r.confirmed)
+        logger.success(
+            f"Events replicated: {successful_replications}/{len(replication_results)}"
+        )
+
+        # Count successful read-only calls
+        successful_reads = sum(1 for r in read_only_results if r.success)
+        logger.success(
+            f"Read-only functions called: {successful_reads}/{len(read_only_results)}"
+        )
+
         return False
 
 

@@ -71,3 +71,27 @@ class ReadOnlyResult:
     success: bool
     result: Optional[str] = None
     error: Optional[str] = None
+
+
+@dataclass
+class TransferMetadata:
+    """Token transfer metadata extracted from API response."""
+
+    tx_id: str
+    sender_address: str
+    recipient_address: str
+    amount: str
+    memo: Optional[str]
+    fee: str
+
+
+@dataclass
+class ContractCallMetadata:
+    """Contract call metadata extracted from API response."""
+
+    tx_id: str
+    contract_metadata: ContractMetadata
+    function_name: str
+    function_args: List[dict]
+    sender_address: str
+    fee: str
