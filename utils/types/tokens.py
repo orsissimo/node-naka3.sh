@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Token types and amount wrappers with unit conversions."""
 
 from typing import Union, Optional, TypeVar
 

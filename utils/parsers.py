@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 """Common JSON parsing utilities for API responses and CLI output."""
 
 from __future__ import annotations

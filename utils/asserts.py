@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
+"""Assertion utilities for validating conditions and logging results."""
 
 from typing import Any
 from .types.stacks.exceptions import RecipeFailedException
 from .logger import logger
-
 
 def assert_eq(expected: Any, actual: Any, description: str) -> None:
     """Assert expected equals actual. Raises RecipeFailedException if not."""

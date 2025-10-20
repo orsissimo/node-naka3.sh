@@ -1,14 +1,5 @@
 #!/usr/bin/env python3
-"""
-Transaction data handler for Hiro API.
-
-This module provides handlers for different transaction types:
-- DeploymentHandler: Smart contract deployments
-- ContractCallHandler: Contract function calls
-- TransferHandler: Token transfers
-
-All handlers are accessed through the main TransactionHandler class.
-"""
+"""Handler for fetching and processing Hiro API transaction data."""
 
 import json
 import re
@@ -22,7 +13,7 @@ from utils.types.hiro.infrastructure import (
     AbiFunctions,
     ContractCallEvent,
 )
-from utils.hiro.hiro_api import HiroAPI
+from utils.stacks.hiro_api import HiroAPI
 from utils.logger import logger
 
 

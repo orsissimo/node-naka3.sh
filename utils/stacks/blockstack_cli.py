@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+"""Wrapper for executing Blockstack CLI commands and parsing their output."""
+
 import subprocess
 import shlex
 from typing import List, Optional, TypeVar, Type, cast

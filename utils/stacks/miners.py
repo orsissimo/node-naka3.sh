@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Manager for controlling and interacting with the 'three-miners' Stacks miners."""
 
 import subprocess
 import time

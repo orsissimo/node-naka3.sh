@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Utility object that handles common HTTP operations for API clients."""
 
 import requests
 import json

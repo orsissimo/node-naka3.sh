@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Façade combining API and CLI for high-level Stacks blockchain operations."""
 
 import os
 import time

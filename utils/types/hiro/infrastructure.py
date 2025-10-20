@@ -3,7 +3,7 @@
 Hiro infrastructure data structures.
 
 This module contains dataclasses for Hiro API data structures,
-contract metadata, and replication results.
+contract metadata, and operation results.
 """
 
 from dataclasses import dataclass
@@ -53,8 +53,8 @@ class ContractCallEvent:
 
 
 @dataclass
-class ReplicationResult:
-    """Result of replicating a contract call event."""
+class EventCallResult:
+    """Result of calling a contract function based on an event."""
 
     event_name: str
     function_name: str | None

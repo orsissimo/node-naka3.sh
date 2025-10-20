@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-Transaction replication utilities for replaying mainnet behavior locally.
+Advanced contract operations and macros for Stacks blockchain.
 
-This module provides the ContractReplicator for replicating contract deployments and operations.
+This module provides ContractMacros with higher-level functions for
+contract operations, including calling events and read-only functions.
 """
 
 import re
@@ -11,7 +12,8 @@ from typing import List, Optional
 from utils.logger import logger
 from utils.types.hiro.infrastructure import (
     ContractMetadata,
-    ReplicationResult,
+    ContractCallEvent,
+    EventCallResult,
     ReadOnlyResult,
 )
 from utils.types.tokens import StacksToken
@@ -65,62 +67,67 @@ def _find_function_by_event(event_name: str, source_code: str) -> str | None:
     return containing_function
 
 
-class ContractReplicator:
+class ContractMacros:
     """
-    Replicates mainnet contract operations on a local blockchain.
+    Advanced contract operations for Stacks blockchain.
 
-    This class encapsulates all operations needed to replay contract
-    behavior from mainnet onto a local test environment.
+    This class provides higher-level functions for contract operations,
+    similar to StacksChain but with more advanced capabilities.
     """
 
     def __init__(self, chain, metadata: ContractMetadata):
         """
-        Initialize the contract replicator.
+        Initialize the contract macros.
 
         Args:
             chain: StacksChain instance for making blockchain calls
-            metadata: Contract metadata from mainnet
+            metadata: Contract metadata containing ABI, source code, and events
         """
         self._chain = chain
         self._metadata = metadata
 
-    def replicate_events(
+    def call_events(
         self,
         caller_account,
         local_deployer_address: str,
+        events: Optional[List[ContractCallEvent]] = None,
         fee: Optional[StacksToken] = None,
         timeout: int = 120,
-    ) -> List[ReplicationResult]:
+    ) -> List[EventCallResult]:
         """
-        Replicate contract call events from mainnet on local blockchain.
+        Call contract functions based on contract call events.
 
         This method:
         1. Iterates through each contract call event
         2. Finds the corresponding function in the contract source
-        3. Calls the function on the local blockchain
+        3. Calls the function on the blockchain
         4. Returns results for each event
 
         Args:
             caller_account: Account to use for calling functions
-            local_deployer_address: Address where contract is deployed locally
+            local_deployer_address: Address where contract is deployed
+            events: List of events to process (defaults to metadata.contract_events)
             fee: Transaction fee (defaults to 10,000 microstx)
             timeout: Timeout for transaction confirmation in seconds
 
         Returns:
-            List of ReplicationResult objects with status of each replication
+            List of EventCallResult objects with status of each call
         """
         if fee is None:
             fee = StacksToken.from_microstx(10_000)
 
+        if events is None:
+            events = self._metadata.contract_events
+
         results = []
 
-        for i, event in enumerate(self._metadata.contract_events):
+        for i, event in enumerate(events):
             logger.info(f"Event {i+1}: {event.event_repr}")
 
             if not event.event_name:
                 logger.warning(f"Could not parse event name from: {event.event_repr}")
                 results.append(
-                    ReplicationResult(
+                    EventCallResult(
                         event_name="<unknown>",
                         function_name=None,
                         confirmed=False,
@@ -145,7 +152,7 @@ class ContractReplicator:
                     f"Could not find function for event '{event.event_name}' in source code"
                 )
                 results.append(
-                    ReplicationResult(
+                    EventCallResult(
                         event_name=event.event_name,
                         function_name=function_name,
                         confirmed=False,
@@ -171,7 +178,7 @@ class ContractReplicator:
             if call_result.confirmed:
                 logger.success(f"{function_name} confirmed: {call_result.txid}")
                 results.append(
-                    ReplicationResult(
+                    EventCallResult(
                         event_name=event.event_name,
                         function_name=function_name,
                         confirmed=True,
@@ -181,7 +188,7 @@ class ContractReplicator:
             else:
                 logger.error(f"{function_name} failed")
                 results.append(
-                    ReplicationResult(
+                    EventCallResult(
                         event_name=event.event_name,
                         function_name=function_name,
                         confirmed=False,

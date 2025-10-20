@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Exceptions specific to Stacks operations and error handling."""
 
 from typing import Optional, Dict, Any
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Core API client for interacting with a Stacks node."""
 
 import requests
 from typing import List, Optional, Dict, Any, TypeVar, Type, Union

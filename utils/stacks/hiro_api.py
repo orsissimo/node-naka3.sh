@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Client for interacting with the Hiro API for Stacks blockchain data."""
 
 import requests
 from typing import List, Optional, Dict, Any, TypeVar, Type, Union

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 """Lightweight wrapper types that behave like native primitives."""
 
 from __future__ import annotations

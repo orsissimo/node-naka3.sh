@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Contract Call Replication Example
+Contract Operations Example
 
 This script demonstrates:
 1. Fetching a contract deployment transaction from mainnet
 2. Extracting contract information and events
-3. Replicating the deployment locally
-4. Replicating all contract calls (events) in chronological order
+3. Deploying the contract locally
+4. Calling contract functions based on events
 5. Calling all read-only functions
 """
 
@@ -21,8 +21,8 @@ from utils.base import account_manager, PROJECT_ROOT
 from utils.types.stacks.infrastructure import Miner
 from utils.stacks.stacks_chain import StacksChain
 from utils.types.tokens import StacksToken
-from utils.hiro.replicators import ContractReplicator
-from utils.hiro.json_handler import TransactionHandler
+from utils.stacks.stacks_contract_macros import ContractMacros
+from utils.stacks.hiro_json_handler import TransactionHandler
 from utils.templates.recipe import RecipeTemplate
 
 
@@ -30,8 +30,8 @@ from utils.templates.recipe import RecipeTemplate
 TARGET_TX_ID = "0x8acc030ea9ba31fbcb1821fcdb671c542e90ec9dfe87c67979e6bac3f47c891b"
 
 
-class ContractReplicationRecipe(RecipeTemplate):
-    """Recipe for replicating a contract from mainnet."""
+class ContractOperationsRecipe(RecipeTemplate):
+    """Recipe for demonstrating contract operations from mainnet data."""
 
     def _run_recipe(self) -> bool:
         # Start miners
@@ -39,7 +39,7 @@ class ContractReplicationRecipe(RecipeTemplate):
             logger.error("Failed to start miners")
             return False
 
-        logger.header("REPLICATING CONTRACT FROM MAINNET DATA")
+        logger.header("CONTRACT OPERATIONS FROM MAINNET DATA")
 
         # Step 1: Fetch and extract transaction data
         logger.header("Step 1: Fetch mainnet data")
@@ -100,13 +100,13 @@ class ContractReplicationRecipe(RecipeTemplate):
             f"Available read-only functions: {contract_metadata.abi_functions.read_only_names}"
         )
 
-        # Create replicator
-        replicator = ContractReplicator(chain, contract_metadata)
+        # Create contract macros helper
+        macros = ContractMacros(chain, contract_metadata)
 
-        # Replicate events (contract calls)
-        logger.header("Step 4: Replicate contract calls from events")
+        # Call events (contract calls)
+        logger.header("Step 4: Call contract functions from events")
 
-        replication_results = replicator.replicate_events(
+        event_results = macros.call_events(
             caller_account=caller_account,
             local_deployer_address=deployer_account.address,
             fee=StacksToken.from_microstx(10_000),
@@ -116,18 +116,18 @@ class ContractReplicationRecipe(RecipeTemplate):
         # Call all read-only functions
         logger.header("Step 5: Call all read-only functions")
 
-        read_only_results = replicator.call_read_only_functions(
+        read_only_results = macros.call_read_only_functions(
             caller_address=caller_account.address,
             local_deployer_address=deployer_account.address,
         )
 
-        logger.header("REPLICATION COMPLETE")
+        logger.header("OPERATION COMPLETE")
         logger.success(f"Contract deployed: {result.txid}")
 
-        # Count successful replications
-        successful_replications = sum(1 for r in replication_results if r.confirmed)
+        # Count successful event calls
+        successful_events = sum(1 for r in event_results if r.confirmed)
         logger.success(
-            f"Events replicated: {successful_replications}/{len(replication_results)}"
+            f"Events called: {successful_events}/{len(event_results)}"
         )
 
         # Count successful read-only calls
@@ -140,6 +140,6 @@ class ContractReplicationRecipe(RecipeTemplate):
 
 
 if __name__ == "__main__":
-    recipe = ContractReplicationRecipe()
+    recipe = ContractOperationsRecipe()
     success = recipe.execute()
     sys.exit(0 if success else 1)

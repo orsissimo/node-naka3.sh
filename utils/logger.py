@@ -1,8 +1,10 @@
+#!/usr/bin/env python3
+"""A logger with semantic methods, log level filtering, and f-string key-value support."""
+
 import os
 from typing import Optional
 from enum import Enum
 import datetime
-
 
 class LogLevel(Enum):
     """Log level enumeration with filtering support."""

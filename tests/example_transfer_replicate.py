@@ -20,7 +20,7 @@ from utils.base import account_manager, PROJECT_ROOT
 from utils.types.stacks.infrastructure import Miner
 from utils.stacks.stacks_chain import StacksChain
 from utils.types.tokens import StacksToken
-from utils.hiro.json_handler import TransactionHandler
+from utils.stacks.hiro_json_handler import TransactionHandler
 from utils.templates.recipe import RecipeTemplate
 
 

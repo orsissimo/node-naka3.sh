@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Template Method pattern implementation for test recipes."""
 
 from abc import ABC, abstractmethod
 from utils.stacks.miners import MinerManager
