@@ -70,9 +70,6 @@ class ReplicateTransferRecipe(RecipeTemplate):
 
         logger.info(f"Mainnet sender: {transfer_metadata.sender_address}")
         logger.info(f"Mainnet recipient: {transfer_metadata.recipient_address}")
-        logger.warning(
-            "Note: Mainnet addresses (SP) have different checksums than testnet (ST)"
-        )
         logger.info(f"Local sender: {sender_account.address}")
         logger.info(f"Local recipient: {recipient_account.address}")
 
