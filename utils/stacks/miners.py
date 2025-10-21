@@ -36,7 +36,7 @@ class MinerManager:
         return len(self._apis)
 
     def wait_for_miners_ready(self, timeout: int = 45) -> bool:
-        logger.info(
+        logger.debug(
             f"Waiting for {len(self._apis)} miners to be ready...", Colors.ORANGE
         )
         time.sleep(15)
