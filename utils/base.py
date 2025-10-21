@@ -1,12 +1,5 @@
 #!/usr/bin/env python3
-"""
-Central configuration for the project.
-
-This module contains:
-- Project paths (PROJECT_ROOT, PLAYBOOK_DIR)
-- Constants (token conversions, timeouts, API settings)
-- Account configuration and management
-"""
+"""Central configuration for the project."""
 
 import os
 from typing import Dict, List

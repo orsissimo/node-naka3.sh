@@ -12,7 +12,7 @@ from typing import List, Optional
 
 @dataclass
 class ContractMetadata:
-    """Contract metadata extracted from API response."""
+    """Contract metadata with optional events."""
 
     contract_id: str
     contract_name: str
@@ -21,7 +21,7 @@ class ContractMetadata:
     abi: dict
     abi_functions: "AbiFunctions"
     tx_id: str
-    contract_events: List["ContractCallEvent"]
+    contract_events: Optional[List["ContractCallEvent"]] = None
 
 
 @dataclass

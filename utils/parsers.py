@@ -76,3 +76,51 @@ def parse_cli_response(stdout: str, response_type: Type[T]) -> T:
         raise StacksCLIException(
             f"Unexpected error parsing {response_type.__name__}: {e}"
         ) from e
+
+
+# Hiro API-specific parsing functions
+
+def parse_contract_id(contract_id: str):
+    """
+    Split contract_id into address and contract name components.
+
+    Returns:
+        ParsedContractId with address and contract_name fields
+    """
+    from utils.types.hiro.infrastructure import ParsedContractId
+
+    parts = contract_id.split(".")
+    return ParsedContractId(
+        address=parts[0],
+        contract_name=parts[1] if len(parts) > 1 else "",
+    )
+
+
+def parse_abi(abi_data) -> dict:
+    """Parse ABI string to dict if needed."""
+    return json.loads(abi_data) if isinstance(abi_data, str) else abi_data
+
+
+def parse_abi_functions(abi_dict: dict):
+    """
+    Parse ABI and group functions by access type.
+
+    Returns:
+        AbiFunctions with public, read_only, public_names, and read_only_names
+    """
+    from utils.types.hiro.infrastructure import AbiFunctions
+
+    public_functions = [
+        func for func in abi_dict["functions"] if func["access"] == "public"
+    ]
+
+    read_only_functions = [
+        func for func in abi_dict["functions"] if func["access"] == "read_only"
+    ]
+
+    return AbiFunctions(
+        public=public_functions,
+        read_only=read_only_functions,
+        public_names=[func["name"] for func in public_functions],
+        read_only_names=[func["name"] for func in read_only_functions],
+    )

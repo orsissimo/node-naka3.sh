@@ -9,24 +9,18 @@ from utils.types.hiro.infrastructure import (
     ContractMetadata,
     TransferMetadata,
     ContractCallMetadata,
-    ParsedContractId,
-    AbiFunctions,
     ContractCallEvent,
 )
 from utils.stacks.hiro_api import HiroAPI
 from utils.logger import logger
+from utils.parsers import parse_contract_id, parse_abi, parse_abi_functions
 
 
 class ResponseCollection:
     """Manages a collection of API endpoint responses."""
 
     def __init__(self, target_identifier: str):
-        """
-        Initialize response collection.
-
-        Args:
-            target_identifier: The target being queried (tx_id, contract_id, address, etc.)
-        """
+        """Initialize response collection given a target_identifier (tx_id, contract_id, address, etc.)"""
         self.data = {"target_tx_id": target_identifier, "endpoints": {}}
 
     def add(
@@ -76,15 +70,7 @@ class TransactionHandler:
         self._tx = None
 
     def fetch_and_extract(self) -> ContractMetadata | ContractCallMetadata | TransferMetadata | None:
-        """
-        Fetch transaction data and extract metadata based on transaction type.
-
-        Returns:
-            - ContractMetadata for smart contract deployments
-            - ContractCallMetadata for contract calls
-            - TransferMetadata for token transfers
-            - None if fetch failed or unsupported type
-        """
+        """Fetch transaction data and extract metadata based on transaction type."""
         # Fetch transaction details
         try:
             self._tx = self._api.get_transaction_by_id(self._txid)
@@ -119,15 +105,7 @@ class TransactionHandler:
         return self._collection
 
     def fetch_extract_and_save(self, output_dir: str) -> tuple[ContractMetadata | ContractCallMetadata | TransferMetadata | None, str | None]:
-        """
-        Fetch, extract, and save transaction data to a file.
-
-        Args:
-            output_dir: Directory where to save the JSON file
-
-        Returns:
-            Tuple of (metadata, file_path). Both None if failed.
-        """
+        """Fetch, extract, and save transaction data to a file."""
         # Fetch and extract metadata
         metadata = self.fetch_and_extract()
 
@@ -183,9 +161,9 @@ class DeploymentHandler:
         self._fetch_contract_events()
 
         # Parse contract data
-        parsed_id = self._parse_contract_id(self._contract_id)
-        abi_dict = self._parse_abi(contract_response["abi"])
-        abi_functions = self._parse_abi_functions(abi_dict)
+        parsed_id = parse_contract_id(self._contract_id)
+        abi_dict = parse_abi(contract_response["abi"])
+        abi_functions = parse_abi_functions(abi_dict)
         contract_events = self._extract_contract_call_events()
 
         return ContractMetadata(
@@ -232,27 +210,6 @@ class DeploymentHandler:
             logger.error(f"Failed to fetch contract events: {e}")
             self._collection.add("get_contract_events_by_id", error=str(e))
 
-    def _parse_abi(self, abi_data) -> dict:
-        """Parse ABI string to dict if needed."""
-        return json.loads(abi_data) if isinstance(abi_data, str) else abi_data
-
-    def _parse_abi_functions(self, abi_dict: dict) -> AbiFunctions:
-        """Parse ABI and group functions by access type."""
-        public_functions = [
-            func for func in abi_dict["functions"] if func["access"] == "public"
-        ]
-
-        read_only_functions = [
-            func for func in abi_dict["functions"] if func["access"] == "read_only"
-        ]
-
-        return AbiFunctions(
-            public=public_functions,
-            read_only=read_only_functions,
-            public_names=[func["name"] for func in public_functions],
-            read_only_names=[func["name"] for func in read_only_functions],
-        )
-
     def _extract_contract_call_events(self) -> List[ContractCallEvent]:
         """Extract and parse contract call events from collection data."""
         data = self._collection.get_data()
@@ -290,14 +247,6 @@ class DeploymentHandler:
         event_match = re.search(r'\(event\s+"([^"]+)"\)', event_repr)
         return event_match.group(1) if event_match else None
 
-    def _parse_contract_id(self, contract_id: str) -> ParsedContractId:
-        """Split contract_id into address and contract name components."""
-        parts = contract_id.split(".")
-        return ParsedContractId(
-            address=parts[0],
-            contract_name=parts[1] if len(parts) > 1 else "",
-        )
-
 
 class ContractCallHandler:
     """Handles contract call transactions."""
@@ -315,10 +264,8 @@ class ContractCallHandler:
         logger.debug(f"Function: {self._tx.contract_call.function_name}")
         logger.debug(f"Args: {self._tx.contract_call.function_args}")
 
-        # Use DeploymentHandler to fetch contract details
-        deployment_handler = DeploymentHandler(self._tx, self._api, self._collection)
-        deployment_handler._contract_id = self._contract_id
-        contract_metadata = deployment_handler.extract()
+        # Fetch contract metadata (without events)
+        contract_metadata = self._fetch_contract_metadata()
 
         # Return contract call metadata with function call details
         return ContractCallMetadata(
@@ -328,6 +275,35 @@ class ContractCallHandler:
             function_args=self._tx.contract_call.function_args or [],
             sender_address=self._tx.sender_address,
             fee=self._tx.fee_rate,
+        )
+
+    def _fetch_contract_metadata(self) -> ContractMetadata:
+        """Fetch contract metadata for the called contract (without events)."""
+        # Fetch contract details
+        try:
+            contract = self._api.get_contract_by_id(self._contract_id)
+            self._collection.add("get_contract_by_id", contract)
+            logger.debug(f"Contract fetched: {contract.contract_id}")
+            logger.debug(f"Source code length: {len(contract.source_code)} chars")
+        except Exception as e:
+            logger.error(f"Failed to fetch contract: {e}")
+            self._collection.add("get_contract_by_id", error=str(e))
+            raise
+
+        # Parse contract data
+        parsed_id = parse_contract_id(self._contract_id)
+        abi_dict = parse_abi(contract.abi)
+        abi_functions = parse_abi_functions(abi_dict)
+
+        return ContractMetadata(
+            contract_id=self._contract_id,
+            contract_name=parsed_id.contract_name,
+            contract_address=parsed_id.address,
+            source_code=contract.source_code,
+            abi=abi_dict,
+            abi_functions=abi_functions,
+            tx_id=contract.tx_id,
+            contract_events=None,  # Not fetched for contract calls
         )
 
 

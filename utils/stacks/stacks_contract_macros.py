@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""
-Advanced contract operations and macros for Stacks blockchain.
-
-This module provides ContractMacros with higher-level functions for
-contract operations, including calling events and read-only functions.
-"""
+"""Advanced contract operations and macros for Stacks blockchain."""
 
 import re
 from typing import List, Optional
@@ -20,19 +15,7 @@ from utils.types.tokens import StacksToken
 
 
 def _find_function_by_event(event_name: str, source_code: str) -> str | None:
-    """
-    Find which function contains a specific event by searching the source code.
-
-    This searches for print statements containing the event name, then determines
-    which public function contains that print statement.
-
-    Args:
-        event_name: The event name (e.g., "incremented")
-        source_code: The contract source code
-
-    Returns:
-        The function name that contains this event, or None if not found
-    """
+    """Find which function contains a specific event by searching the source code."""
     # Search for the event in print statements
     # Pattern: (print {event: "event_name"
     event_pattern = rf'\(print\s+\{{[^}}]*event:\s*"{re.escape(event_name)}"'
@@ -68,12 +51,7 @@ def _find_function_by_event(event_name: str, source_code: str) -> str | None:
 
 
 class ContractMacros:
-    """
-    Advanced contract operations for Stacks blockchain.
-
-    This class provides higher-level functions for contract operations,
-    similar to StacksChain but with more advanced capabilities.
-    """
+    """Advanced contract operations for Stacks blockchain."""
 
     def __init__(self, chain, metadata: ContractMetadata):
         """
@@ -94,30 +72,16 @@ class ContractMacros:
         fee: Optional[StacksToken] = None,
         timeout: int = 120,
     ) -> List[EventCallResult]:
-        """
-        Call contract functions based on contract call events.
-
-        This method:
-        1. Iterates through each contract call event
-        2. Finds the corresponding function in the contract source
-        3. Calls the function on the blockchain
-        4. Returns results for each event
-
-        Args:
-            caller_account: Account to use for calling functions
-            local_deployer_address: Address where contract is deployed
-            events: List of events to process (defaults to metadata.contract_events)
-            fee: Transaction fee (defaults to 10,000 microstx)
-            timeout: Timeout for transaction confirmation in seconds
-
-        Returns:
-            List of EventCallResult objects with status of each call
-        """
+        """Call contract functions based on provided events or metadata events."""
         if fee is None:
             fee = StacksToken.from_microstx(10_000)
 
-        if events is None:
-            events = self._metadata.contract_events
+        # Use provided events, or fallback to metadata events, or empty list
+        events = events or self._metadata.contract_events or []
+
+        if not events:
+            logger.warning("No events available to process")
+            return []
 
         results = []
 
@@ -204,21 +168,7 @@ class ContractMacros:
         caller_address: str,
         local_deployer_address: str,
     ) -> List[ReadOnlyResult]:
-        """
-        Call all read-only functions from the contract's ABI.
-
-        This method:
-        1. Iterates through all read-only functions in the ABI
-        2. Calls each function on the blockchain
-        3. Returns results for each function call
-
-        Args:
-            caller_address: Address to use as sender for read-only calls
-            local_deployer_address: Address where contract is deployed locally
-
-        Returns:
-            List of ReadOnlyResult objects with status of each function call
-        """
+        """Call all read-only functions from the contract's ABI."""
         results = []
 
         logger.info(
