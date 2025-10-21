@@ -86,7 +86,7 @@ class ContractMacros:
         results = []
 
         for i, event in enumerate(events):
-            logger.info(f"Event {i+1}: {event.event_repr}")
+            logger.debug(f"Event {i+1}: {event.event_repr}")
 
             if not event.event_name:
                 logger.warning(f"Could not parse event name from: {event.event_repr}")
@@ -101,7 +101,7 @@ class ContractMacros:
                 )
                 continue
 
-            logger.info(f"Detected event: {event.event_name}")
+            logger.debug(f"Detected event: {event.event_name}")
 
             # Find which function contains this event
             function_name = _find_function_by_event(
@@ -126,7 +126,7 @@ class ContractMacros:
                 )
                 continue
 
-            logger.info(f"Found function in source: {function_name}")
+            logger.debug(f"Found function in source: {function_name}")
 
             # Call the function
             call_result = self._chain.call_contract_write_function_and_confirm(
@@ -171,13 +171,13 @@ class ContractMacros:
         """Call all read-only functions from the contract's ABI."""
         results = []
 
-        logger.info(
+        logger.debug(
             f"Found {len(self._metadata.abi_functions.read_only)} read-only functions"
         )
 
         for func in self._metadata.abi_functions.read_only:
             function_name = func["name"]
-            logger.info(f"Calling read-only: {function_name}")
+            logger.debug(f"Calling read-only: {function_name}")
 
             read_result = self._chain.call_contract_read_function(
                 contract_address=local_deployer_address,

@@ -61,7 +61,7 @@ class MinerManager:
                     failed_miners.append(miner_name)
 
             if len(ready_miners) == len(self._apis):
-                logger.info(f"All {len(self._apis)} miners are ready.", Colors.ORANGE)
+                logger.debug(f"All {len(self._apis)} miners are ready.", Colors.ORANGE)
                 return True
 
             elapsed = time.time() - start_time
