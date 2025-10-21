@@ -39,7 +39,8 @@ class ReplicateTransferRecipe(RecipeTemplate):
         logger.header("Step 1: Fetch mainnet data")
         TARGET_TX_ID = "0x65e35f27826de006f73f9813b821a1f27a2b93d8d68e13726e69323dfa2b4330"
 
-        handler = TransactionHandler(TARGET_TX_ID)
+        from utils.stacks.hiro_api import HiroAPI
+        handler = TransactionHandler(TARGET_TX_ID, api=HiroAPI.mainnet())
         tmp_dir = os.path.join(PROJECT_ROOT, "tmp")
         metadata, data_file = handler.fetch_extract_and_save(tmp_dir)
 

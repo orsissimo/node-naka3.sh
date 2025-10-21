@@ -14,7 +14,7 @@ from utils.stacks.hiro_api import HiroAPI
 
 def test_and_capture_responses():
     """Test all Hiro API endpoints and capture full responses."""
-    api = HiroAPI()
+    api = HiroAPI.mainnet()
 
     # Prepare output data
     output_data = {

@@ -63,9 +63,9 @@ class TransactionHandler:
     - TransferHandler for token transfers
     """
 
-    def __init__(self, txid: str):
+    def __init__(self, txid: str, api: HiroAPI):
         self._txid = txid
-        self._api = HiroAPI()
+        self._api = api
         self._collection = ResponseCollection(txid)
         self._tx = None
 

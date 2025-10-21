@@ -40,8 +40,9 @@ class ContractOperationsRecipe(RecipeTemplate):
         # Fetch and extract transaction data
         logger.header("Step 1: Fetch mainnet data")
         TARGET_TX_ID = "0x8acc030ea9ba31fbcb1821fcdb671c542e90ec9dfe87c67979e6bac3f47c891b"
-        
-        handler = TransactionHandler(TARGET_TX_ID)
+
+        from utils.stacks.hiro_api import HiroAPI
+        handler = TransactionHandler(TARGET_TX_ID, api=HiroAPI.mainnet())
         tmp_dir = os.path.join(PROJECT_ROOT, "tmp")
         metadata, data_file = handler.fetch_extract_and_save(tmp_dir)
 

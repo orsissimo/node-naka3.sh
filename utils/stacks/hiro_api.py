@@ -10,12 +10,11 @@ from utils.types.hiro.exceptions import *
 
 T = TypeVar("T")
 
-# FIXME: Factory method class: HiroAPI.mainnet(), HiroAPI.testnet()
 
 class HiroAPI:
     def __init__(
         self,
-        base_url: str = "https://api.mainnet.hiro.so",
+        base_url: str,
         timeout: int = 30,
     ):
         self._client = APIClient(
@@ -25,6 +24,16 @@ class HiroAPI:
             network_exception=HiroNetworkException,
             http_exception=HiroHTTPException,
         )
+
+    @classmethod
+    def mainnet(cls, timeout: int = 30) -> "HiroAPI":
+        """Create HiroAPI instance for Hiro mainnet."""
+        return cls(base_url="https://api.mainnet.hiro.so", timeout=timeout)
+
+    @classmethod
+    def testnet(cls, timeout: int = 30) -> "HiroAPI":
+        """Create HiroAPI instance for Hiro testnet."""
+        return cls(base_url="https://api.testnet.hiro.so", timeout=timeout)
 
     @property
     def base_url(self) -> str:
