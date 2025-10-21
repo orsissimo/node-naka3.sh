@@ -86,7 +86,6 @@ class ReplicateTransferRecipe(RecipeTemplate):
         transfer_amount = StacksToken.from_microstx(int(transfer_metadata.amount))
         transaction_fee = StacksToken.from_microstx(int(transfer_metadata.fee))
 
-        logger.info(f"Replicating transfer with exact mainnet parameters:")
         logger.info(f"Amount: {transfer_amount.format_stx()}")
         logger.info(f"Fee: {transaction_fee.format_stx()}")
         logger.info(f"Memo: {transfer_metadata.memo}")
