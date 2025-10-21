@@ -35,7 +35,7 @@ class ReplicateTransferRecipe(RecipeTemplate):
 
         logger.header("REPLICATING TOKEN TRANSFER FROM MAINNET")
 
-        # Step 1: Fetch and extract transaction data
+        # Fetch and extract transaction data
         logger.header("Step 1: Fetch mainnet data")
         TARGET_TX_ID = "0x65e35f27826de006f73f9813b821a1f27a2b93d8d68e13726e69323dfa2b4330"
 
@@ -76,7 +76,7 @@ class ReplicateTransferRecipe(RecipeTemplate):
         logger.info(f"Local sender: {sender_account.address}")
         logger.info(f"Local recipient: {recipient_account.address}")
 
-        # Step 3: Check initial balances
+        # Check initial balances
         logger.header("Step 3: Check initial balances")
         sender_initial = chain.get_stx_balance(sender_account.address)
         recipient_initial = chain.get_stx_balance(recipient_account.address)
@@ -84,7 +84,7 @@ class ReplicateTransferRecipe(RecipeTemplate):
         logger.info(f"Sender balance: {sender_initial.format_stx()}")
         logger.info(f"Recipient balance: {recipient_initial.format_stx()}")
 
-        # Step 4: Execute the replicated transfer
+        # Execute the replicated transfer
         logger.header("Step 4: Execute replicated transfer")
         transfer_amount = StacksToken.from_microstx(int(transfer_metadata.amount))
         transaction_fee = StacksToken.from_microstx(int(transfer_metadata.fee))
@@ -109,7 +109,7 @@ class ReplicateTransferRecipe(RecipeTemplate):
 
         logger.success(f"Transfer confirmed: {result.txid}")
 
-        # Step 5: Verify final balances
+        # Verify final balances
         logger.header("Step 5: Verify final balances")
         sender_final = chain.get_stx_balance(sender_account.address)
         recipient_final = chain.get_stx_balance(recipient_account.address)

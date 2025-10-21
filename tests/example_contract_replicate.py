@@ -41,7 +41,7 @@ class ContractOperationsRecipe(RecipeTemplate):
 
         logger.header("CONTRACT OPERATIONS FROM MAINNET DATA")
 
-        # Step 1: Fetch and extract transaction data
+        # Fetch and extract transaction data
         logger.header("Step 1: Fetch mainnet data")
         handler = TransactionHandler(TARGET_TX_ID)
         tmp_dir = os.path.join(PROJECT_ROOT, "tmp")
@@ -61,9 +61,10 @@ class ContractOperationsRecipe(RecipeTemplate):
 
         logger.info(f"Contract name: {contract_metadata.contract_name}")
         logger.info(f"Source code: {len(contract_metadata.source_code)} chars")
-        logger.info(
-            f"Events to replicate: {len(contract_metadata.contract_events)}"
-        )
+        if contract_metadata.contract_events is not None:
+            logger.info(
+                f"Events to replicate: {len(contract_metadata.contract_events)}"
+            )
         logger.success(f"Data loaded and saved to: {data_file}")
 
         # Setup local environment
