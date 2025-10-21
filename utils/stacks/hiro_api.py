@@ -158,7 +158,7 @@ class HiroAPI:
         contract_id: str,
         *,
         unanchored: Optional[bool] = None,
-    ) -> ContractInfo:
+    ) -> ContractApiResponse:
         """GET /extended/v1/contract/{contract_id} - Get contract info."""
         params = {}
         if unanchored is not None:
@@ -166,7 +166,7 @@ class HiroAPI:
 
         return self._client.do_get(
             f"/extended/v1/contract/{contract_id}",
-            ContractInfo,
+            ContractApiResponse,
             self._extract_error_message,
             self._handle_custom_types,
             params=params,
@@ -207,7 +207,7 @@ class HiroAPI:
         offset: Optional[int] = None,
         unanchored: Optional[bool] = None,
         until_block: Optional[str] = None,
-    ) -> AddressAssets:
+    ) -> AddressAssetList:
         """GET /extended/v1/address/{principal}/assets - Get account assets."""
         params = {}
         if limit is not None:
@@ -221,7 +221,7 @@ class HiroAPI:
 
         return self._client.do_get(
             f"/extended/v1/address/{principal}/assets",
-            AddressAssets,
+            AddressAssetList,
             self._extract_error_message,
             self._handle_custom_types,
             params=params,

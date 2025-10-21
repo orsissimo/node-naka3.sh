@@ -24,25 +24,6 @@ class MiningMode(Enum):
     MANUAL = "manual"
 
 
-class TransactionStatus(Enum):
-    """Transaction status enum."""
-
-    SUBMITTED = "submitted"
-    PENDING = "pending"
-    CONFIRMED = "confirmed"
-    FAILED = "failed"
-
-
-class TxStatus(Enum):
-    """Transaction status values from Stacks API."""
-
-    SUCCESS = "success"
-    PENDING = "pending"
-    ABORT_BY_RESPONSE = "abort_by_response"
-    ABORT_BY_POST_CONDITION = "abort_by_post_condition"
-    UNKNOWN = "unknown"
-
-
 class Account(BaseModel):
     """Pydantic model for miner account information."""
 

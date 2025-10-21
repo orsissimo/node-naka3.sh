@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from ..tokens import StacksToken
 
 
-class AccountInfo(BaseModel):
+class AccountApiResponse(BaseModel):
     """Type-safe account information from API."""
 
     address: str
@@ -28,7 +28,7 @@ class AccountInfo(BaseModel):
         return StacksToken.from_microstx(self.balance)
 
 
-class AddressInfo(BaseModel):
+class AddressApiResponse(BaseModel):
     """Typed response from addresses command."""
 
     stx_address: str = Field(alias="STX")
@@ -62,7 +62,7 @@ class ContractSource(BaseModel):
         populate_by_name = True
 
 
-class NodeInfo(BaseModel):
+class NodeApiResponse(BaseModel):
     """Typed node information from /v2/info endpoint."""
 
     peer_version: int
@@ -158,7 +158,7 @@ class PoxContractVersion(BaseModel):
         populate_by_name = True
 
 
-class PoxInfo(BaseModel):
+class PoxApiResponse(BaseModel):
     """Typed PoX information from /v2/pox endpoint."""
 
     contract_id: str
@@ -196,7 +196,7 @@ class ReadOnlyFunctionResult(BaseModel):
         populate_by_name = True
 
 
-class SecretKeyInfo(BaseModel):
+class SecretKeyApiResponse(BaseModel):
     """Typed response from generate-sk command."""
 
     secret_key: str = Field(alias="secretKey")
@@ -207,7 +207,7 @@ class SecretKeyInfo(BaseModel):
         populate_by_name = True
 
 
-class SortitionInfo(BaseModel):
+class SortitionApiResponse(BaseModel):
     """Sortition information from /v3/sortitions endpoint."""
 
     # Based on the actual API response structure
@@ -234,7 +234,7 @@ class TraitImplementationResponse(BaseModel):
         populate_by_name = True
 
 
-class TenureInfo(BaseModel):
+class TenureApiResponse(BaseModel):
     """Tenure information from /v3/tenures/info endpoint."""
 
     consensus_hash: str

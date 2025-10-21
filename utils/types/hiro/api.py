@@ -104,7 +104,7 @@ class PostCondition(BaseModel):
         populate_by_name = True
 
 
-class SmartContractData(BaseModel):
+class SmartContractInfo(BaseModel):
     """Smart contract deployment data."""
 
     contract_id: str
@@ -114,7 +114,7 @@ class SmartContractData(BaseModel):
         populate_by_name = True
 
 
-class ContractCallData(BaseModel):
+class ContractCallInfo(BaseModel):
     """Contract call data."""
 
     contract_id: str
@@ -126,7 +126,7 @@ class ContractCallData(BaseModel):
         populate_by_name = True
 
 
-class TokenTransferData(BaseModel):
+class TokenTransferInfo(BaseModel):
     """Token transfer data."""
 
     recipient_address: str
@@ -176,9 +176,9 @@ class Transaction(BaseModel):
     tx_type: TransactionType
 
     # Transaction type-specific fields
-    smart_contract: Optional[SmartContractData] = None
-    contract_call: Optional[ContractCallData] = None
-    token_transfer: Optional[TokenTransferData] = None
+    smart_contract: Optional[SmartContractInfo] = None
+    contract_call: Optional[ContractCallInfo] = None
+    token_transfer: Optional[TokenTransferInfo] = None
 
     class Config:
         populate_by_name = True
@@ -222,8 +222,12 @@ class EventsList(BaseModel):
         populate_by_name = True
 
 
-class ContractInfo(BaseModel):
-    """Smart contract information."""
+class ContractApiResponse(BaseModel):
+    """Smart contract information from API response.
+
+    This is the raw API response from Hiro API.
+    For processed contract metadata, use ContractMetadata from infrastructure.py.
+    """
 
     tx_id: str
     canonical: bool
@@ -231,85 +235,6 @@ class ContractInfo(BaseModel):
     block_height: int
     source_code: str
     abi: str
-
-    class Config:
-        populate_by_name = True
-
-
-class AddressStxBalance(BaseModel):
-    """STX balance for an address."""
-
-    balance: str
-    total_sent: str
-    total_received: str
-    total_fees_sent: str
-    total_miner_rewards_received: str
-    lock_tx_id: str
-    locked: str
-    lock_height: int
-    burnchain_lock_height: int
-    burnchain_unlock_height: int
-
-    class Config:
-        populate_by_name = True
-
-
-class FungibleTokenBalance(BaseModel):
-    """Fungible token balance."""
-
-    balance: str
-    total_sent: str
-    total_received: str
-
-    class Config:
-        populate_by_name = True
-
-
-class NonFungibleTokenBalance(BaseModel):
-    """Non-fungible token balance."""
-
-    count: str
-    total_sent: str
-    total_received: str
-
-    class Config:
-        populate_by_name = True
-
-
-class AddressBalance(BaseModel):
-    """Complete address balance information."""
-
-    stx: AddressStxBalance
-    fungible_tokens: Dict[str, FungibleTokenBalance] = Field(default_factory=dict)
-    non_fungible_tokens: Dict[str, NonFungibleTokenBalance] = Field(
-        default_factory=dict
-    )
-
-    class Config:
-        populate_by_name = True
-
-
-class AddressTransactionWithTransfers(BaseModel):
-    """Transaction with transfer information for an address."""
-
-    tx: Transaction
-    stx_sent: str
-    stx_received: str
-    stx_transfers: List[Dict[str, Any]] = Field(default_factory=list)
-    ft_transfers: List[Dict[str, Any]] = Field(default_factory=list)
-    nft_transfers: List[Dict[str, Any]] = Field(default_factory=list)
-
-    class Config:
-        populate_by_name = True
-
-
-class AddressTransactionsWithTransfers(BaseModel):
-    """Response for address transactions with transfers."""
-
-    limit: int
-    offset: int
-    total: int
-    results: List[AddressTransactionWithTransfers]
 
     class Config:
         populate_by_name = True
@@ -327,25 +252,13 @@ class AddressAsset(BaseModel):
         populate_by_name = True
 
 
-class AddressAssets(BaseModel):
+class AddressAssetList(BaseModel):
     """Assets response for an address."""
 
     limit: int
     offset: int
     total: int
     results: List[AddressAsset]
-
-    class Config:
-        populate_by_name = True
-
-
-class StxTransfer(BaseModel):
-    """STX transfer information."""
-
-    amount: str
-    sender: str
-    recipient: str
-    memo: Optional[str] = None
 
     class Config:
         populate_by_name = True

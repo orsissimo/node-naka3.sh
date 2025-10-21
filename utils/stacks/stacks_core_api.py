@@ -120,10 +120,10 @@ class StacksCoreAPI:
         return None
 
     # --- V2 Transactions, Accounts, and Info ---
-    def get_info(self) -> NodeInfo:
+    def get_info(self) -> NodeApiResponse:
         """GET /v2/info - Get Core API information."""
         return self._client.do_get(
-            "/v2/info", NodeInfo, self._extract_error_message, self._handle_custom_types
+            "/v2/info", NodeApiResponse, self._extract_error_message, self._handle_custom_types
         )
 
     def post_raw_transaction(self, raw_tx_bytes: bytes) -> String:
@@ -139,14 +139,14 @@ class StacksCoreAPI:
 
     def get_account_info(
         self, principal: str, *, proof: Optional[int] = None, tip: Optional[str] = None
-    ) -> AccountInfo:
+    ) -> AccountApiResponse:
         """GET /v2/accounts/{principal} - Get account information. Expects principal as address string."""
         params = {
             k: v for k, v in {"proof": proof, "tip": tip}.items() if v is not None
         }
         return self._client.do_get(
             f"/v2/accounts/{principal}",
-            AccountInfo,
+            AccountApiResponse,
             self._extract_error_message,
             self._handle_custom_types,
             params=params,
@@ -154,11 +154,11 @@ class StacksCoreAPI:
             balance=lambda data: self._parse_hex_balance(data.get("balance", "0x0")),
         )
 
-    def get_pox_info(self, *, tip: Optional[str] = None) -> PoxInfo:
+    def get_pox_info(self, *, tip: Optional[str] = None) -> PoxApiResponse:
         """GET /v2/pox - Get Proof of Transfer (PoX) information."""
         return self._client.do_get(
             "/v2/pox",
-            PoxInfo,
+            PoxApiResponse,
             self._extract_error_message,
             self._handle_custom_types,
             params={"tip": tip} if tip else {},
@@ -323,11 +323,11 @@ class StacksCoreAPI:
             tx_type="unknown",
         )
 
-    def get_tenure_info(self) -> Optional[TenureInfo]:
+    def get_tenure_info(self) -> Optional[TenureApiResponse]:
         """GET /v3/tenures/info - Fetch metadata about the ongoing Nakamoto tenure."""
         return self._client.do_get(
             "/v3/tenures/info",
-            TenureInfo,
+            TenureApiResponse,
             self._extract_error_message,
             self._handle_custom_types,
         )
@@ -348,7 +348,7 @@ class StacksCoreAPI:
 
     def get_sortitions(
         self, *, lookup_kind: Optional[str] = None, lookup: Optional[str] = None
-    ) -> List[SortitionInfo]:
+    ) -> List[SortitionApiResponse]:
         """GET /v3/sortitions/{lookup_kind}/{lookup} - Fetch burnchain block info."""
         endpoint = "/v3/sortitions"
         if lookup_kind and lookup:
@@ -364,5 +364,5 @@ class StacksCoreAPI:
             self._handle_custom_types,
         )
 
-        # Parse each item into SortitionInfo
-        return [SortitionInfo.model_validate(item) for item in sortition_list.value]
+        # Parse each item into SortitionApiResponse
+        return [SortitionApiResponse.model_validate(item) for item in sortition_list.value]

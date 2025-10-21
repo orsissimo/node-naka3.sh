@@ -6,7 +6,7 @@ import shlex
 from typing import List, Optional, TypeVar, Type, cast
 from ..logger import logger
 from ..parsers import parse_cli_response
-from ..types.stacks.api import AddressInfo, SecretKeyInfo
+from ..types.stacks.api import AddressApiResponse, SecretKeyApiResponse
 from ..types.wrappers import String
 from ..types.stacks.exceptions import *
 
@@ -141,11 +141,11 @@ class BlockstackCLI:
 
     def generate_sk(
         self, *, testnet: bool = False, chain_id: Optional[str] = None
-    ) -> SecretKeyInfo:
+    ) -> SecretKeyApiResponse:
         """CLI: generate-sk - Generate a new secret key."""
         cmd = ["generate-sk"]
         return self._execute_command(
-            cmd, SecretKeyInfo, testnet, chain_id, "Generate Secret Key"
+            cmd, SecretKeyApiResponse, testnet, chain_id, "Generate Secret Key"
         )
 
     def generate_token_transfer_tx_hex(
@@ -174,9 +174,9 @@ class BlockstackCLI:
 
     def get_addresses(
         self, secret_key: str, *, testnet: bool = False, chain_id: Optional[str] = None
-    ) -> AddressInfo:
+    ) -> AddressApiResponse:
         """CLI: addresses - Get addresses from secret key."""
         cmd = ["addresses", secret_key]
         return self._execute_command(
-            cmd, AddressInfo, testnet, chain_id, "Get addresses"
+            cmd, AddressApiResponse, testnet, chain_id, "Get addresses"
         )

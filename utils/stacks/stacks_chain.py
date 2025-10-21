@@ -11,7 +11,7 @@ from ..types.tokens import StacksToken
 from ..logger import logger
 from ..base import PROJECT_ROOT
 from ..types.stacks.infrastructure import Account, TransactionResult
-from ..types.stacks.api import ReadOnlyFunctionResult, AccountInfo
+from ..types.stacks.api import ReadOnlyFunctionResult, AccountApiResponse
 
 
 class StacksChain:
@@ -21,7 +21,7 @@ class StacksChain:
         self._api = StacksCoreAPI(base_url=base_url)
         self._cli = BlockstackCLI()
 
-    def get_account_info(self, address: str) -> AccountInfo:
+    def get_account_info(self, address: str) -> AccountApiResponse:
         return self._api.get_account_info(address)
 
     def get_stx_balance(self, address: str) -> StacksToken:
