@@ -26,10 +26,6 @@ from utils.stacks.hiro_json_handler import TransactionHandler
 from utils.templates.recipe import RecipeTemplate
 
 
-# Target transaction for this example - a contract deployment
-TARGET_TX_ID = "0x8acc030ea9ba31fbcb1821fcdb671c542e90ec9dfe87c67979e6bac3f47c891b"
-
-
 class ContractOperationsRecipe(RecipeTemplate):
     """Recipe for demonstrating contract operations from mainnet data."""
 
@@ -43,6 +39,8 @@ class ContractOperationsRecipe(RecipeTemplate):
 
         # Fetch and extract transaction data
         logger.header("Step 1: Fetch mainnet data")
+        TARGET_TX_ID = "0x8acc030ea9ba31fbcb1821fcdb671c542e90ec9dfe87c67979e6bac3f47c891b"
+        
         handler = TransactionHandler(TARGET_TX_ID)
         tmp_dir = os.path.join(PROJECT_ROOT, "tmp")
         metadata, data_file = handler.fetch_extract_and_save(tmp_dir)
