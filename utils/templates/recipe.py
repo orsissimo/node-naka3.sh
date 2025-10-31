@@ -49,3 +49,7 @@ class RecipeTemplate(ABC):
             bool: True if the test passed, False otherwise
         """
         pass
+
+# TODO: Creo un'altra ricetta, un blank template per poter usare le API Hiro --> Poi faccio example che prende tutto, partendo da un address, quello che ha fatto in un certo timeframe
+# TODO: Fare funzionare il tutto con docker https://github.com/stacks-network/hacknet --naka3 --docker
+# TODO: 
