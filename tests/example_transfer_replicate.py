@@ -21,10 +21,10 @@ from utils.types.stacks.infrastructure import Miner
 from utils.stacks.stacks_chain import StacksChain
 from utils.types.tokens import StacksToken
 from utils.stacks.hiro_json_handler import TransactionHandler
-from utils.templates.recipe import RecipeTemplate
+from utils.templates.recipe_naka3 import RecipeTemplate
 
 
-class ReplicateTransferRecipe(RecipeTemplate):
+class Recipe(RecipeTemplate):
     """Recipe for replicating a token transfer from mainnet."""
 
     def _run_recipe(self) -> bool:
@@ -139,6 +139,6 @@ class ReplicateTransferRecipe(RecipeTemplate):
 
 
 if __name__ == "__main__":
-    recipe = ReplicateTransferRecipe()
+    recipe = Recipe()
     success = recipe.execute()
     sys.exit(0 if success else 1)

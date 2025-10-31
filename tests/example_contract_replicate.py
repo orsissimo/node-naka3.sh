@@ -23,10 +23,10 @@ from utils.stacks.stacks_chain import StacksChain
 from utils.types.tokens import StacksToken
 from utils.stacks.stacks_contract_macros import ContractMacros
 from utils.stacks.hiro_json_handler import TransactionHandler
-from utils.templates.recipe import RecipeTemplate
+from utils.templates.recipe_naka3 import RecipeTemplate
 
 
-class ContractOperationsRecipe(RecipeTemplate):
+class Recipe(RecipeTemplate):
     """Recipe for demonstrating contract operations from mainnet data."""
 
     def _run_recipe(self) -> bool:
@@ -140,9 +140,8 @@ class ContractOperationsRecipe(RecipeTemplate):
 
 
 if __name__ == "__main__":
-    recipe = ContractOperationsRecipe()
+    recipe = Recipe()
     success = recipe.execute()
     sys.exit(0 if success else 1)
 
 # TODO: Definire un punto di ingresso unico per le ricette - investigare e creare un runner: ./runner.py --recipe example_contract_replicate "+params"
-# TODO: Ogni ricetta la chiamo solo Recipe()

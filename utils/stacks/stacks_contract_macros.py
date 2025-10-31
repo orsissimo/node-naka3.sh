@@ -163,20 +163,29 @@ class ContractMacros:
 
         return results
 
-    # TODO: Add option to pass a list of readonly functions to override all
     def call_read_only_functions(
         self,
         caller_address: str,
         local_deployer_address: str,
+        readonly_functions: Optional[List[dict]] = None,
     ) -> List[ReadOnlyResult]:
-        """Call all read-only functions from the contract's ABI."""
-        results = []
-
-        logger.debug(
-            f"Found {len(self._metadata.abi_functions.read_only)} read-only functions"
+        """Call read-only functions from the contract's ABI."""
+        # Use provided functions, or fallback to metadata functions, or empty list
+        functions_to_call = (
+            readonly_functions
+            if readonly_functions is not None
+            else self._metadata.abi_functions.read_only or []
         )
 
-        for func in self._metadata.abi_functions.read_only:
+        if not functions_to_call:
+            logger.warning("No read-only functions available to process")
+            return []
+
+        results = []
+
+        logger.debug(f"Found {len(functions_to_call)} read-only functions")
+
+        for func in functions_to_call:
             function_name = func["name"]
             logger.debug(f"Calling read-only: {function_name}")
 
@@ -208,5 +217,3 @@ class ContractMacros:
                 )
 
         return results
-
-

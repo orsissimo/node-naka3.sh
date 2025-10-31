@@ -16,10 +16,10 @@ from utils.stacks.stacks_chain import StacksChain
 from utils.stacks.stacks_core_api import StacksCoreAPI
 from utils.stacks.blockstack_cli import BlockstackCLI
 from utils.types.tokens import StacksToken
-from utils.templates.recipe import RecipeTemplate
+from utils.templates.recipe_naka3 import RecipeTemplate
 
 
-class ApiCliUsageRecipe(RecipeTemplate):
+class Recipe(RecipeTemplate):
     def _run_recipe(self) -> bool:
         logger.header("COMPREHENSIVE STACKS CORE API & BLOCKSTACK CLI TEST")
 
@@ -368,6 +368,6 @@ class ApiCliUsageRecipe(RecipeTemplate):
 
 
 if __name__ == "__main__":
-    recipe = ApiCliUsageRecipe()
+    recipe = Recipe()
     success = recipe.execute()
     sys.exit(0 if success else 1)

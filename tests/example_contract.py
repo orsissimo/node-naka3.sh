@@ -20,10 +20,10 @@ from utils.types.stacks.infrastructure import Miner
 from utils.logger import logger
 from utils.stacks.stacks_chain import StacksChain
 from utils.types.tokens import StacksToken
-from utils.templates.recipe import RecipeTemplate
+from utils.templates.recipe_naka3 import RecipeTemplate
 
 
-class ContractDeploymentRecipe(RecipeTemplate):
+class Recipe(RecipeTemplate):
     def _run_recipe(self) -> bool:
         logger.header("SMART CONTRACT DEPLOYMENT & INTERACTION TEST")
 
@@ -222,6 +222,6 @@ class ContractDeploymentRecipe(RecipeTemplate):
 
 
 if __name__ == "__main__":
-    recipe = ContractDeploymentRecipe()
+    recipe = Recipe()
     success = recipe.execute()
     sys.exit(0 if success else 1)
