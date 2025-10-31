@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
-"""Template Method pattern implementation for test recipes."""
+"""Minimal recipe template for API-only workflows."""
 
 from abc import ABC, abstractmethod
-from utils.stacks.miners import MinerManager
 from utils.logger import logger
 
 
 class RecipeTemplate(ABC):
     """
-    Template Method pattern implementation for test recipes.
+    Template Method pattern for lightweight recipes.
 
-    Defines the skeleton of a test algorithm, with common setup, cleanup,
-    and error handling, while allowing subclasses to implement the specific
-    test logic.
+    Provides a clean execute() wrapper with error handling, suitable for
+    scripts that interact with external APIs (e.g., Hiro) without spinning
+    up local miners or performing chain orchestration.
     """
 
     def execute(self) -> bool:
