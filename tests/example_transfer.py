@@ -21,10 +21,10 @@ from utils.logger import logger
 from utils.stacks.stacks_chain import StacksChain
 from utils.types.tokens import StacksToken
 from utils.asserts import check_eq
-from utils.templates.recipe import RecipeTemplate
+from utils.templates.recipe_naka3 import RecipeTemplate
 
 
-class TransferRecipe(RecipeTemplate):
+class Recipe(RecipeTemplate):
     def _run_recipe(self) -> bool:
         logger.header("STX TOKEN TRANSFER TEST")
 
@@ -152,6 +152,6 @@ class TransferRecipe(RecipeTemplate):
 
 
 if __name__ == "__main__":
-    recipe = TransferRecipe()
+    recipe = Recipe()
     success = recipe.execute()
     sys.exit(0 if success else 1)

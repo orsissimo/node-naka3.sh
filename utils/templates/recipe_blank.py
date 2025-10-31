@@ -15,14 +15,6 @@ class RecipeTemplate(ABC):
     test logic.
     """
 
-    def __init__(self):
-        self._miners = MinerManager()
-
-    @property
-    def miners(self) -> MinerManager:
-        """Protected access to miners for subclasses."""
-        return self._miners
-
     def execute(self) -> bool:
         """
         Template method that defines the algorithm skeleton.
@@ -34,10 +26,6 @@ class RecipeTemplate(ABC):
             logger.error(f"TEST FAILED - Unexpected Error: {str(e)}")
             logger.error(f"Error type: {type(e).__name__}")
             return False
-        finally:
-            logger.header("Cleaning up...")
-            self._miners.stop()
-            self._miners.cleanup()
 
     @abstractmethod
     def _run_recipe(self) -> bool:
@@ -49,7 +37,3 @@ class RecipeTemplate(ABC):
             bool: True if the test passed, False otherwise
         """
         pass
-
-# TODO: Creo un'altra ricetta, un blank template per poter usare le API Hiro --> Poi faccio example che prende tutto, partendo da un address, quello che ha fatto in un certo timeframe
-# TODO: Fare funzionare il tutto con docker https://github.com/stacks-network/hacknet --naka3 --docker
-# TODO: 
