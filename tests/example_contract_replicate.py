@@ -143,5 +143,3 @@ if __name__ == "__main__":
     recipe = Recipe()
     success = recipe.execute()
     sys.exit(0 if success else 1)
-
-# TODO: Definire un punto di ingresso unico per le ricette - investigare e creare un runner: ./runner.py --recipe example_contract_replicate "+params"
