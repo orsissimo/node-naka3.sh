@@ -82,9 +82,18 @@ class HiroAPI:
         offset: Optional[int] = None,
         type_filter: Optional[List[str]] = None,
         unanchored: Optional[bool] = None,
+        order: Optional[str] = None,
+        sort_by: Optional[str] = None,
+        from_address: Optional[str] = None,
+        to_address: Optional[str] = None,
+        start_time: Optional[int] = None,
+        end_time: Optional[int] = None,
+        contract_id: Optional[str] = None,
+        function_name: Optional[str] = None,
+        nonce: Optional[int] = None,
     ) -> TransactionList:
-        """GET /extended/v1/tx/ - Get recent transactions."""
-        params = {}
+        """GET /extended/v1/tx/ - Get recent transactions or query with filters."""
+        params: Dict[str, Union[str, List[str]]] = {}
         if limit is not None:
             params["limit"] = str(limit)
         if offset is not None:
@@ -93,6 +102,24 @@ class HiroAPI:
             params["type"] = type_filter
         if unanchored is not None:
             params["unanchored"] = str(unanchored).lower()
+        if order is not None:
+            params["order"] = order
+        if sort_by is not None:
+            params["sort_by"] = sort_by
+        if from_address is not None:
+            params["from_address"] = from_address
+        if to_address is not None:
+            params["to_address"] = to_address
+        if start_time is not None:
+            params["start_time"] = str(start_time)
+        if end_time is not None:
+            params["end_time"] = str(end_time)
+        if contract_id is not None:
+            params["contract_id"] = contract_id
+        if function_name is not None:
+            params["function_name"] = function_name
+        if nonce is not None:
+            params["nonce"] = str(nonce)
 
         return self._client.do_get(
             "/extended/v1/tx/",
